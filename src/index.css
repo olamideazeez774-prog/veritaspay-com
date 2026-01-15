@@ -2,95 +2,142 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* 
+  HIGH-TRUST AFFILIATE MARKETPLACE 
+  Bold & Colorful Design System
+  All colors in HSL format
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    /* Primary - Vibrant Indigo */
+    --primary: 252 87% 54%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Fresh Teal */
+    --secondary: 174 84% 40%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Background & Foreground */
+    --background: 240 20% 99%;
+    --foreground: 240 10% 10%;
+    
+    /* Card */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 240 10% 10%;
+    
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --popover-foreground: 240 10% 10%;
+    
+    /* Muted */
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 5% 45%;
+    
+    /* Accent - Bright Coral */
+    --accent: 12 95% 62%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive - Bold Red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success - Fresh Green */
+    --success: 152 76% 42%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning - Amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+    
+    /* Info - Sky Blue */
+    --info: 200 90% 50%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Border & Input */
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 252 87% 54%;
+    
+    /* Border Radius */
+    --radius: 0.75rem;
+    
+    /* Sidebar */
+    --sidebar-background: 240 20% 98%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-primary: 252 87% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 10% 94%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 240 10% 90%;
+    --sidebar-ring: 252 87% 54%;
+    
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(252 87% 54%) 0%, hsl(280 87% 60%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(174 84% 40%) 0%, hsl(152 76% 42%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(12 95% 62%) 0%, hsl(38 92% 50%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(252 87% 54% / 0.1) 0%, hsl(174 84% 40% / 0.1) 100%);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Primary */
+    --primary: 252 87% 64%;
+    --primary-foreground: 0 0% 10%;
+    
+    /* Secondary */
+    --secondary: 174 84% 50%;
+    --secondary-foreground: 0 0% 10%;
+    
+    /* Background & Foreground */
+    --background: 240 10% 6%;
+    --foreground: 0 0% 95%;
+    
+    /* Card */
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 95%;
+    
+    /* Popover */
+    --popover: 240 10% 10%;
+    --popover-foreground: 0 0% 95%;
+    
+    /* Muted */
+    --muted: 240 10% 18%;
+    --muted-foreground: 240 5% 60%;
+    
+    /* Accent */
+    --accent: 12 95% 62%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success */
+    --success: 152 76% 50%;
+    --success-foreground: 0 0% 10%;
+    
+    /* Warning */
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 10%;
+    
+    /* Info */
+    --info: 200 90% 55%;
+    --info-foreground: 0 0% 10%;
+    
+    /* Border & Input */
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 252 87% 64%;
+    
+    /* Sidebar */
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 252 87% 64%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 240 10% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 240 10% 20%;
+    --sidebar-ring: 252 87% 64%;
   }
 }
 
@@ -100,6 +147,39 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .glass {
+    @apply bg-card/80 backdrop-blur-lg border border-border/50;
+  }
+  
+  .stat-card {
+    @apply bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md transition-shadow;
   }
 }
