@@ -1,7 +1,7 @@
 // Platform configuration constants
 
-export const PLATFORM_NAME = "TrustFlow";
-export const PLATFORM_TAGLINE = "High-Trust Affiliate Marketplace";
+export const PLATFORM_NAME = "Afficore";
+export const PLATFORM_TAGLINE = "The Modern Affiliate Marketplace";
 
 export const DEFAULT_PLATFORM_FEE_PERCENT = 10;
 export const DEFAULT_COMMISSION_PERCENT = 30;
