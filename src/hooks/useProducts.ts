@@ -132,3 +132,38 @@ export function useDeleteProduct() {
     },
   });
 }
+
+export function useAllProducts() {
+  return useQuery({
+    queryKey: ["all-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+}
+
+export function useApproveProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, approve }: { productId: string; approve: boolean }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_approved: approve })
+        .eq("id", productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Product updated!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
