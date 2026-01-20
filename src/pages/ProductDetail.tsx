@@ -33,22 +33,22 @@ export default function ProductDetail() {
   const { data: product, isLoading, error } = useProduct(productId || "");
   const createAffiliateLink = useCreateAffiliateLink();
 
-  // If we have a code, look up the product
+  // If we have a code, look up the product and track click
   useEffect(() => {
     if (code && !id) {
       const lookupProduct = async () => {
         const { data } = await supabase
           .from("affiliate_links")
-          .select("product_id")
+          .select("id, product_id")
           .eq("unique_code", code)
           .single();
 
         if (data) {
           setProductId(data.product_id);
           setAffiliateCode(code);
-          // Track click
+          // Track click with correct link_id
           await supabase.from("clicks").insert({
-            link_id: data.product_id,
+            link_id: data.id,
             referrer: document.referrer || null,
             user_agent: navigator.userAgent,
           });
