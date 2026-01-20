@@ -12,7 +12,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { Link } from "react-router-dom";
 
 export default function WalletPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { data: wallet, isLoading: walletLoading } = useWallet(user?.id);
   const { data: transactions, isLoading: transLoading } = useTransactions(wallet?.id);
 
@@ -75,14 +75,19 @@ export default function WalletPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Header */}
+        {/* Header with User Display */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Wallet</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-bold tracking-tight">Wallet</h1>
+              <span className="text-sm text-muted-foreground border rounded-full px-3 py-1 bg-muted/50">
+                {profile?.full_name || profile?.email || "User"}
+              </span>
+            </div>
             <p className="text-muted-foreground">Manage your earnings and withdrawals</p>
           </div>
           <Link to="/dashboard/payouts">

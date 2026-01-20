@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function PayoutsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { data: wallet, isLoading: walletLoading } = useWallet(user?.id);
   const { data: payouts, isLoading: payoutsLoading } = usePayoutRequests(user?.id);
   const createPayout = useCreatePayoutRequest();
@@ -90,10 +90,15 @@ export default function PayoutsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with User Display */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Payouts</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-bold tracking-tight">Payouts</h1>
+              <span className="text-sm text-muted-foreground border rounded-full px-3 py-1 bg-muted/50">
+                {profile?.full_name || profile?.email || "User"}
+              </span>
+            </div>
             <p className="text-muted-foreground">Request and track your withdrawals</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
