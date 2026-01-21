@@ -432,6 +432,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_earning: {
+        Args: { _amount: number; _wallet_id: string }
+        Returns: undefined
+      }
       generate_affiliate_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -439,6 +443,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_conversion_count: {
+        Args: { link_id: string }
+        Returns: undefined
+      }
+      increment_pending_balance: {
+        Args: { _amount: number; _wallet_id: string }
+        Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
       is_valid_click_insert: { Args: never; Returns: boolean }

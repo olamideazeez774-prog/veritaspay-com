@@ -36,6 +36,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Products", href: "/dashboard/products", icon: Package, roles: ["vendor", "admin"] },
+  { title: "Browse Products", href: "/dashboard/browse", icon: Package, roles: ["affiliate"] },
   { title: "My Links", href: "/dashboard/links", icon: Link2, roles: ["affiliate"] },
   { title: "Analytics", href: "/dashboard/stats", icon: BarChart3, roles: ["affiliate"] },
   { title: "Sales", href: "/dashboard/sales", icon: ShoppingCart, roles: ["vendor", "admin"] },
@@ -111,7 +112,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex h-16 items-center gap-2 px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold">
-            A
+            V
           </div>
           {sidebarOpen && (
             <motion.span

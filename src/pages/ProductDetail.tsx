@@ -12,7 +12,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useProduct } from "@/hooks/useProducts";
 import { useCreateAffiliateLink } from "@/hooks/useAffiliateLinks";
@@ -87,7 +86,6 @@ export default function ProductDetail() {
         <div className="flex-1 flex items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-        <Footer />
       </div>
     );
   }
@@ -111,7 +109,6 @@ export default function ProductDetail() {
             </Link>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -237,8 +234,6 @@ export default function ProductDetail() {
           </motion.div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

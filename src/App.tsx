@@ -22,6 +22,7 @@ import VendorProducts from "./pages/dashboard/VendorProducts";
 import ProductForm from "./pages/dashboard/ProductForm";
 import VendorSales from "./pages/dashboard/VendorSales";
 import AffiliateLinks from "./pages/dashboard/AffiliateLinks";
+import AffiliateBrowse from "./pages/dashboard/AffiliateBrowse";
 import AffiliateStats from "./pages/dashboard/AffiliateStats";
 import WalletPage from "./pages/dashboard/WalletPage";
 import PayoutsPage from "./pages/dashboard/PayoutsPage";
@@ -98,6 +99,14 @@ const App = () => (
             />
 
             {/* Affiliate Routes */}
+            <Route
+              path="/dashboard/browse"
+              element={
+                <ProtectedRoute requiredRoles={["affiliate"]}>
+                  <AffiliateBrowse />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard/links"
               element={

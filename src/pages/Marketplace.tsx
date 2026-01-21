@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Search, Filter, Package, TrendingUp } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { useMarketplaceProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,8 +176,6 @@ export default function Marketplace() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 }

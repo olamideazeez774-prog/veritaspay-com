@@ -3,7 +3,6 @@ import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion";
 import { ArrowLeft, CreditCard, Lock, Mail, User, AlertCircle } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { useProduct } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +50,6 @@ export default function Checkout() {
         <div className="flex-1 flex items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-        <Footer />
       </div>
     );
   }
@@ -69,7 +67,6 @@ export default function Checkout() {
             </Link>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -245,8 +242,6 @@ export default function Checkout() {
           </motion.div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
