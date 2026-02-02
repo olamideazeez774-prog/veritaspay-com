@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Marketplace from "./pages/Marketplace";
 import ProductDetail from "./pages/ProductDetail";
@@ -24,6 +26,7 @@ import VendorSales from "./pages/dashboard/VendorSales";
 import AffiliateLinks from "./pages/dashboard/AffiliateLinks";
 import AffiliateBrowse from "./pages/dashboard/AffiliateBrowse";
 import AffiliateStats from "./pages/dashboard/AffiliateStats";
+import AffiliateReferrals from "./pages/dashboard/AffiliateReferrals";
 import WalletPage from "./pages/dashboard/WalletPage";
 import PayoutsPage from "./pages/dashboard/PayoutsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
@@ -33,6 +36,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayouts from "./pages/admin/AdminPayouts";
+import AdminListingPayments from "./pages/admin/AdminListingPayments";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +52,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/ref/:code" element={<ProductDetail />} />
@@ -123,6 +129,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/referrals"
+              element={
+                <ProtectedRoute requiredRoles={["affiliate"]}>
+                  <AffiliateReferrals />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Shared Routes */}
             <Route
@@ -150,7 +164,49 @@ const App = () => (
               }
             />
 
-            {/* Admin Routes */}
+            {/* Admin Routes - Secret Panel (not linked in UI) */}
+            <Route
+              path="/vp-admin-x7k9"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vp-admin-x7k9/products"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vp-admin-x7k9/users"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vp-admin-x7k9/payouts"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminPayouts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vp-admin-x7k9/listing-payments"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminListingPayments />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Legacy admin routes redirect - keep for backwards compatibility */}
             <Route
               path="/admin"
               element={

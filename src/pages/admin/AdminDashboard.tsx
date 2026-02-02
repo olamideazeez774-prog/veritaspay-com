@@ -25,21 +25,28 @@ export default function AdminDashboard() {
       title: "Review Products",
       description: "Approve or reject pending products",
       icon: FileCheck,
-      href: "/admin/products",
+      href: "/vp-admin-x7k9/products",
       color: "text-primary",
+    },
+    {
+      title: "Listing Payments",
+      description: "Verify vendor listing payments",
+      icon: DollarSign,
+      href: "/vp-admin-x7k9/listing-payments",
+      color: "text-success",
     },
     {
       title: "Process Payouts",
       description: "Handle withdrawal requests",
       icon: Wallet,
-      href: "/admin/payouts",
-      color: "text-success",
+      href: "/vp-admin-x7k9/payouts",
+      color: "text-warning",
     },
     {
       title: "Manage Users",
       description: "View and manage user accounts",
       icon: Users,
-      href: "/admin/users",
+      href: "/vp-admin-x7k9/users",
       color: "text-accent",
     },
   ];
@@ -118,7 +125,7 @@ export default function AdminDashboard() {
               <div className="glass-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Pending Approvals</h3>
-                  <Link to="/admin/products">
+                  <Link to="/vp-admin-x7k9/products">
                     <Button variant="ghost" size="sm">
                       View All
                     </Button>
@@ -138,7 +145,7 @@ export default function AdminDashboard() {
               <div className="glass-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Pending Payouts</h3>
-                  <Link to="/admin/payouts">
+                  <Link to="/vp-admin-x7k9/payouts">
                     <Button variant="ghost" size="sm">
                       View All
                     </Button>
