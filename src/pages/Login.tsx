@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -23,7 +23,14 @@ export default function Login() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      toast.error(error.message);
+      // Provide more helpful error messages
+      if (error.message.includes("Invalid login credentials")) {
+        toast.error("Invalid email or password. Please check and try again.");
+      } else if (error.message.includes("Email not confirmed")) {
+        toast.error("Please verify your email before signing in. Check your inbox.");
+      } else {
+        toast.error(error.message);
+      }
       setIsLoading(false);
     } else {
       toast.success("Welcome back!");
@@ -55,7 +62,15 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -68,7 +83,11 @@ export default function Login() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogIn className="mr-2 h-4 w-4" />
+              )}
               Sign In
             </Button>
             <p className="text-sm text-muted-foreground">

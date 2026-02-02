@@ -52,6 +52,27 @@ export type Database = {
           },
         ]
       }
+      affiliate_referral_codes: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          referral_code: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          referral_code: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          referral_code?: string
+        }
+        Relationships: []
+      }
       clicks: {
         Row: {
           created_at: string
@@ -140,6 +161,36 @@ export type Database = {
           },
         ]
       }
+      platform_referrals: {
+        Row: {
+          commission_amount: number | null
+          commission_paid: boolean | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Insert: {
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+        }
+        Update: {
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_user_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           id: string
@@ -164,6 +215,59 @@ export type Database = {
         }
         Relationships: []
       }
+      product_listing_payments: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          business_email: string | null
+          business_name: string | null
+          created_at: string
+          id: string
+          payment_gateway: string | null
+          payment_reference: string
+          product_id: string | null
+          status: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          business_email?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          payment_gateway?: string | null
+          payment_reference: string
+          product_id?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          business_email?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          payment_gateway?: string | null
+          payment_reference?: string
+          product_id?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_listing_payments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           affiliate_enabled: boolean
@@ -179,6 +283,7 @@ export type Database = {
           platform_fee_percent: number
           price: number
           refund_window_days: number
+          second_tier_commission_percent: number | null
           status: Database["public"]["Enums"]["product_status"]
           title: string
           updated_at: string
@@ -198,6 +303,7 @@ export type Database = {
           platform_fee_percent?: number
           price: number
           refund_window_days?: number
+          second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           title: string
           updated_at?: string
@@ -217,6 +323,7 @@ export type Database = {
           platform_fee_percent?: number
           price?: number
           refund_window_days?: number
+          second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           title?: string
           updated_at?: string
@@ -231,6 +338,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -239,6 +347,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -247,9 +356,18 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          referred_by?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales: {
         Row: {
@@ -265,6 +383,8 @@ export type Database = {
           platform_fee_percent_snapshot: number
           product_id: string
           refund_eligible_until: string | null
+          second_tier_affiliate_id: string | null
+          second_tier_commission: number | null
           status: Database["public"]["Enums"]["sale_status"]
           total_amount: number
           updated_at: string
@@ -284,6 +404,8 @@ export type Database = {
           platform_fee_percent_snapshot: number
           product_id: string
           refund_eligible_until?: string | null
+          second_tier_affiliate_id?: string | null
+          second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
           total_amount: number
           updated_at?: string
@@ -303,6 +425,8 @@ export type Database = {
           platform_fee_percent_snapshot?: number
           product_id?: string
           refund_eligible_until?: string | null
+          second_tier_affiliate_id?: string | null
+          second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
           total_amount?: number
           updated_at?: string
@@ -437,6 +561,7 @@ export type Database = {
         Returns: undefined
       }
       generate_affiliate_code: { Args: never; Returns: string }
+      generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

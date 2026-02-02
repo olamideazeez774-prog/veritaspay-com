@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, CreditCard } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useProduct, useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
@@ -13,13 +13,16 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { PaymentModal } from "@/components/PaymentModal";
+import { LISTING_FEE } from "@/hooks/useListingPayment";
+import { formatCurrency } from "@/lib/format";
 import {
   DEFAULT_COMMISSION_PERCENT,
-  DEFAULT_PLATFORM_FEE_PERCENT,
   MIN_COMMISSION_PERCENT,
   MAX_COMMISSION_PERCENT,
 } from "@/lib/constants";
 import { ProductStatus } from "@/types/database";
+import { toast } from "sonner";
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -30,6 +33,8 @@ export default function ProductForm() {
   const updateProduct = useUpdateProduct();
 
   const isEditing = !!id;
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingProductData, setPendingProductData] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -57,9 +62,22 @@ export default function ProductForm() {
     }
   }, [existingProduct]);
 
+  const validateForm = () => {
+    if (!formData.title.trim()) {
+      toast.error("Please enter a product title");
+      return false;
+    }
+    if (!formData.price || parseFloat(formData.price) < 100) {
+      toast.error("Please enter a valid price (minimum ₦100)");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!validateForm()) return;
 
     const productData = {
       vendor_id: user.id,
@@ -74,12 +92,29 @@ export default function ProductForm() {
     };
 
     if (isEditing && id) {
+      // No payment required for editing
       await updateProduct.mutateAsync({ id, ...productData });
+      navigate("/dashboard/products");
     } else {
-      await createProduct.mutateAsync(productData);
+      // New product requires payment
+      setPendingProductData(productData);
+      setShowPaymentModal(true);
     }
+  };
 
-    navigate("/dashboard/products");
+  const handlePaymentComplete = async (paymentReference: string) => {
+    if (!pendingProductData) return;
+
+    try {
+      // Create product with draft status (will be activated after admin approval)
+      await createProduct.mutateAsync({
+        ...pendingProductData,
+        status: "draft", // Will be activated after admin verifies payment
+      });
+      navigate("/dashboard/products");
+    } catch (error) {
+      console.error("Failed to create product:", error);
+    }
   };
 
   const isPending = createProduct.isPending || updateProduct.isPending;
@@ -265,6 +300,33 @@ export default function ProductForm() {
             </Card>
           </motion.div>
 
+          {/* Listing Fee Notice (for new products only) */}
+          {!isEditing && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-full bg-primary/10 p-3">
+                      <CreditCard className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Listing Fee Required</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        A one-time listing fee of <strong>{formatCurrency(LISTING_FEE)}</strong> is
+                        required to publish your product. Your product will be reviewed and
+                        activated within 24 hours after payment verification.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Submit */}
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
@@ -272,11 +334,33 @@ export default function ProductForm() {
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Save className="mr-2 h-4 w-4" />
-              {isEditing ? "Save Changes" : "Create Product"}
+              {isEditing ? (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Continue to Payment
+                </>
+              )}
             </Button>
           </div>
         </form>
+
+        {/* Payment Modal */}
+        {user && (
+          <PaymentModal
+            open={showPaymentModal}
+            onOpenChange={setShowPaymentModal}
+            onPaymentComplete={handlePaymentComplete}
+            vendorId={user.id}
+            amount={LISTING_FEE}
+            title="Product Listing Fee"
+            description={`Pay ${formatCurrency(LISTING_FEE)} to list "${formData.title}"`}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

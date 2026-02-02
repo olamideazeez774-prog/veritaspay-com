@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,28 +7,54 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
+import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferrals";
 
 export default function Register() {
+  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [isLoading, setIsLoading] = useState(false);
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [referrerId, setReferrerId] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+
+  // Validate referral code when it changes
+  useEffect(() => {
+    const checkCode = async () => {
+      if (referralCode.trim().length >= 6) {
+        const result = await validateReferralCode(referralCode.trim());
+        setReferralValid(result.valid);
+        setReferrerId(result.affiliateId || null);
+      } else {
+        setReferralValid(null);
+        setReferrerId(null);
+      }
+    };
+
+    const debounce = setTimeout(checkCode, 500);
+    return () => clearTimeout(debounce);
+  }, [referralCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, data } = await signUp(email, password, fullName);
 
     if (error) {
       toast.error(error.message);
       setIsLoading(false);
     } else {
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+      // If we have a valid referral code, record the referral
+      if (referralValid && referrerId && data?.user?.id) {
+        await recordPlatformReferral(referrerId, data.user.id, referralCode.trim().toUpperCase());
+      }
+      toast.success("Account created successfully! Please check your email to verify.");
+      navigate("/login");
     }
   };
 
@@ -78,10 +104,46 @@ export default function Register() {
                 minLength={6}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="referralCode">Referral Code (optional)</Label>
+              <div className="relative">
+                <Input
+                  id="referralCode"
+                  type="text"
+                  placeholder="e.g., VP1A2B3C"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  className={
+                    referralValid === true
+                      ? "border-success focus-visible:ring-success"
+                      : referralValid === false
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : ""
+                  }
+                />
+                {referralValid === true && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-success text-sm">
+                    ✓ Valid
+                  </span>
+                )}
+                {referralValid === false && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-destructive text-sm">
+                    Invalid
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter a referral code if someone invited you
+              </p>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="mr-2 h-4 w-4" />
+              )}
               Create Account
             </Button>
             <p className="text-sm text-muted-foreground">

@@ -12,7 +12,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isVendor: boolean;
   isAffiliate: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; data: any }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    return { error: error as Error | null };
+    return { error: error as Error | null, data };
   };
 
   const signIn = async (email: string, password: string) => {

@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
   { title: "Browse Products", href: "/dashboard/browse", icon: Package, roles: ["affiliate"] },
   { title: "My Links", href: "/dashboard/links", icon: Link2, roles: ["affiliate"] },
   { title: "Analytics", href: "/dashboard/stats", icon: BarChart3, roles: ["affiliate"] },
+  { title: "Referrals", href: "/dashboard/referrals", icon: Users, roles: ["affiliate"] },
   { title: "Sales", href: "/dashboard/sales", icon: ShoppingCart, roles: ["vendor", "admin"] },
   { title: "Wallet", href: "/dashboard/wallet", icon: Wallet },
   { title: "Payouts", href: "/dashboard/payouts", icon: CreditCard },
@@ -46,11 +47,11 @@ const navItems: NavItem[] = [
 ];
 
 const adminNavItems: NavItem[] = [
-  { title: "Users", href: "/admin/users", icon: Users },
-  { title: "Products", href: "/admin/products", icon: Package },
-  { title: "Sales", href: "/admin/sales", icon: ShoppingCart },
-  { title: "Payouts", href: "/admin/payouts", icon: CreditCard },
-  { title: "Settings", href: "/admin/settings", icon: Settings },
+  { title: "Admin Panel", href: "/vp-admin-x7k9", icon: Shield },
+  { title: "Users", href: "/vp-admin-x7k9/users", icon: Users },
+  { title: "Products", href: "/vp-admin-x7k9/products", icon: Package },
+  { title: "Listing Payments", href: "/vp-admin-x7k9/listing-payments", icon: CreditCard },
+  { title: "Payouts", href: "/vp-admin-x7k9/payouts", icon: CreditCard },
 ];
 
 interface DashboardLayoutProps {
