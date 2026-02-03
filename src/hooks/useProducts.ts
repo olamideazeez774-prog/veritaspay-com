@@ -27,12 +27,12 @@ export function useProduct(productId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*, profiles!products_vendor_id_fkey(*)")
+        .select("*")
         .eq("id", productId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      return data as Product;
+      return data as Product | null;
     },
     enabled: !!productId,
   });
