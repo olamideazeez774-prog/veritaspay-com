@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAffiliateLinks, useDeleteAffiliateLink } from "@/hooks/useAffiliateLinks";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
@@ -22,6 +21,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { Link } from "react-router-dom";
+import { ShareMenu } from "@/components/ui/share-menu";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 
 export default function AffiliateLinks() {
   const { user } = useAuth();
@@ -35,6 +36,8 @@ export default function AffiliateLinks() {
     toast.success("Link copied to clipboard!");
   };
 
+  const getShareUrl = (code: string) => `${window.location.origin}/ref/${code}`;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -44,7 +47,7 @@ export default function AffiliateLinks() {
             <h1 className="text-3xl font-bold tracking-tight">My Affiliate Links</h1>
             <p className="text-muted-foreground">Manage and track your affiliate links</p>
           </div>
-          <Link to="/marketplace">
+          <Link to="/dashboard/browse">
             <Button>
               <Link2 className="mr-2 h-4 w-4" />
               Browse Products
@@ -55,7 +58,7 @@ export default function AffiliateLinks() {
         {/* Links Grid */}
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
+            <AnimatedLoading size="lg" text="Loading your links..." />
           </div>
         ) : !links?.length ? (
           <EmptyState
@@ -63,7 +66,7 @@ export default function AffiliateLinks() {
             title="No affiliate links yet"
             description="Browse the marketplace and generate links for products you want to promote."
             action={
-              <Link to="/marketplace">
+              <Link to="/dashboard/browse">
                 <Button>Browse Products</Button>
               </Link>
             }
@@ -139,10 +142,17 @@ export default function AffiliateLinks() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {/* Share Menu with multiple options */}
+                    <ShareMenu
+                      url={getShareUrl(link.unique_code)}
+                      title={`Check out ${link.products?.title}!`}
+                      variant="destructive"
+                      size="sm"
+                    />
                     <Button variant="outline" size="sm" onClick={() => copyLink(link.unique_code)}>
                       <Copy className="mr-2 h-4 w-4" />
-                      Copy Link
+                      Copy
                     </Button>
                     <Button variant="ghost" size="icon" asChild>
                       <a

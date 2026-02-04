@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Search, Filter, Package, TrendingUp } from "lucide-react";
@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatCurrency } from "@/lib/format";
 import { staggerContainer, staggerItem, fadeInUp } from "@/lib/animations";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 import {
   Select,
   SelectContent,
@@ -23,6 +23,7 @@ export default function Marketplace() {
   const { data: products, isLoading } = useMarketplaceProducts();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = products
     ?.filter(
@@ -42,6 +43,18 @@ export default function Marketplace() {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Blur input to dismiss mobile keyboard
+    searchInputRef.current?.blur();
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      searchInputRef.current?.blur();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -74,14 +87,17 @@ export default function Marketplace() {
         {/* Filters */}
         <section className="border-b bg-card/50 py-6">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <form onSubmit={handleSearchSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  ref={searchInputRef}
                   placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   className="pl-10"
+                  enterKeyHint="search"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -98,7 +114,7 @@ export default function Marketplace() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </form>
           </div>
         </section>
 
@@ -107,7 +123,7 @@ export default function Marketplace() {
           <div className="container mx-auto px-4">
             {isLoading ? (
               <div className="flex justify-center py-20">
-                <LoadingSpinner size="lg" />
+                <AnimatedLoading size="lg" text="Loading products..." />
               </div>
             ) : !filteredProducts?.length ? (
               <EmptyState

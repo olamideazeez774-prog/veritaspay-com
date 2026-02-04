@@ -6,8 +6,9 @@ import { useAffiliateReferralCode, useReferredUsers } from "@/hooks/useReferrals
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { StatCard } from "@/components/ui/stat-card";
+import { ShareMenu } from "@/components/ui/share-menu";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 import {
   Table,
   TableBody,
@@ -62,7 +63,7 @@ export default function AffiliateReferrals() {
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
+            <AnimatedLoading size="lg" text="Loading referral data..." />
           </div>
         ) : (
           <motion.div
@@ -88,10 +89,17 @@ export default function AffiliateReferrals() {
                     <div className="flex-1 p-3 rounded-lg bg-background border font-mono text-sm break-all">
                       {referralLink || "Loading..."}
                     </div>
-                    <Button onClick={handleCopyLink} disabled={!referralLink}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Link
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={handleCopyLink} disabled={!referralLink} variant="outline">
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                      <ShareMenu
+                        url={referralLink}
+                        title={`Join ${PLATFORM_NAME} and start earning!`}
+                        variant="destructive"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-4 pt-2">

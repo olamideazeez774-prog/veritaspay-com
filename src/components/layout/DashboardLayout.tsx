@@ -25,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { SignOutDialog } from "@/components/SignOutDialog";
 
 interface NavItem {
   title: string;
@@ -61,6 +63,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, roles, isAdmin, isVendor, isAffiliate, signOut, isLoading } = useAuth();
@@ -69,8 +73,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = () => {
+    setShowSignOutDialog(true);
+  };
+
+  const handleSignOutConfirm = async () => {
+    setIsSigningOut(true);
     await signOut();
+    setIsSigningOut(false);
+    setShowSignOutDialog(false);
     navigate("/");
   };
 
@@ -110,7 +121,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-4">
+      <div className="flex h-16 items-center justify-between gap-2 px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold">
             V
@@ -125,6 +136,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </motion.span>
           )}
         </Link>
+        {sidebarOpen && <ThemeToggle />}
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -191,7 +203,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* User Section */}
       <div className="border-t border-sidebar-border p-4">
-        <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
+        <Link
+          to="/dashboard/settings"
+          className={cn(
+            "flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent",
+            !sidebarOpen && "justify-center"
+          )}
+        >
           <Avatar className="h-9 w-9">
             <AvatarImage src={profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm">
@@ -206,13 +224,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <p className="truncate text-xs text-sidebar-foreground/60">{profile?.email}</p>
             </div>
           )}
-        </div>
+        </Link>
         {sidebarOpen && (
           <Button
             variant="ghost"
             size="sm"
             className="mt-3 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={handleSignOut}
+            onClick={handleSignOutClick}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
@@ -240,11 +258,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </motion.aside>
 
       {/* Mobile Header */}
-      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-4 lg:hidden">
-        <button onClick={() => setMobileOpen(true)} className="text-foreground">
-          <Menu className="h-6 w-6" />
-        </button>
-        <span className="font-serif text-lg font-semibold">{PLATFORM_NAME}</span>
+      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:hidden">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setMobileOpen(true)} className="text-foreground">
+            <Menu className="h-6 w-6" />
+          </button>
+          <span className="font-serif text-lg font-semibold">{PLATFORM_NAME}</span>
+        </div>
+        <ThemeToggle />
       </div>
 
       {/* Mobile Sidebar */}
@@ -286,6 +307,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <div className="container-wide py-6 lg:py-8">{children}</div>
       </main>
+
+      {/* Sign Out Dialog */}
+      <SignOutDialog
+        open={showSignOutDialog}
+        onOpenChange={setShowSignOutDialog}
+        onConfirm={handleSignOutConfirm}
+        isLoading={isSigningOut}
+      />
     </div>
   );
 }
