@@ -5,7 +5,6 @@ import {
   Package,
   ShoppingCart,
   Link2,
-  Share2,
   Check,
   Clock,
   Shield,
@@ -17,11 +16,12 @@ import { useProduct } from "@/hooks/useProducts";
 import { useCreateAffiliateLink } from "@/hooks/useAffiliateLinks";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatCurrency } from "@/lib/format";
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ShareMenu } from "@/components/ui/share-menu";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 
 export default function ProductDetail() {
   const { id, code } = useParams();
@@ -29,31 +29,53 @@ export default function ProductDetail() {
   const { user, roles } = useAuth();
   const [productId, setProductId] = useState<string | null>(id || null);
   const [affiliateCode, setAffiliateCode] = useState<string | null>(code || null);
+  const [isTrackingClick, setIsTrackingClick] = useState(false);
   const { data: product, isLoading, error } = useProduct(productId || "");
   const createAffiliateLink = useCreateAffiliateLink();
 
-  // If we have a code, look up the product and track click
+  // If we have a code, look up the product and track click using edge function
   useEffect(() => {
     if (code && !id) {
-      const lookupProduct = async () => {
-        const { data } = await supabase
-          .from("affiliate_links")
-          .select("id, product_id")
-          .eq("unique_code", code)
-          .single();
-
-        if (data) {
-          setProductId(data.product_id);
-          setAffiliateCode(code);
-          // Track click with correct link_id
-          await supabase.from("clicks").insert({
-            link_id: data.id,
-            referrer: document.referrer || null,
-            user_agent: navigator.userAgent,
+      const lookupAndTrack = async () => {
+        setIsTrackingClick(true);
+        try {
+          // Call the edge function to track the click and get product ID
+          const { data, error } = await supabase.functions.invoke("track-click", {
+            body: {
+              code,
+              referrer: document.referrer || null,
+              userAgent: navigator.userAgent,
+            },
           });
+
+          if (error) {
+            console.error("Error tracking click:", error);
+            // Fallback: try to look up the product directly
+            const { data: linkData } = await supabase
+              .from("affiliate_links")
+              .select("product_id")
+              .eq("unique_code", code)
+              .maybeSingle();
+
+            if (linkData) {
+              setProductId(linkData.product_id);
+              setAffiliateCode(code);
+            }
+          } else if (data?.productId) {
+            setProductId(data.productId);
+            setAffiliateCode(code);
+            
+            // Store affiliate code in localStorage for attribution
+            localStorage.setItem("affiliate_code", code);
+            localStorage.setItem("affiliate_code_timestamp", Date.now().toString());
+          }
+        } catch (err) {
+          console.error("Error in click tracking:", err);
+        } finally {
+          setIsTrackingClick(false);
         }
       };
-      lookupProduct();
+      lookupAndTrack();
     }
   }, [code, id]);
 
@@ -71,20 +93,16 @@ export default function ProductDetail() {
     }
   };
 
-  const handleShare = () => {
-    const url = affiliateCode
-      ? `${window.location.origin}/ref/${affiliateCode}`
-      : window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard!");
-  };
+  const shareUrl = affiliateCode
+    ? `${window.location.origin}/ref/${affiliateCode}`
+    : window.location.href;
 
-  if (isLoading) {
+  if (isLoading || isTrackingClick) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <LoadingSpinner size="lg" />
+          <AnimatedLoading size="lg" text="Loading product..." />
         </div>
       </div>
     );
@@ -208,9 +226,12 @@ export default function ProductDetail() {
                         {createAffiliateLink.isPending ? "Generating..." : "Affiliate Link"}
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" onClick={handleShare}>
-                      <Share2 className="h-4 w-4" />
-                    </Button>
+                    <ShareMenu
+                      url={shareUrl}
+                      title={`Check out ${product.title}!`}
+                      variant="ghost"
+                      size="icon"
+                    />
                   </div>
                 </div>
               </div>

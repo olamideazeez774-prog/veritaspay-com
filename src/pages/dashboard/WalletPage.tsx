@@ -4,12 +4,12 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useTransactions } from "@/hooks/useWallet";
 import { StatCard } from "@/components/ui/stat-card";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { Link } from "react-router-dom";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 
 export default function WalletPage() {
   const { user, profile } = useAuth();
@@ -22,7 +22,7 @@ export default function WalletPage() {
     return (
       <DashboardLayout>
         <div className="flex justify-center py-12">
-          <LoadingSpinner size="lg" />
+          <AnimatedLoading size="lg" text="Loading wallet..." />
         </div>
       </DashboardLayout>
     );
@@ -98,31 +98,13 @@ export default function WalletPage() {
           </Link>
         </motion.div>
 
-        {/* Balance Cards */}
+        {/* Balance Cards - Reordered: Withdrawable, Pending, Total Withdrawn, Cleared */}
         <motion.div
           variants={staggerContainer}
           initial="initial"
           animate="animate"
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
-          <motion.div variants={staggerItem}>
-            <StatCard
-              title="Pending"
-              value={formatCurrency(wallet?.pending_balance || 0)}
-              subtitle="Within refund window"
-              icon={Clock}
-              variant="default"
-            />
-          </motion.div>
-          <motion.div variants={staggerItem}>
-            <StatCard
-              title="Cleared"
-              value={formatCurrency(wallet?.cleared_balance || 0)}
-              subtitle="Past refund window"
-              icon={CheckCircle}
-              variant="primary"
-            />
-          </motion.div>
           <motion.div variants={staggerItem}>
             <StatCard
               title="Withdrawable"
@@ -134,11 +116,29 @@ export default function WalletPage() {
           </motion.div>
           <motion.div variants={staggerItem}>
             <StatCard
+              title="Pending"
+              value={formatCurrency(wallet?.pending_balance || 0)}
+              subtitle="Within refund window"
+              icon={Clock}
+              variant="default"
+            />
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <StatCard
               title="Total Withdrawn"
               value={formatCurrency(wallet?.total_withdrawn || 0)}
               subtitle="All time"
               icon={ArrowUpRight}
               variant="accent"
+            />
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <StatCard
+              title="Cleared"
+              value={formatCurrency(wallet?.cleared_balance || 0)}
+              subtitle="Past refund window"
+              icon={CheckCircle}
+              variant="primary"
             />
           </motion.div>
         </motion.div>

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, Save, Camera } from "lucide-react";
+import { User, Mail, Lock, Save, Camera, Moon, Sun, Monitor } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,19 +12,31 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { user, profile, isLoading } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || "",
-    email: profile?.email || user?.email || "",
+    full_name: "",
+    email: "",
   });
   const [passwordData, setPasswordData] = useState({
     current: "",
     new: "",
     confirm: "",
   });
+
+  // Initialize form data when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || "",
+        email: profile.email || user?.email || "",
+      });
+    }
+  }, [profile, user]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +102,11 @@ export default function SettingsPage() {
     .map((n) => n[0])
     .join("")
     .toUpperCase() || user?.email?.[0].toUpperCase() || "?";
+
+  const themeOptions = [
+    { value: "light", label: "Light", icon: Sun },
+    { value: "dark", label: "Dark", icon: Moon },
+  ] as const;
 
   return (
     <DashboardLayout>
@@ -179,6 +197,43 @@ export default function SettingsPage() {
                 Save Changes
               </Button>
             </form>
+          </motion.div>
+
+          {/* Appearance Section */}
+          <motion.div variants={staggerItem} className="glass-card p-6">
+            <h2 className="text-xl font-semibold mb-6">Appearance</h2>
+            <div className="space-y-4">
+              <Label>Theme</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {themeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setTheme(option.value)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all",
+                      theme === option.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-muted-foreground/50"
+                    )}
+                  >
+                    <option.icon className={cn(
+                      "h-5 w-5",
+                      theme === option.value ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <span className={cn(
+                      "font-medium",
+                      theme === option.value ? "text-primary" : "text-muted-foreground"
+                    )}>
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choose your preferred color scheme for the dashboard.
+              </p>
+            </div>
           </motion.div>
 
           {/* Password Section */}
