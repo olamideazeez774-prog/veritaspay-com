@@ -443,6 +443,57 @@ export type Database = {
           },
         ]
       }
+      system_logs: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          amount: number | null
+          category: string
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          related_id: string | null
+          related_type: string | null
+          status: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          amount?: number | null
+          category?: string
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          status?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          amount?: number | null
+          category?: string
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          status?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -579,6 +630,20 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_valid_click_insert: { Args: never; Returns: boolean }
+      write_system_log: {
+        Args: {
+          _actor_id?: string
+          _amount?: number
+          _category: string
+          _description: string
+          _event_type: string
+          _metadata?: Json
+          _related_id?: string
+          _related_type?: string
+          _status?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "vendor" | "affiliate"

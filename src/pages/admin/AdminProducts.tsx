@@ -100,115 +100,137 @@ export default function AdminProducts() {
             }
           />
         ) : (
+          <>
           <motion.div
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="glass-card overflow-hidden"
+            className="space-y-3 sm:hidden"
           >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <motion.tr key={product.id} variants={staggerItem} className="group">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                          {product.cover_image_url ? (
-                            <img
-                              src={product.cover_image_url}
-                              alt={product.title}
-                              className="h-full w-full object-cover"
-                            />
+            {/* Mobile card view */}
+            {filteredProducts.map((product) => (
+              <motion.div key={product.id} variants={staggerItem} className="glass-card p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {product.cover_image_url ? (
+                      <img src={product.cover_image_url} alt={product.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{product.title}</p>
+                    <p className="text-sm text-muted-foreground">{formatCurrency(product.price)} · {product.commission_percent}% commission</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant={product.status === "active" ? "default" : product.status === "paused" ? "outline" : "secondary"}>
+                    {PRODUCT_STATUS_LABELS[product.status]}
+                  </Badge>
+                  {product.is_approved ? (
+                    <Badge variant="default" className="bg-success">Approved</Badge>
+                  ) : (
+                    <Badge variant="destructive">Pending</Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{formatDate(product.created_at)}</span>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                      <a href={`/product/${product.id}`} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    {!product.is_approved ? (
+                      <Button size="sm" variant="outline" className="text-success" onClick={() => handleApprove(product.id, true)} disabled={approveProduct.isPending}>
+                        <Check className="mr-1 h-4 w-4" /> Approve
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleApprove(product.id, false)} disabled={approveProduct.isPending}>
+                        <X className="mr-1 h-4 w-4" /> Revoke
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Desktop table view */}
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="glass-card overflow-hidden hidden sm:block"
+          >
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product) => (
+                    <motion.tr key={product.id} variants={staggerItem} className="group">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                            {product.cover_image_url ? (
+                              <img src={product.cover_image_url} alt={product.title} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center"><Package className="h-4 w-4 text-muted-foreground" /></div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium line-clamp-1">{product.title}</p>
+                            <p className="text-xs text-muted-foreground">{product.commission_percent}% commission</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatCurrency(product.price)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant={product.status === "active" ? "default" : product.status === "paused" ? "outline" : "secondary"}>
+                            {PRODUCT_STATUS_LABELS[product.status]}
+                          </Badge>
+                          {product.is_approved ? (
+                            <Badge variant="default" className="bg-success">Approved</Badge>
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <Badge variant="destructive">Pending</Badge>
                           )}
                         </div>
-                        <div>
-                          <p className="font-medium line-clamp-1">{product.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {product.commission_percent}% commission
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatCurrency(product.price)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        <Badge
-                          variant={
-                            product.status === "active"
-                              ? "default"
-                              : product.status === "paused"
-                              ? "outline"
-                              : "secondary"
-                          }
-                        >
-                          {PRODUCT_STATUS_LABELS[product.status]}
-                        </Badge>
-                        {product.is_approved ? (
-                          <Badge variant="default" className="bg-success">
-                            Approved
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">Pending</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDate(product.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <a
-                            href={`/product/${product.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        {!product.is_approved ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-success"
-                              onClick={() => handleApprove(product.id, true)}
-                              disabled={approveProduct.isPending}
-                            >
-                              <Check className="mr-1 h-4 w-4" />
-                              Approve
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive"
-                            onClick={() => handleApprove(product.id, false)}
-                            disabled={approveProduct.isPending}
-                          >
-                            <X className="mr-1 h-4 w-4" />
-                            Revoke
+                      </TableCell>
+                      <TableCell>{formatDate(product.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="icon" asChild>
+                            <a href={`/product/${product.id}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))}
-              </TableBody>
-            </Table>
+                          {!product.is_approved ? (
+                            <Button size="sm" variant="outline" className="text-success" onClick={() => handleApprove(product.id, true)} disabled={approveProduct.isPending}>
+                              <Check className="mr-1 h-4 w-4" /> Approve
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleApprove(product.id, false)} disabled={approveProduct.isPending}>
+                              <X className="mr-1 h-4 w-4" /> Revoke
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </motion.div>
+          </>
         )}
       </div>
     </DashboardLayout>

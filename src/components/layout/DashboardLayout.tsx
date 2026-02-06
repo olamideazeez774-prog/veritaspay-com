@@ -50,6 +50,8 @@ const navItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { title: "Admin Panel", href: "/vp-admin-x7k9", icon: Shield },
+  { title: "Analytics", href: "/vp-admin-x7k9/analytics", icon: BarChart3 },
+  { title: "Logbook", href: "/vp-admin-x7k9/logbook", icon: LayoutDashboard },
   { title: "Users", href: "/vp-admin-x7k9/users", icon: Users },
   { title: "Products", href: "/vp-admin-x7k9/products", icon: Package },
   { title: "Listing Payments", href: "/vp-admin-x7k9/listing-payments", icon: CreditCard },
