@@ -40,6 +40,8 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayouts from "./pages/admin/AdminPayouts";
 import AdminListingPayments from "./pages/admin/AdminListingPayments";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminLogbook from "./pages/admin/AdminLogbook";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -216,6 +218,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <AdminListingPayments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/analytics"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/logbook"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminLogbook />
                   </ProtectedRoute>
                 }
               />
