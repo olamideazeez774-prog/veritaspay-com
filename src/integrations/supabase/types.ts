@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_campaigns: {
+        Row: {
+          affiliate_id: string
+          campaign_name: string
+          clicks: number
+          conversions: number
+          created_at: string
+          id: string
+          link_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          campaign_name: string
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          link_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          campaign_name?: string
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          id?: string
+          link_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaigns_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_links: {
         Row: {
           affiliate_id: string
@@ -107,6 +157,128 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      commission_rules: {
+        Row: {
+          affiliate_id: string | null
+          bonus_amount: number | null
+          boost_percent: number | null
+          commission_override: number | null
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          min_sales: number | null
+          name: string
+          priority: number
+          product_id: string | null
+          rule_type: string
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          bonus_amount?: number | null
+          boost_percent?: number | null
+          commission_override?: number | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          min_sales?: number | null
+          name: string
+          priority?: number
+          product_id?: string | null
+          rule_type?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          bonus_amount?: number | null
+          boost_percent?: number | null
+          commission_override?: number | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          min_sales?: number | null
+          name?: string
+          priority?: number
+          product_id?: string | null
+          rule_type?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fraud_events: {
+        Row: {
+          admin_notes: string | null
+          commission_held: boolean | null
+          created_at: string
+          description: string
+          device_fingerprint: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          related_id: string | null
+          related_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          commission_held?: boolean | null
+          created_at?: string
+          description: string
+          device_fingerprint?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          commission_held?: boolean | null
+          created_at?: string
+          description?: string
+          device_fingerprint?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       payout_requests: {
         Row: {
@@ -280,8 +452,11 @@ export type Database = {
           file_url: string | null
           id: string
           is_approved: boolean
+          is_featured: boolean | null
+          is_sponsored: boolean | null
           platform_fee_percent: number
           price: number
+          ranking_score: number | null
           refund_window_days: number
           second_tier_commission_percent: number | null
           status: Database["public"]["Enums"]["product_status"]
@@ -300,8 +475,11 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_approved?: boolean
+          is_featured?: boolean | null
+          is_sponsored?: boolean | null
           platform_fee_percent?: number
           price: number
+          ranking_score?: number | null
           refund_window_days?: number
           second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
@@ -320,8 +498,11 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_approved?: boolean
+          is_featured?: boolean | null
+          is_sponsored?: boolean | null
           platform_fee_percent?: number
           price?: number
+          ranking_score?: number | null
           refund_window_days?: number
           second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
@@ -365,6 +546,53 @@ export type Database = {
             columns: ["referred_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_materials: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          material_type: string
+          media_url: string | null
+          product_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          material_type?: string
+          media_url?: string | null
+          product_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          material_type?: string
+          media_url?: string | null
+          product_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_materials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -562,6 +790,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendor_announcements: {
+        Row: {
+          announcement_type: string
+          content: string
+          created_at: string
+          id: string
+          is_moderated: boolean
+          is_published: boolean
+          moderated_by: string | null
+          product_id: string | null
+          title: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          announcement_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean
+          is_published?: boolean
+          moderated_by?: string | null
+          product_id?: string | null
+          title: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          announcement_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean
+          is_published?: boolean
+          moderated_by?: string | null
+          product_id?: string | null
+          title?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_announcements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallets: {
         Row: {
