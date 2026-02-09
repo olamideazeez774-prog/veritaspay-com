@@ -42,6 +42,17 @@ import AdminPayouts from "./pages/admin/AdminPayouts";
 import AdminListingPayments from "./pages/admin/AdminListingPayments";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminLogbook from "./pages/admin/AdminLogbook";
+import AdminCommissionRules from "./pages/admin/AdminCommissionRules";
+import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard";
+import AdminLeaderboard from "./pages/admin/AdminLeaderboard";
+import AdminRankings from "./pages/admin/AdminRankings";
+import AdminMessaging from "./pages/admin/AdminMessaging";
+import AdminPromoMaterials from "./pages/admin/AdminPromoMaterials";
+import AdminRevenueControls from "./pages/admin/AdminRevenueControls";
+
+// Extra dashboard pages
+import AffiliateToolkit from "./pages/dashboard/AffiliateToolkit";
+import VendorAnnouncements from "./pages/dashboard/VendorAnnouncements";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -153,6 +164,24 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/dashboard/toolkit"
+                element={
+                  <ProtectedRoute requiredRoles={["affiliate"]}>
+                    <AffiliateToolkit />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Vendor Routes - Announcements */}
+              <Route
+                path="/dashboard/announcements"
+                element={
+                  <ProtectedRoute requiredRoles={["vendor"]}>
+                    <VendorAnnouncements />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Shared Routes */}
               <Route
@@ -180,7 +209,7 @@ const App = () => (
                 }
               />
 
-              {/* Admin Routes - Secret Panel (not linked in UI) */}
+              {/* Admin Routes */}
               <Route
                 path="/vp-admin-x7k9"
                 element={
@@ -234,6 +263,62 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <AdminLogbook />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/commissions"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminCommissionRules />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/fraud"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminFraudDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/leaderboard"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminLeaderboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/rankings"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminRankings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/messaging"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminMessaging />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/materials"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminPromoMaterials />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/revenue"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminRevenueControls />
                   </ProtectedRoute>
                 }
               />

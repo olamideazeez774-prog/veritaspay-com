@@ -35,14 +35,27 @@ export function useAffiliateReferralCode(affiliateId?: string) {
 
       if (fetchError) throw fetchError;
 
-      if (existing) {
+      if (existing && existing.referral_code) {
         return existing as AffiliateReferralCode;
       }
 
-      // Create new code if none exists
+      if (existing && !existing.referral_code) {
+        // Existing row with empty code — update to trigger auto-generation
+        const { data: updated, error: updateError } = await supabase
+          .from("affiliate_referral_codes")
+          .update({ referral_code: "" })
+          .eq("id", existing.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        return updated as AffiliateReferralCode;
+      }
+
+      // Create new code — trigger auto-generates the code
       const { data: newCode, error: insertError } = await supabase
         .from("affiliate_referral_codes")
-        .insert({ affiliate_id: affiliateId, referral_code: "" } as any) // trigger now handles empty string → auto-generate
+        .insert({ affiliate_id: affiliateId, referral_code: "TEMP" })
         .select()
         .single();
 
