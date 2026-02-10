@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Star, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
+import { Star, Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useAllProducts, useUpdateProduct } from "@/hooks/useProducts";
-import { Button } from "@/components/ui/button";
+import { useAllProducts } from "@/hooks/useProducts";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -15,10 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminRankings() {
   const { data: products, isLoading } = useAllProducts();
-  const updateProduct = useUpdateProduct();
 
   const sortedProducts = [...(products || [])].sort((a, b) => {
-    // Featured first, then by ranking_score, then by created_at
     if ((a as any).is_featured !== (b as any).is_featured) return (b as any).is_featured ? 1 : -1;
     return ((b as any).ranking_score || 0) - ((a as any).ranking_score || 0);
   });
@@ -55,10 +51,11 @@ export default function AdminRankings() {
           <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
             {sortedProducts.map((product, index) => (
               <motion.div key={product.id} variants={staggerItem} className="glass-card p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3">
+                  {/* Product info row */}
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-muted-foreground w-8">#{index + 1}</span>
-                    <div className="min-w-0">
+                    <span className="text-lg font-bold text-muted-foreground w-8 shrink-0">#{index + 1}</span>
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-sm truncate">{product.title}</h3>
                         {(product as any).is_featured && <Badge className="bg-warning text-warning-foreground gap-1"><Star className="h-3 w-3" />Featured</Badge>}
@@ -67,15 +64,16 @@ export default function AdminRankings() {
                       <p className="text-xs text-muted-foreground">{formatCurrency(product.price)} · {product.commission_percent}% comm · Score: {(product as any).ranking_score || 0}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  {/* Controls row - stacked on mobile */}
+                  <div className="flex flex-wrap items-center gap-4 pl-11">
+                    <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                       <span className="text-xs text-muted-foreground">Featured</span>
                       <Switch checked={(product as any).is_featured || false} onCheckedChange={v => handleToggleFeatured(product.id, v)} />
-                    </div>
-                    <div className="flex items-center gap-2">
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                       <span className="text-xs text-muted-foreground">Sponsored</span>
                       <Switch checked={(product as any).is_sponsored || false} onCheckedChange={v => handleToggleSponsored(product.id, v)} />
-                    </div>
+                    </label>
                     <Input type="number" className="w-20" defaultValue={(product as any).ranking_score || 0} onBlur={e => handleScoreUpdate(product.id, Number(e.target.value))} />
                   </div>
                 </div>

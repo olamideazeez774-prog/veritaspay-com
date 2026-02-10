@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { CheckCircle, XCircle, Award } from "lucide-react";
 import { PLATFORM_NAME } from "@/lib/constants";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatCurrency } from "@/lib/format";
+
 
 export default function VerifyCertificate() {
   const { hash } = useParams<{ hash: string }>();
 
-  const { data: cert, isLoading, error } = useQuery({
+  const { data: cert, isLoading } = useQuery({
     queryKey: ["verify-certificate", hash],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,10 +21,22 @@ export default function VerifyCertificate() {
         .eq("certificate_hash", hash)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+
+      // Fetch profile for affiliate name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", data.user_id)
+        .single();
+
+      return { ...data, profile };
     },
     enabled: !!hash,
   });
+
+  const metadata = cert?.metadata as Record<string, any> | null;
+  const affiliateName = cert?.profile?.full_name || metadata?.full_name || "Unknown";
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
@@ -44,10 +57,22 @@ export default function VerifyCertificate() {
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-success">Certificate Valid ✓</h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Rank: <Badge>{cert.rank_name}</Badge></p>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="flex justify-center">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Award className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-foreground">{affiliateName}</p>
+                <p>Rank: <Badge className="ml-1">{cert.rank_name}</Badge></p>
+                {metadata?.total_commission && (
+                  <p>Total Commission: <span className="font-semibold text-foreground">{formatCurrency(metadata.total_commission)}</span></p>
+                )}
                 <p className="font-mono text-xs">{cert.certificate_hash}</p>
                 <p>Issued: {formatDate(cert.issued_at)}</p>
+                {metadata?.is_preview && (
+                  <Badge variant="outline" className="text-xs">Preview Certificate</Badge>
+                )}
               </div>
             </div>
           ) : (

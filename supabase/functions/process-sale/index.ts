@@ -23,40 +23,24 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const {
-      productId,
-      buyerEmail,
-      buyerName,
-      affiliateCode,
-      paymentReference,
-      paymentGateway = "paystack",
+      productId, buyerEmail, buyerName, affiliateCode, paymentReference, paymentGateway = "paystack",
     }: ProcessSaleRequest = await req.json();
 
-    // Validate required fields
     if (!productId || !buyerEmail || !paymentReference) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch the product with vendor info
+    // Fetch the product
     const { data: product, error: productError } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", productId)
-      .eq("status", "active")
-      .eq("is_approved", true)
-      .single();
+      .from("products").select("*").eq("id", productId).eq("status", "active").eq("is_approved", true).single();
 
     if (productError || !product) {
-      return new Response(
-        JSON.stringify({ error: "Product not found or not available" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Product not found or not available" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Look up affiliate if code provided
@@ -65,33 +49,22 @@ Deno.serve(async (req) => {
 
     if (affiliateCode) {
       const { data: affiliateLink } = await supabase
-        .from("affiliate_links")
-        .select("id, affiliate_id")
-        .eq("unique_code", affiliateCode.toUpperCase())
-        .eq("product_id", productId)
-        .single();
+        .from("affiliate_links").select("id, affiliate_id")
+        .eq("unique_code", affiliateCode.toUpperCase()).eq("product_id", productId).single();
 
       if (affiliateLink) {
         // Self-referral blocking: affiliate cannot earn commission on their own purchase
         if (affiliateLink.affiliate_id === product.vendor_id) {
           console.warn("Self-referral blocked: affiliate is the vendor");
         } else {
-          // Check if buyer email matches the affiliate's email (self-purchase)
           const { data: affiliateProfile } = await supabase
-            .from("profiles")
-            .select("email")
-            .eq("id", affiliateLink.affiliate_id)
-            .single();
+            .from("profiles").select("email").eq("id", affiliateLink.affiliate_id).single();
 
           if (affiliateProfile?.email?.toLowerCase() === buyerEmail.toLowerCase()) {
             console.warn("Self-referral blocked: buyer is the affiliate");
-            // Log fraud event
             await supabase.from("fraud_events").insert({
-              event_type: "self_referral",
-              severity: "high",
-              user_id: affiliateLink.affiliate_id,
-              related_id: productId,
-              related_type: "product",
+              event_type: "self_referral", severity: "high", user_id: affiliateLink.affiliate_id,
+              related_id: productId, related_type: "product",
               description: `Self-referral attempt: affiliate tried to purchase own referral link for "${product.title}"`,
               status: "flagged",
             });
@@ -103,51 +76,102 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Weekly threshold commission logic
+    let commissionPercent = product.commission_percent;
+
+    if (affiliateId) {
+      // Check if affiliate has a weekly threshold rule active
+      const { data: thresholdRules } = await supabase
+        .from("commission_rules")
+        .select("*")
+        .eq("rule_type", "weekly_threshold")
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+        .limit(1);
+
+      if (thresholdRules?.length) {
+        const rule = thresholdRules[0];
+        const minSales = rule.min_sales || 15;
+        const overridePercent = rule.commission_override || 40;
+
+        // Count this week's sales for the affiliate
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+
+        const { count: thisWeekSales } = await supabase
+          .from("sales").select("id", { count: "exact", head: true })
+          .eq("affiliate_id", affiliateId).gte("created_at", weekStart.toISOString());
+
+        // Check last week too for grace period
+        const lastWeekStart = new Date(weekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+        const { count: lastWeekSales } = await supabase
+          .from("sales").select("id", { count: "exact", head: true })
+          .eq("affiliate_id", affiliateId)
+          .gte("created_at", lastWeekStart.toISOString())
+          .lt("created_at", weekStart.toISOString());
+
+        const meetsThisWeek = (thisWeekSales || 0) >= minSales;
+        const metLastWeek = (lastWeekSales || 0) >= minSales;
+
+        // Forward-only: if they met threshold this week or last week (grace), upgrade
+        if (meetsThisWeek || metLastWeek) {
+          commissionPercent = Math.max(commissionPercent, overridePercent);
+        }
+      }
+
+      // Also check per-affiliate overrides
+      const { data: affiliateRules } = await supabase
+        .from("commission_rules")
+        .select("*")
+        .eq("rule_type", "per_affiliate")
+        .eq("affiliate_id", affiliateId)
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+        .limit(1);
+
+      if (affiliateRules?.length && affiliateRules[0].commission_override) {
+        commissionPercent = Math.max(commissionPercent, affiliateRules[0].commission_override);
+      }
+    }
+
+    // Check if vendor is admin (fee exempt)
+    const { data: vendorAdminRole } = await supabase
+      .from("user_roles").select("role").eq("user_id", product.vendor_id).eq("role", "admin").maybeSingle();
+    const isVendorAdmin = !!vendorAdminRole;
+
     // Calculate amounts
     const totalAmount = product.price;
-    const platformFeePercent = product.platform_fee_percent;
-    const commissionPercent = product.commission_percent;
+    const platformFeePercent = isVendorAdmin ? 0 : product.platform_fee_percent;
     const secondTierCommissionPercent = product.second_tier_commission_percent || 5;
 
-    // Platform fee is calculated first from total
     const platformFee = Math.round((totalAmount * platformFeePercent) / 100);
     const afterPlatformFee = totalAmount - platformFee;
 
-    // Commission is calculated from what remains after platform fee (if there's an affiliate)
     const affiliateCommission = affiliateId
       ? Math.round((afterPlatformFee * commissionPercent) / 100)
       : 0;
 
-    // Vendor gets the rest
     const vendorEarnings = afterPlatformFee - affiliateCommission;
 
-    // Check for second-tier commission (if vendor was referred by an affiliate)
+    // Check for second-tier commission
     let secondTierAffiliateId: string | null = null;
     let secondTierCommission = 0;
 
     const { data: vendorReferral } = await supabase
-      .from("platform_referrals")
-      .select("referrer_id")
-      .eq("referred_user_id", product.vendor_id)
-      .single();
+      .from("platform_referrals").select("referrer_id").eq("referred_user_id", product.vendor_id).maybeSingle();
 
     if (vendorReferral) {
-      // Check if referrer is still an affiliate
       const { data: referrerRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", vendorReferral.referrer_id)
-        .eq("role", "affiliate")
-        .single();
+        .from("user_roles").select("role").eq("user_id", vendorReferral.referrer_id).eq("role", "affiliate").maybeSingle();
 
       if (referrerRole) {
         secondTierAffiliateId = vendorReferral.referrer_id;
-        // Second-tier commission comes from platform fee portion
         secondTierCommission = Math.round((platformFee * secondTierCommissionPercent) / 100);
       }
     }
 
-    // Calculate refund eligibility date
     const refundEligibleUntil = new Date();
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
 
@@ -155,112 +179,57 @@ Deno.serve(async (req) => {
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
-        product_id: productId,
-        vendor_id: product.vendor_id,
-        affiliate_id: affiliateId,
-        second_tier_affiliate_id: secondTierAffiliateId,
-        buyer_email: buyerEmail,
-        total_amount: totalAmount,
-        platform_fee: platformFee,
-        affiliate_commission: affiliateCommission,
-        second_tier_commission: secondTierCommission,
-        vendor_earnings: vendorEarnings,
-        commission_percent_snapshot: commissionPercent,
-        platform_fee_percent_snapshot: platformFeePercent,
-        status: "pending", // Will be "completed" after refund window
+        product_id: productId, vendor_id: product.vendor_id, affiliate_id: affiliateId,
+        second_tier_affiliate_id: secondTierAffiliateId, buyer_email: buyerEmail,
+        total_amount: totalAmount, platform_fee: platformFee,
+        affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission,
+        vendor_earnings: vendorEarnings, commission_percent_snapshot: commissionPercent,
+        platform_fee_percent_snapshot: platformFeePercent, status: "pending",
         refund_eligible_until: refundEligibleUntil.toISOString(),
-        payment_reference: paymentReference,
-        payment_gateway: paymentGateway,
+        payment_reference: paymentReference, payment_gateway: paymentGateway,
       })
-      .select()
-      .single();
+      .select().single();
 
     if (saleError) {
       console.error("Error creating sale:", saleError);
-      return new Response(
-        JSON.stringify({ error: "Failed to process sale" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to process sale" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Update affiliate link conversion count
     if (affiliateLinkId) {
       await supabase.rpc("increment_conversion_count", { link_id: affiliateLinkId });
     }
 
-    // Helper function to update wallet
     const updateWallet = async (userId: string, amount: number, type: string, description: string) => {
-      const { data: wallet } = await supabase
-        .from("wallets")
-        .select("id")
-        .eq("user_id", userId)
-        .single();
-
+      const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
       if (wallet) {
         await supabase.from("transactions").insert({
-          wallet_id: wallet.id,
-          sale_id: sale.id,
-          amount,
-          type,
-          earning_state: "pending",
-          description,
+          wallet_id: wallet.id, sale_id: sale.id, amount, type, earning_state: "pending", description,
         });
-
-        await supabase.rpc("increment_pending_balance", { 
-          _wallet_id: wallet.id, 
-          _amount: amount 
-        });
+        await supabase.rpc("increment_pending_balance", { _wallet_id: wallet.id, _amount: amount });
       }
     };
 
-    // Update vendor wallet
-    await updateWallet(
-      product.vendor_id,
-      vendorEarnings,
-      "sale_vendor",
-      `Sale of ${product.title}`
-    );
+    await updateWallet(product.vendor_id, vendorEarnings, "sale_vendor", `Sale of ${product.title}`);
 
-    // Update affiliate wallet if applicable
     if (affiliateId && affiliateCommission > 0) {
-      await updateWallet(
-        affiliateId,
-        affiliateCommission,
-        "sale_commission",
-        `Commission from ${product.title}`
-      );
+      await updateWallet(affiliateId, affiliateCommission, "sale_commission", `Commission from ${product.title}`);
     }
 
-    // Update second-tier affiliate wallet if applicable
     if (secondTierAffiliateId && secondTierCommission > 0) {
-      await updateWallet(
-        secondTierAffiliateId,
-        secondTierCommission,
-        "sale_commission",
-        `Second-tier commission from ${product.title}`
-      );
+      await updateWallet(secondTierAffiliateId, secondTierCommission, "sale_commission", `Second-tier commission from ${product.title}`);
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        saleId: sale.id,
-        message: "Sale processed successfully",
-        breakdown: {
-          total_amount: totalAmount,
-          platform_fee: platformFee,
-          affiliate_commission: affiliateCommission,
-          second_tier_commission: secondTierCommission,
-          vendor_earnings: vendorEarnings,
-        },
+        success: true, saleId: sale.id, message: "Sale processed successfully",
+        breakdown: { total_amount: totalAmount, platform_fee: platformFee, affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission, vendor_earnings: vendorEarnings, commission_applied: commissionPercent },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error processing sale:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -93,7 +93,7 @@ export default function AdminExperiments() {
   const getStatusColor = (s: string) => {
     switch (s) {
       case "running": return "bg-success/10 text-success border-success/20";
-      case "completed": return "bg-info/10 text-info border-info/20";
+      case "completed": return "bg-primary/10 text-primary border-primary/20";
       case "paused": return "bg-warning/10 text-warning border-warning/20";
       default: return "bg-muted text-muted-foreground";
     }
@@ -109,7 +109,7 @@ export default function AdminExperiments() {
             </h1>
             <p className="text-muted-foreground text-sm">A/B test commission rates, fees, ranking rules, and more</p>
           </div>
-          <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-2" />New Experiment</Button>
+          <Button onClick={() => setShowCreate(true)} className="min-h-[44px]"><Plus className="h-4 w-4 mr-2" />New Experiment</Button>
         </div>
 
         {isLoading ? (
@@ -137,28 +137,28 @@ export default function AdminExperiments() {
                       <p className="text-sm text-muted-foreground truncate">Variants: {JSON.stringify(exp.variants)}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {exp.status === "draft" && (
-                      <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: exp.id, status: "running" })}>
+                      <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => updateStatus.mutate({ id: exp.id, status: "running" })}>
                         <Play className="h-4 w-4 mr-1" />Start
                       </Button>
                     )}
                     {exp.status === "running" && (
                       <>
-                        <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: exp.id, status: "paused" })}>
+                        <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => updateStatus.mutate({ id: exp.id, status: "paused" })}>
                           <Pause className="h-4 w-4 mr-1" />Pause
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: exp.id, status: "completed" })}>
+                        <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => updateStatus.mutate({ id: exp.id, status: "completed" })}>
                           <CheckCircle className="h-4 w-4 mr-1" />Complete
                         </Button>
                       </>
                     )}
                     {exp.status === "paused" && (
-                      <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: exp.id, status: "running" })}>
+                      <Button variant="outline" size="sm" className="min-h-[44px]" onClick={() => updateStatus.mutate({ id: exp.id, status: "running" })}>
                         <Play className="h-4 w-4 mr-1" />Resume
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteExperiment.mutate(exp.id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => deleteExperiment.mutate(exp.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -169,7 +169,7 @@ export default function AdminExperiments() {
         )}
 
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Create Experiment</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -187,7 +187,7 @@ export default function AdminExperiments() {
               </div>
               <div className="space-y-2">
                 <Label>Variants (JSON array or text)</Label>
-                <Textarea value={form.variants} onChange={e => setForm({ ...form, variants: e.target.value })} rows={4} placeholder='[{"name":"Control","value":"30%"},{"name":"Variant A","value":"35%"}]' />
+                <Textarea value={form.variants} onChange={e => setForm({ ...form, variants: e.target.value })} rows={4} placeholder='[{"name":"Control","value":"30%"},{"name":"Variant A","value":"35%"}]' className="min-h-[100px]" />
               </div>
             </div>
             <DialogFooter>

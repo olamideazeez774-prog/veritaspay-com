@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { DollarSign, Save, Settings, Percent, CreditCard, Shield } from "lucide-react";
+import { DollarSign, Save, Percent, CreditCard, Settings } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 interface PlatformSettings {
-  // Core revenue
   default_platform_fee: number;
   default_commission: number;
   min_withdrawal: number;
@@ -21,20 +20,16 @@ interface PlatformSettings {
   sponsored_slot_fee: number;
   payout_cycle_days: number;
   auto_payout_enabled: boolean;
-  // Micro fees
   processing_buffer_fee: number;
   withdrawal_fee_percent: number;
   withdrawal_flat_fee: number;
   verification_badge_fee: number;
-  // Vendor tiers
   premium_vendor_fee_reduction: number;
   premium_vendor_monthly_cost: number;
-  // AI modules
   ai_fraud_detection: boolean;
   ai_affiliate_coaching: boolean;
   ai_product_matching: boolean;
   ai_commission_optimization: boolean;
-  // Display
   transparent_ledger_enabled: boolean;
 }
 
@@ -100,6 +95,15 @@ export default function AdminRevenueControls() {
         supabase.from("platform_settings").upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee } as any, updated_by: user?.id }, { onConflict: "key" }),
         supabase.from("platform_settings").upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled } as any, updated_by: user?.id }, { onConflict: "key" }),
       ]);
+
+      await supabase.rpc("write_system_log", {
+        _event_type: "revenue_settings_updated",
+        _category: "system",
+        _description: "Platform revenue and fee settings updated",
+        _actor_id: user?.id,
+        _status: "updated",
+      });
+
       toast.success("Settings saved");
     } catch {
       toast.error("Failed to save settings");
@@ -118,8 +122,8 @@ export default function AdminRevenueControls() {
   );
 
   const ToggleField = ({ label, desc, fieldKey }: { label: string; desc: string; fieldKey: keyof PlatformSettings }) => (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-      <div>
+    <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/50 min-h-[44px]">
+      <div className="flex-1 min-w-0 mr-3">
         <p className="font-medium text-sm">{label}</p>
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
@@ -135,16 +139,15 @@ export default function AdminRevenueControls() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Revenue & AI Controls</h1>
             <p className="text-muted-foreground text-sm">Configure platform fees, payouts, vendor tiers, and AI modules</p>
           </div>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving} className="min-h-[44px]">
             <Save className="h-4 w-4 mr-2" />{isSaving ? "Saving..." : "Save All"}
           </Button>
         </div>
 
         <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-6">
-          {/* Core Revenue */}
-          <motion.div variants={staggerItem} className="glass-card p-6 space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" />Core Revenue</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
+            <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" />Core Revenue</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <NumberField label="Default Platform Fee (%)" fieldKey="default_platform_fee" />
               <NumberField label="Default Commission (%)" fieldKey="default_commission" />
               <NumberField label="Min Withdrawal (₦)" fieldKey="min_withdrawal" />
@@ -155,10 +158,9 @@ export default function AdminRevenueControls() {
             <ToggleField label="Auto-process payouts" desc="Automatically process payouts on cycle" fieldKey="auto_payout_enabled" />
           </motion.div>
 
-          {/* Micro Fees */}
-          <motion.div variants={staggerItem} className="glass-card p-6 space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2"><Percent className="h-5 w-5 text-primary" />Micro & Maintenance Fees</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
+            <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><Percent className="h-5 w-5 text-primary" />Micro & Maintenance Fees</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <NumberField label="Processing Buffer Fee (₦)" fieldKey="processing_buffer_fee" />
               <NumberField label="Withdrawal Fee (%)" fieldKey="withdrawal_fee_percent" />
               <NumberField label="Withdrawal Flat Fee (₦)" fieldKey="withdrawal_flat_fee" />
@@ -166,19 +168,17 @@ export default function AdminRevenueControls() {
             </div>
           </motion.div>
 
-          {/* Vendor Tiers */}
-          <motion.div variants={staggerItem} className="glass-card p-6 space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Vendor Tier Configuration</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
+            <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Vendor Tier Configuration</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <NumberField label="Premium Fee Reduction (%)" fieldKey="premium_vendor_fee_reduction" />
               <NumberField label="Premium Monthly Cost (₦)" fieldKey="premium_vendor_monthly_cost" />
             </div>
             <ToggleField label="Transparent Ledger" desc="Show full fee breakdown to vendors and affiliates" fieldKey="transparent_ledger_enabled" />
           </motion.div>
 
-          {/* AI Modules */}
-          <motion.div variants={staggerItem} className="glass-card p-6 space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2"><Settings className="h-5 w-5 text-primary" />AI Modules</h2>
+          <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
+            <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><Settings className="h-5 w-5 text-primary" />AI Modules</h2>
             <div className="space-y-3">
               <ToggleField label="Fraud Pattern Detection" desc="AI-powered fraud scoring and anomaly detection" fieldKey="ai_fraud_detection" />
               <ToggleField label="Affiliate Performance Coaching" desc="Personalized suggestions to improve performance" fieldKey="ai_affiliate_coaching" />
