@@ -10,10 +10,10 @@ interface TrackClickRequest {
   code: string;
   referrer?: string;
   userAgent?: string;
+  clickType?: "product" | "referral"; // Track what kind of click
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,10 +21,9 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { code, referrer, userAgent }: TrackClickRequest = await req.json();
+    const { code, referrer, userAgent, clickType = "product" }: TrackClickRequest = await req.json();
 
     if (!code) {
       return new Response(
@@ -32,6 +31,14 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Create IP hash for duplicate detection
+    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+    const encoder = new TextEncoder();
+    const data = encoder.encode(clientIp + new Date().toDateString());
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const ipHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
     // Look up the affiliate link by code
     const { data: link, error: linkError } = await supabase
@@ -61,13 +68,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create a hash of the IP for privacy (we don't store the actual IP)
-    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
-    const encoder = new TextEncoder();
-    const data = encoder.encode(clientIp + new Date().toDateString());
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const ipHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    // Duplicate click filtering: check if same IP hash clicked this link today
+    const { data: existingClick } = await supabase
+      .from("clicks")
+      .select("id")
+      .eq("link_id", link.id)
+      .eq("ip_hash", ipHash)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingClick) {
+      // Still return success but don't count duplicate
+      return new Response(
+        JSON.stringify({ success: true, productId: link.product_id, duplicate: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Insert the click record
     const { error: clickError } = await supabase.from("clicks").insert({
@@ -79,14 +95,10 @@ Deno.serve(async (req) => {
 
     if (clickError) {
       console.error("Error inserting click:", clickError);
-      // Don't fail the request, just log the error
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        productId: link.product_id 
-      }),
+      JSON.stringify({ success: true, productId: link.product_id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

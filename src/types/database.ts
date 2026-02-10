@@ -17,6 +17,8 @@ export interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  referral_code: string | null;
+  referred_by: string | null;
   created_at: string;
   updated_at: string;
 }

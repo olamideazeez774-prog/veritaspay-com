@@ -1,13 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-export interface AffiliateReferralCode {
-  id: string;
-  affiliate_id: string;
-  referral_code: string;
-  created_at: string;
-}
 
 export interface PlatformReferral {
   id: string;
@@ -19,86 +11,85 @@ export interface PlatformReferral {
   created_at: string;
 }
 
-// Get or create affiliate referral code
-export function useAffiliateReferralCode(affiliateId?: string) {
+// Get current user's referral code from profiles table
+export function useUserReferralCode(userId?: string) {
   return useQuery({
-    queryKey: ["affiliate-referral-code", affiliateId],
+    queryKey: ["user-referral-code", userId],
     queryFn: async () => {
-      if (!affiliateId) throw new Error("No affiliate ID");
+      if (!userId) throw new Error("No user ID");
 
-      // Try to get existing code
-      const { data: existing, error: fetchError } = await supabase
-        .from("affiliate_referral_codes")
-        .select("*")
-        .eq("affiliate_id", affiliateId)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (existing && existing.referral_code) {
-        return existing as AffiliateReferralCode;
-      }
-
-      if (existing && !existing.referral_code) {
-        // Existing row with empty code — update to trigger auto-generation
-        const { data: updated, error: updateError } = await supabase
-          .from("affiliate_referral_codes")
-          .update({ referral_code: "" })
-          .eq("id", existing.id)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-        return updated as AffiliateReferralCode;
-      }
-
-      // Create new code — trigger auto-generates the code
-      const { data: newCode, error: insertError } = await supabase
-        .from("affiliate_referral_codes")
-        .insert({ affiliate_id: affiliateId, referral_code: "TEMP" })
-        .select()
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("referral_code")
+        .eq("id", userId)
         .single();
 
-      if (insertError) throw insertError;
-      return newCode as AffiliateReferralCode;
+      if (error) throw error;
+      return data?.referral_code || null;
     },
-    enabled: !!affiliateId,
+    enabled: !!userId,
+    retry: 3,
+    retryDelay: 1000,
   });
 }
 
-// Get platform referrals for an affiliate
-export function usePlatformReferrals(affiliateId?: string) {
+// Legacy alias - keep for backward compat
+export function useAffiliateReferralCode(affiliateId?: string) {
+  const query = useUserReferralCode(affiliateId);
+  // Transform to match old interface shape
+  return {
+    ...query,
+    data: query.data ? { referral_code: query.data, affiliate_id: affiliateId } : undefined,
+  };
+}
+
+// Get platform referrals for a user
+export function usePlatformReferrals(userId?: string) {
   return useQuery({
-    queryKey: ["platform-referrals", affiliateId],
+    queryKey: ["platform-referrals", userId],
     queryFn: async () => {
-      if (!affiliateId) throw new Error("No affiliate ID");
+      if (!userId) throw new Error("No user ID");
 
       const { data, error } = await supabase
         .from("platform_referrals")
         .select("*")
-        .eq("referrer_id", affiliateId)
+        .eq("referrer_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as PlatformReferral[];
     },
-    enabled: !!affiliateId,
+    enabled: !!userId,
   });
 }
 
-// Validate referral code during registration
-export async function validateReferralCode(code: string): Promise<{ valid: boolean; affiliateId?: string }> {
-  const { data, error } = await supabase
-    .from("affiliate_referral_codes")
-    .select("affiliate_id")
-    .eq("referral_code", code.toUpperCase())
+// Validate referral code during registration - checks profiles table
+export async function validateReferralCode(code: string): Promise<{ valid: boolean; referrerId?: string }> {
+  const upperCode = code.toUpperCase();
+  
+  // Check profiles table first (new system)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("referral_code", upperCode)
     .maybeSingle();
 
-  if (error || !data) {
-    return { valid: false };
+  if (profile) {
+    return { valid: true, referrerId: profile.id };
   }
 
-  return { valid: true, affiliateId: data.affiliate_id };
+  // Fallback to affiliate_referral_codes (legacy)
+  const { data: legacy } = await supabase
+    .from("affiliate_referral_codes")
+    .select("affiliate_id")
+    .eq("referral_code", upperCode)
+    .maybeSingle();
+
+  if (legacy) {
+    return { valid: true, referrerId: legacy.affiliate_id };
+  }
+
+  return { valid: false };
 }
 
 // Record platform referral after registration
@@ -107,6 +98,9 @@ export async function recordPlatformReferral(
   referredUserId: string,
   referralCode: string
 ): Promise<boolean> {
+  // Block self-referrals
+  if (referrerId === referredUserId) return false;
+
   const { error } = await supabase.from("platform_referrals").insert({
     referrer_id: referrerId,
     referred_user_id: referredUserId,
@@ -117,21 +111,20 @@ export async function recordPlatformReferral(
 }
 
 // Get referred users with their profiles
-export function useReferredUsers(affiliateId?: string) {
+export function useReferredUsers(userId?: string) {
   return useQuery({
-    queryKey: ["referred-users", affiliateId],
+    queryKey: ["referred-users", userId],
     queryFn: async () => {
-      if (!affiliateId) throw new Error("No affiliate ID");
+      if (!userId) throw new Error("No user ID");
 
       const { data: referrals, error } = await supabase
         .from("platform_referrals")
         .select("*")
-        .eq("referrer_id", affiliateId)
+        .eq("referrer_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Get profiles for referred users
       const userIds = referrals.map((r) => r.referred_user_id);
       if (userIds.length === 0) return [];
 
@@ -140,7 +133,6 @@ export function useReferredUsers(affiliateId?: string) {
         .select("id, full_name, email, created_at")
         .in("id", userIds);
 
-      // Get roles for referred users
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id, role")
@@ -152,6 +144,6 @@ export function useReferredUsers(affiliateId?: string) {
         roles: roles?.filter((role) => role.user_id === r.referred_user_id).map((role) => role.role) || [],
       }));
     },
-    enabled: !!affiliateId,
+    enabled: !!userId,
   });
 }

@@ -10,25 +10,42 @@ import { toast } from "sonner";
 import { Loader2, UserPlus } from "lucide-react";
 import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferrals";
 
+const REF_STORAGE_KEY = "vp_referral_code";
+const REF_ID_STORAGE_KEY = "vp_referrer_id";
+
 export default function Register() {
   const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [isLoading, setIsLoading] = useState(false);
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  // Persist ref param to localStorage immediately on page load
+  const paramRef = searchParams.get("ref");
+  const [referralCode, setReferralCode] = useState(() => {
+    if (paramRef) {
+      localStorage.setItem(REF_STORAGE_KEY, paramRef.toUpperCase());
+      return paramRef.toUpperCase();
+    }
+    return localStorage.getItem(REF_STORAGE_KEY) || "";
+  });
+
   // Validate referral code when it changes
   useEffect(() => {
     const checkCode = async () => {
-      if (referralCode.trim().length >= 6) {
-        const result = await validateReferralCode(referralCode.trim());
+      const trimmed = referralCode.trim();
+      if (trimmed.length >= 6) {
+        const result = await validateReferralCode(trimmed);
         setReferralValid(result.valid);
-        setReferrerId(result.affiliateId || null);
+        setReferrerId(result.referrerId || null);
+        if (result.valid && result.referrerId) {
+          localStorage.setItem(REF_STORAGE_KEY, trimmed);
+          localStorage.setItem(REF_ID_STORAGE_KEY, result.referrerId);
+        }
       } else {
         setReferralValid(null);
         setReferrerId(null);
@@ -49,10 +66,18 @@ export default function Register() {
       toast.error(error.message);
       setIsLoading(false);
     } else {
-      // If we have a valid referral code, record the referral
-      if (referralValid && referrerId && data?.user?.id) {
-        await recordPlatformReferral(referrerId, data.user.id, referralCode.trim().toUpperCase());
+      // Record referral if valid
+      const storedReferrerId = referrerId || localStorage.getItem(REF_ID_STORAGE_KEY);
+      const storedCode = referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || "";
+      
+      if (storedReferrerId && data?.user?.id && storedReferrerId !== data.user.id) {
+        await recordPlatformReferral(storedReferrerId, data.user.id, storedCode);
       }
+
+      // Clean up localStorage
+      localStorage.removeItem(REF_STORAGE_KEY);
+      localStorage.removeItem(REF_ID_STORAGE_KEY);
+
       toast.success("Account created successfully! Please check your email to verify.");
       navigate("/login");
     }
