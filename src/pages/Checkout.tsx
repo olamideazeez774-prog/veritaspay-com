@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/format";
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
 import { PLATFORM_NAME } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Checkout() {
   const { productId } = useParams();
@@ -36,11 +37,28 @@ export default function Checkout() {
 
     setIsProcessing(true);
     
-    // Simulate payment processing (will be replaced with Paystack)
-    setTimeout(() => {
-      toast.success("Payment successful!");
+    try {
+      const { data, error } = await supabase.functions.invoke("process-sale", {
+        body: {
+          product_id: productId,
+          buyer_email: formData.email,
+          buyer_name: formData.name,
+          affiliate_code: affiliateCode || undefined,
+          payment_reference: `VP-${Date.now().toString(36).toUpperCase()}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Payment processed successfully!");
       navigate("/checkout/success");
-    }, 2000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Payment failed";
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (isLoading) {
@@ -83,7 +101,6 @@ export default function Checkout() {
 
       <main className="flex-1 py-8 sm:py-12">
         <div className="container mx-auto px-4 max-w-4xl">
-          {/* Back Link */}
           <Link
             to={`/product/${productId}`}
             className="mb-6 inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -98,7 +115,6 @@ export default function Checkout() {
             animate="animate"
             className="grid gap-8 lg:grid-cols-5"
           >
-            {/* Checkout Form */}
             <motion.div variants={staggerItem} className="lg:col-span-3">
               <div className="glass-card p-6 sm:p-8">
                 <h1 className="font-serif text-2xl font-bold mb-6">Checkout</h1>
@@ -145,14 +161,13 @@ export default function Checkout() {
                     </div>
                   </div>
 
-                  {/* Payment Notice */}
-                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                     <div className="flex gap-3">
-                      <CreditCard className="h-5 w-5 text-warning shrink-0" />
+                      <Lock className="h-5 w-5 text-primary shrink-0" />
                       <div>
-                        <p className="text-sm font-medium">Payment Integration</p>
+                        <p className="text-sm font-medium">Secure Payment</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Secure payment processing via Paystack will be configured after API key setup.
+                          Your payment is processed securely through {PLATFORM_NAME}.
                         </p>
                       </div>
                     </div>
@@ -180,12 +195,10 @@ export default function Checkout() {
               </div>
             </motion.div>
 
-            {/* Order Summary */}
             <motion.div variants={staggerItem} className="lg:col-span-2">
               <div className="glass-card p-6 sticky top-6">
                 <h2 className="font-semibold mb-4">Order Summary</h2>
 
-                {/* Product */}
                 <div className="flex gap-4 pb-4 border-b">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {product.cover_image_url ? (
@@ -206,7 +219,6 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Pricing */}
                 <div className="py-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
@@ -220,7 +232,6 @@ export default function Checkout() {
                   )}
                 </div>
 
-                {/* Total */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
                     <span className="font-semibold">Total</span>
@@ -230,7 +241,6 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Trust Badges */}
                 <div className="mt-6 pt-4 border-t">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Lock className="h-3 w-3" />
