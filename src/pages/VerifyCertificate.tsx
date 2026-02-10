@@ -1,0 +1,68 @@
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
+import { CheckCircle, XCircle, Award } from "lucide-react";
+import { PLATFORM_NAME } from "@/lib/constants";
+import { formatDate } from "@/lib/format";
+
+export default function VerifyCertificate() {
+  const { hash } = useParams<{ hash: string }>();
+
+  const { data: cert, isLoading, error } = useQuery({
+    queryKey: ["verify-certificate", hash],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("*")
+        .eq("certificate_hash", hash)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!hash,
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center space-y-6">
+          <Link to="/">
+            <span className="text-2xl font-bold text-gradient-primary">{PLATFORM_NAME}</span>
+          </Link>
+          <h2 className="text-xl font-bold">Certificate Verification</h2>
+
+          {isLoading ? (
+            <AnimatedLoading size="md" text="Verifying..." />
+          ) : cert ? (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <div className="h-20 w-20 rounded-full bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="h-10 w-10 text-success" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-success">Certificate Valid ✓</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Rank: <Badge>{cert.rank_name}</Badge></p>
+                <p className="font-mono text-xs">{cert.certificate_hash}</p>
+                <p>Issued: {formatDate(cert.issued_at)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-10 w-10 text-destructive" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-destructive">Certificate Not Found</h3>
+              <p className="text-sm text-muted-foreground">This certificate ID does not exist or may be invalid.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

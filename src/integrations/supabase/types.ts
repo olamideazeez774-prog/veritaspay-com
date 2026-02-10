@@ -102,6 +102,39 @@ export type Database = {
           },
         ]
       }
+      affiliate_ranks: {
+        Row: {
+          badge_color: string
+          commission_boost_percent: number
+          created_at: string
+          fee_discount_percent: number
+          id: string
+          min_earnings: number
+          rank_name: string
+          sort_order: number
+        }
+        Insert: {
+          badge_color?: string
+          commission_boost_percent?: number
+          created_at?: string
+          fee_discount_percent?: number
+          id?: string
+          min_earnings?: number
+          rank_name: string
+          sort_order?: number
+        }
+        Update: {
+          badge_color?: string
+          commission_boost_percent?: number
+          created_at?: string
+          fee_discount_percent?: number
+          id?: string
+          min_earnings?: number
+          rank_name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       affiliate_referral_codes: {
         Row: {
           affiliate_id: string
@@ -120,6 +153,72 @@ export type Database = {
           created_at?: string
           id?: string
           referral_code?: string
+        }
+        Relationships: []
+      }
+      ai_decisions: {
+        Row: {
+          action_taken: string
+          created_at: string
+          data_snapshot: Json | null
+          decision_type: string
+          id: string
+          reasoning: string | null
+          rolled_back: boolean
+          rolled_back_at: string | null
+          was_auto: boolean
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string
+          data_snapshot?: Json | null
+          decision_type: string
+          id?: string
+          reasoning?: string | null
+          rolled_back?: boolean
+          rolled_back_at?: string | null
+          was_auto?: boolean
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          data_snapshot?: Json | null
+          decision_type?: string
+          id?: string
+          reasoning?: string | null
+          rolled_back?: boolean
+          rolled_back_at?: string | null
+          was_auto?: boolean
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          certificate_hash: string
+          id: string
+          issued_at: string
+          metadata: Json | null
+          rank_name: string
+          user_id: string
+          verified_count: number
+        }
+        Insert: {
+          certificate_hash: string
+          id?: string
+          issued_at?: string
+          metadata?: Json | null
+          rank_name: string
+          user_id: string
+          verified_count?: number
+        }
+        Update: {
+          certificate_hash?: string
+          id?: string
+          issued_at?: string
+          metadata?: Json | null
+          rank_name?: string
+          user_id?: string
+          verified_count?: number
         }
         Relationships: []
       }
@@ -222,6 +321,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      experiments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          experiment_type: string
+          id: string
+          name: string
+          results: Json | null
+          status: string
+          updated_at: string
+          variants: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          experiment_type?: string
+          id?: string
+          name: string
+          results?: Json | null
+          status?: string
+          updated_at?: string
+          variants?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          experiment_type?: string
+          id?: string
+          name?: string
+          results?: Json | null
+          status?: string
+          updated_at?: string
+          variants?: Json
+        }
+        Relationships: []
       }
       fraud_events: {
         Row: {
@@ -454,12 +589,14 @@ export type Database = {
           is_approved: boolean
           is_featured: boolean | null
           is_sponsored: boolean | null
+          is_subscription: boolean
           platform_fee_percent: number
           price: number
           ranking_score: number | null
           refund_window_days: number
           second_tier_commission_percent: number | null
           status: Database["public"]["Enums"]["product_status"]
+          subscription_interval: string | null
           title: string
           updated_at: string
           vendor_id: string
@@ -477,12 +614,14 @@ export type Database = {
           is_approved?: boolean
           is_featured?: boolean | null
           is_sponsored?: boolean | null
+          is_subscription?: boolean
           platform_fee_percent?: number
           price: number
           ranking_score?: number | null
           refund_window_days?: number
           second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          subscription_interval?: string | null
           title: string
           updated_at?: string
           vendor_id: string
@@ -500,12 +639,14 @@ export type Database = {
           is_approved?: boolean
           is_featured?: boolean | null
           is_sponsored?: boolean | null
+          is_subscription?: boolean
           platform_fee_percent?: number
           price?: number
           ranking_score?: number | null
           refund_window_days?: number
           second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          subscription_interval?: string | null
           title?: string
           updated_at?: string
           vendor_id?: string
@@ -519,9 +660,11 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_verified: boolean
           referral_code: string | null
           referred_by: string | null
           updated_at: string
+          vendor_tier: string
         }
         Insert: {
           avatar_url?: string | null
@@ -529,9 +672,11 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_verified?: boolean
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
+          vendor_tier?: string
         }
         Update: {
           avatar_url?: string | null
@@ -539,9 +684,11 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_verified?: boolean
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
+          vendor_tier?: string
         }
         Relationships: [
           {
@@ -837,6 +984,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_announcements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          discount_amount: number
+          discount_percent: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          product_id: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          discount_amount?: number
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          product_id?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          discount_amount?: number
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          product_id?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_coupons_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
