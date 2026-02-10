@@ -519,6 +519,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          referral_code: string | null
           referred_by: string | null
           updated_at: string
         }
@@ -528,6 +529,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
         }
@@ -537,6 +539,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
         }
@@ -890,6 +893,7 @@ export type Database = {
         Returns: undefined
       }
       generate_affiliate_code: { Args: never; Returns: string }
+      generate_profile_referral_code: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
