@@ -51,7 +51,8 @@ import AdminMessaging from "./pages/admin/AdminMessaging";
 import AdminPromoMaterials from "./pages/admin/AdminPromoMaterials";
 import AdminRevenueControls from "./pages/admin/AdminRevenueControls";
 import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
-
+import AdminAICopilot from "./pages/admin/AdminAICopilot";
+import AdminExperiments from "./pages/admin/AdminExperiments";
 // Extra dashboard pages
 import AffiliateToolkit from "./pages/dashboard/AffiliateToolkit";
 import VendorAnnouncements from "./pages/dashboard/VendorAnnouncements";
@@ -350,6 +351,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <AdminFeatureFlags />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/ai-copilot"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminAICopilot />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/experiments"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminExperiments />
                   </ProtectedRoute>
                 }
               />

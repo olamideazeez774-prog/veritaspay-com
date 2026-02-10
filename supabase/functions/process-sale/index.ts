@@ -72,8 +72,34 @@ Deno.serve(async (req) => {
         .single();
 
       if (affiliateLink) {
-        affiliateId = affiliateLink.affiliate_id;
-        affiliateLinkId = affiliateLink.id;
+        // Self-referral blocking: affiliate cannot earn commission on their own purchase
+        if (affiliateLink.affiliate_id === product.vendor_id) {
+          console.warn("Self-referral blocked: affiliate is the vendor");
+        } else {
+          // Check if buyer email matches the affiliate's email (self-purchase)
+          const { data: affiliateProfile } = await supabase
+            .from("profiles")
+            .select("email")
+            .eq("id", affiliateLink.affiliate_id)
+            .single();
+
+          if (affiliateProfile?.email?.toLowerCase() === buyerEmail.toLowerCase()) {
+            console.warn("Self-referral blocked: buyer is the affiliate");
+            // Log fraud event
+            await supabase.from("fraud_events").insert({
+              event_type: "self_referral",
+              severity: "high",
+              user_id: affiliateLink.affiliate_id,
+              related_id: productId,
+              related_type: "product",
+              description: `Self-referral attempt: affiliate tried to purchase own referral link for "${product.title}"`,
+              status: "flagged",
+            });
+          } else {
+            affiliateId = affiliateLink.affiliate_id;
+            affiliateLinkId = affiliateLink.id;
+          }
+        }
       }
     }
 
