@@ -1,217 +1,277 @@
 
-# VeritasPay Platform - Comprehensive Production Upgrade Plan
+# VeritasPay Production Hardening -- Complete Implementation Plan
 
-This is a large-scale upgrade covering core platform fixes, new feature systems, PWA support, and admin tooling. The work is organized into **6 implementation phases** to ensure stability at each step.
+This plan covers every remaining gap, broken flow, placeholder, and mobile responsiveness issue across the entire platform. Changes are grouped by system for clarity but will be implemented together.
 
 ---
 
-## Phase 1: Referral System Fix + Core Tracking (Critical Priority)
+## 1. REFERRAL SYSTEM -- FINAL HARDENING
 
-The referral link is broken because `affiliate_referral_codes` may return empty codes. This must be fixed first since it blocks the entire affiliate flow.
+The referral codes are now generated correctly (verified: `VP1523FC`, etc.). Remaining fixes:
+
+### Register.tsx
+- The `ref` param capture already works. Add **cookie-based** persistence alongside localStorage for redundancy (set a `vp_ref` cookie with 30-day expiry on page load).
+- After signup, ensure `recordPlatformReferral` is called **only after** the user confirms email and the auth session is established (move from signup handler to a post-login check).
+
+### useReferrals.ts
+- Add retry logic with `retryDelay: 1000` and `retry: 3` to `useUserReferralCode` to handle race conditions where the profile trigger hasn't fired yet. (Already partially done -- verify and clean up.)
+- Remove any `// TODO` comments.
+
+### AffiliateReferrals.tsx
+- Wire real **click count** by querying the `clicks` table joined through `affiliate_links` for the user.
+- Show **purchase count** from `sales` where `affiliate_id = user.id`.
+- All 4 stat cards (Total Referrals, Vendors Referred, Affiliates Referred, Commission Earned) are already wired to real data -- verify no mocks remain.
+
+---
+
+## 2. CERTIFICATE SYSTEM -- UNIQUE RANK DESIGNS + ADMIN SIGNATURE
 
 ### Database Changes
-- Add a `referral_code` column directly to the `profiles` table (auto-generated via trigger on user creation) so every user -- not just affiliates -- has a referral code
-- Update `handle_new_user()` function to also insert into `affiliate_referral_codes` automatically
-- Backfill any existing users who have empty or missing referral codes
+- Add `admin_signature_url` column to `platform_settings` (store as a JSON value under key `admin_signature`).
+- No new tables needed -- `certificates` table already exists with `metadata` JSON column.
 
-### Frontend Fixes
-- Update `useReferrals.ts` to always return a valid code, with retry logic if the trigger hasn't fired yet
-- Update `Register.tsx` to persist the `ref` query param into `localStorage` immediately on page load, so it survives page refreshes
-- After successful signup, read from `localStorage` and call `recordPlatformReferral`
-- Block self-referrals (check if referrer ID equals new user ID)
-- Update `AffiliateReferrals.tsx` to show total clicks, signups, purchases, and commissions earned (query from `platform_referrals` joined with `sales`)
+### Admin Signature Pad (New Section in Settings or Revenue Controls)
+- Add a **canvas-based signature pad** component to admin settings.
+- When admin draws and saves, convert canvas to PNG data URL.
+- Store in `platform_settings` under key `admin_signature` as `{ url: "data:image/png;base64,..." }`.
+- Certificate generation will be **blocked** if no signature is saved (show warning).
 
-### Edge Function Updates
-- Update `track-click` to also log referral-type clicks (platform referral vs product affiliate)
-- Ensure `process-sale` correctly attributes the affiliate from `localStorage`/cookie
+### Certificate PDF Generation -- Unique Per Rank
+Each rank gets a completely different visual design in the PDF generator:
 
----
+| Rank | Background | Title Color | Border Style | Badge |
+|------|-----------|-------------|-------------|-------|
+| Bronze | Dark slate (#1e293b) | Copper (#b87333) | Single thin border | Circle with "B" |
+| Silver | Charcoal (#374151) | Silver (#c0c0c0) | Double border | Shield with "S" |
+| Gold | Deep navy (#0f172a) | Gold (#d4af37) | Triple ornate border | Star with "G" |
+| Diamond | Black (#030712) | Ice blue (#93c5fd) | Diamond pattern border | Diamond shape |
+| Platinum | Dark purple (#1e1b4b) | Platinum (#e5e7eb) | Gradient metallic border | Hexagon with "P" |
+| Elite | Pure black (#000000) | Rainbow gradient text | Animated-style double border | Crown icon |
 
-## Phase 2: PWA (Progressive Web App) Setup
+Each certificate PDF will include:
+- Rank-specific background color and border
+- "CERTIFICATE OF ACHIEVEMENT" in rank-specific metallic font color
+- Rank name with unique styling
+- Affiliate name (dynamic)
+- Total commission earned at time of issue
+- Milestone date
+- Platform name
+- Certificate ID hash
+- Verification URL with QR code (rendered as image)
+- **Admin signature image** (pulled from platform_settings)
+- Rank badge watermark
 
-### Technical Setup
-- Install `vite-plugin-pwa` dependency
-- Configure in `vite.config.ts` with manifest (app name: VeritasPay, theme color, icons)
-- Add PWA meta tags to `index.html` (viewport, apple-mobile-web-app-capable, theme-color)
-- Create PWA icon set in `/public/` (192x192, 512x512)
-- Configure service worker for offline caching of dashboard pages
-- Create `/install` page with add-to-home-screen prompt logic
+### CertificatesPage.tsx Updates
+- Pass `totalEarned` into certificate metadata when claiming.
+- Include `milestone_date`, `total_commission`, `platform_name` in metadata.
+- Download function updated to use rank-specific designs.
+- Add PNG export option using `html2canvas`.
+- Block claim if admin signature not configured (fetch and check).
 
-### Offline & Performance
-- Cache dashboard shell and static assets via service worker
-- Use `workbox` runtime caching strategies for API calls (stale-while-revalidate)
-- Background sync for pending actions (payout requests, etc.)
+### Admin Certificate Preview Mode
+- When admin visits `/dashboard/certificates`, detect admin role.
+- Auto-generate preview certificates for ALL ranks (Bronze through Elite).
+- Mark them with `is_preview: true` in metadata.
+- Do not count toward leaderboard or rewards.
+- Show a banner: "Preview Mode -- These are sample certificates for QA."
 
----
-
-## Phase 3: Admin Feature Flag System + Revenue Controls
-
-### Database Changes
-- Extend `platform_settings` table to store feature flags as JSON objects with metadata (who changed, timestamp, reason, previous value for rollback)
-
-### Admin Feature Toggle Engine Page
-- Create `/vp-admin-x7k9/feature-flags` page
-- Toggleable features: listing fees, platform fees, withdrawal fees, promo campaigns, AI modules, commission boosts, vendor onboarding mode, affiliate reward programs, ranking algorithms, experiment features
-- Each toggle shows: current state, last changed by, timestamp, reason note
-- Rollback button to restore previous value
-
-### Revenue & Fee Engine Upgrade
-- Extend `AdminRevenueControls.tsx` to include:
-  - Micro maintenance fees (processing buffer, withdrawal fee %, flat fee)
-  - Verification badge fee
-  - Vendor subscription tier configuration
-  - Transparent ledger display toggle
-- All fee changes logged to `system_logs`
-
----
-
-## Phase 4: Vendor System + Affiliate Rank Ladder + Certificates
-
-### Vendor Modes (Normal vs Premium)
-- Add `vendor_tier` column to `profiles` (`normal` | `premium`)
-- Add `is_verified` boolean to `profiles` for verification badges
-- Premium benefits: lower platform fee %, better ranking score boost, faster payout queue priority
-- Admin can assign vendor tier from Users page
-
-### Vendor Tools Expansion
-- Coupon builder (new `vendor_coupons` table)
-- Affiliate recruitment tools (shareable vendor profile page)
-- Update `VendorAnnouncements.tsx` to trigger:
-  - Dashboard feed (already exists)
-  - Push notification (via PWA service worker)
-  - Product page banner display
-
-### Affiliate Rank Ladder
-- New `affiliate_ranks` table defining thresholds:
-  - Bronze: 50,000 NGN, Silver: 100,000, Gold: 250,000, Diamond: 500,000, Platinum: 750,000, Elite: 1,000,000+
-- Rank computed from `wallets.total_earned`
-- Display rank badge on affiliate dashboard and leaderboard
-- Rank-based benefits: fee discounts, higher commission tiers, promo boosts
-
-### Certificate System
-- New `/dashboard/certificates` page
-- Auto-generate certificates on rank milestones
-- Certificate design: glassmorphism overlay, metallic gradient title, rank watermark, QR verification code, unique hash ID
-- Export as PDF/PNG
-- Public verification URL: `/verify-certificate/:id`
-- Social share card generation
+### VerifyCertificate.tsx
+- Add affiliate name display (join with profiles table).
+- Add rank badge visual.
+- Add social share meta tags (og:image, og:title).
 
 ---
 
-## Phase 5: Advanced Commission Engine + Anti-Fraud + Conversion Intelligence
+## 3. AI COPILOT -- COMPLETE TOGGLE FIX
 
-### Commission Engine Enhancements
-- Update `AdminCommissionRules.tsx` to support:
-  - 15 sales/week threshold logic
-  - Forward-only upgrade (never downgrade mid-period)
-  - 1-week grace period before rate expires
-  - Recurring commissions for subscription products (new field on products)
-- All commission calculations logged to `system_logs` with full breakdown
+### AdminAICopilot.tsx Issues
+- The "Advisory" vs "Auto" mode toggle already exists but "Auto" mode has no actual execution logic.
+- Fix: Add actual auto-action buttons that:
+  1. Read flagged fraud events and auto-hold commissions.
+  2. Apply promo boosts from commission_rules.
+  3. Adjust ranking_score on products based on performance data.
+- Each auto action inserts into `ai_decisions` table with `was_auto: true`.
+- Add **budget cap input** and **margin floor input** that block auto-actions when exceeded.
+- Add rollback button on each decision log entry.
 
-### Anti-Fraud System Enhancements
-- Duplicate click filtering: check IP hash + time window in `track-click` edge function
-- Self-referral blocking: validate affiliate_id != buyer in `process-sale`
-- Rapid conversion spike detection: AI-powered via `ai-insights` edge function
-- Device fingerprint collection (user-agent + screen resolution hash)
-- Admin fraud dashboard already exists -- enhance with:
-  - Per-event fraud flags inline
-  - Commission hold/release toggle per transaction
-  - Manual review queue with bulk actions
-
-### Conversion Intelligence Dashboard
-- New `/dashboard/analytics` page for affiliates with:
-  - Click-to-sale rate per product
-  - EPC (earnings per click) calculation
-  - Top performing products ranked by conversion
-  - Traffic source breakdown (from UTM tags)
-  - Funnel visualization (clicks -> visits -> signups -> purchases)
-- Leaderboard system (already exists): enhance with daily/weekly/monthly filters
+### Hard Guardrails (enforced in ai-insights edge function)
+- Already declared in UI -- enforce in code:
+  - If action type is `payout_approval` and amount > configurable threshold, reject.
+  - Never allow `DELETE` operations from AI.
+  - Never modify `platform_fee_percent` or core fee columns.
+- Log every guardrail block in `ai_decisions` with `blocked: true`.
 
 ---
 
-## Phase 6: AI Copilot System + Experiment Engine + Final Polish
+## 4. FEATURE FLAG ENGINE -- PRODUCTION HARDENING
 
-### AI Admin Copilot
-- New `/vp-admin-x7k9/ai-copilot` page
-- Two modes:
-  - **Advisory Mode**: AI analyzes data and suggests optimizations (uses existing `ai-insights` edge function)
-  - **Controlled Auto Mode**: AI executes safe actions only (fraud holds, promo boosts, ranking adjustments)
-- Hard guardrails enforced in edge function:
-  - Cannot change core fee math
-  - Cannot approve large payouts (above configurable threshold)
-  - Cannot delete entities
-- Decision log table for all AI actions
-- Budget caps and margin protection configuration
-
-### Experiment System
-- New `experiments` table (name, type, variants, status, created_by)
-- Admin can A/B test: commission rates, vendor fees, ranking rules, promo boosts, payout timing
-- Flag experiments visibly in admin UI
-- Results tracking per variant
-
-### AI Value-Add Modules (Expanded)
-- Extend `ai-insights` edge function with new types:
-  - `churn_prediction`: analyze affiliate activity patterns
-  - `promo_timing`: suggest optimal promotion windows
-  - `complaint_sentiment`: analyze support messages
-  - `smart_matching`: match affiliates to products based on performance history
-- Each module toggleable from `AdminRevenueControls.tsx`
-
-### Marketplace Ranking Engine Enhancements
-- Update ranking score calculation to include:
-  - Conversion rate weight
-  - Refund rate (negative weight)
-  - EPC
-  - Vendor trust score (based on refund rate + payout history)
-  - Affiliate success score (aggregated conversion rates)
-  - Sales velocity (recent sales momentum)
-- Admin manual override already exists in `AdminRankings.tsx`
+### AdminFeatureFlags.tsx
+- Already functional with audit trail, rollback, and reason logging.
+- Add: when a flag changes, write to `system_logs` table (call `write_system_log` RPC).
+- Add: export flag history as CSV.
+- No mocks or placeholders remain.
 
 ---
 
-## Mobile Responsiveness (Applied Across All Phases)
+## 5. MICRO MAINTENANCE FEE ENGINE
 
-Every page created or modified will follow these rules:
-- Responsive grid layouts (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)
-- Scrollable tables on mobile with horizontal overflow
-- Touch-friendly buttons (minimum 44px tap targets)
-- Stacked card layouts on mobile instead of tables
-- No admin route forces desktop layout
-- Mobile header with hamburger menu (already implemented)
+### AdminRevenueControls.tsx
+- Already has all fee fields (processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee).
+- Fix: ensure these values are **read and applied** in the `process-sale` edge function and payout processing.
+- Add fee display in the wallet/payout pages so users see the breakdown.
+
+### PayoutsPage.tsx (User-facing)
+- When requesting a payout, calculate and display the fee deduction:
+  - `withdrawal_fee = (amount * withdrawal_fee_percent / 100) + withdrawal_flat_fee`
+- Show net amount after fees.
+- Read fee settings from `platform_settings` table.
+
+---
+
+## 6. VENDOR SYSTEM HARDENING
+
+### AdminUsers.tsx
+- Add **vendor tier toggle** (normal/premium) in the manage roles dropdown.
+- Add **verification badge toggle**.
+- When admin assigns premium to a user, check if user has admin role -- if so, skip premium fee (admin auto-premium).
+
+### Vendor Announcements Delivery
+- VendorAnnouncements.tsx already creates announcements.
+- AffiliateToolkit.tsx already shows them in the "Updates" tab.
+- Add: show announcement count badge in sidebar nav when new announcements exist.
+
+---
+
+## 7. DAILY PERSONALIZED MESSAGE ENGINE
+
+### Database
+- Create `daily_digests` table (user_id, digest_type, content JSON, created_at, is_read).
+
+### Backend Logic
+- Create new edge function `generate-daily-digest` that:
+  - For each affiliate: queries their sales, clicks, streaks, and generates a personalized summary.
+  - For each vendor: queries their recent sales, affiliate activity, optimization tips.
+  - Uses AI (Lovable AI gateway) to generate personalized tips based on real data.
+  - Stores in `daily_digests` table.
+
+### Frontend
+- Add a "Daily Digest" card on the main Dashboard page showing the latest digest.
+- Real data, not templates.
+
+---
+
+## 8. COMMISSION RULE ENGINE -- WEEKLY MAINTENANCE
+
+### process-sale Edge Function
+- Before calculating commission, query `commission_rules` table.
+- Check if affiliate has met the 15 sales/week threshold.
+- If yes, apply 40% commission (forward-only upgrade).
+- Check grace period: if last week met threshold but this week hasn't, maintain rate for 1 more week.
+- After grace period expires, revert to base rate.
+- Log the applied rule in the sale metadata.
+
+### AdminCommissionRules.tsx
+- Add visual indicator for "Weekly Threshold" rule type.
+- Show current week's performance per affiliate inline.
+
+---
+
+## 9. PWA -- VERIFY COMPLETE
+
+- PWA is already configured in `vite.config.ts` with `vite-plugin-pwa`.
+- Manifest, icons, service worker, and runtime caching are set up.
+- `/install` page exists.
+- Verify: ensure service worker caches dashboard shell and API responses with stale-while-revalidate.
+- No changes needed unless broken.
+
+---
+
+## 10. ADMIN PRIVILEGE OVERRIDES
+
+### useAuth.tsx / ProtectedRoute
+- Add a helper: `isPremium = isAdmin || profile?.vendor_tier === 'premium'`.
+- In all fee calculation paths, check `isAdmin` -- if true, set fee to 0.
+- In certificate/rank pages, if admin, auto-set rank to Elite and skip reward payouts.
+- In payout processing, if admin, skip withdrawal fees.
+
+---
+
+## 11. MOBILE RESPONSIVENESS FIXES -- ALL ADMIN PAGES
+
+### Pages that need mobile layout fixes:
+
+**AdminRankings.tsx** -- Currently has inline inputs and switches that overflow on mobile.
+- Convert to stacked card layout on mobile with the score input, featured/sponsored toggles below the product info.
+
+**AdminCommissionRules.tsx** -- Create dialog form overflows on small screens.
+- Make dialog scrollable, stack grid-cols-2 fields to grid-cols-1 on mobile.
+
+**AdminAICopilot.tsx** -- Analysis buttons grid needs responsive breakpoints.
+- Already uses `sm:grid-cols-2 lg:grid-cols-4` -- verify it works.
+
+**AdminRevenueControls.tsx** -- Number inputs and toggle fields are functional but:
+- Ensure the "Save All" button doesn't overlap the header on mobile.
+- Make glass-card sections have proper padding on mobile (`p-4` instead of `p-6`).
+
+**AdminExperiments.tsx** -- Variants JSON textarea in create dialog too small on mobile.
+- Make dialog content scrollable with `max-h-[80vh] overflow-y-auto`.
+
+**AdminFeatureFlags.tsx** -- Toggle rows with rollback buttons might wrap poorly.
+- Ensure flex-wrap and proper spacing.
+
+**AdminAnalytics.tsx** -- Calendar popovers may overflow viewport on mobile.
+- Add `side="bottom"` and proper alignment.
+
+**AdminLogbook.tsx** -- Filter bar needs stacking on mobile.
+- Already uses `flex-col sm:flex-row` -- verify it works.
+
+**AdminMessaging.tsx / AdminPromoMaterials.tsx** -- Mostly functional, minor touch target sizes.
+
+**General fixes across all admin pages:**
+- Replace any remaining `hidden sm:block` table patterns with mobile card views where missing.
+- Ensure all Dialog components use `max-h-[85vh] overflow-y-auto` on DialogContent.
+- Minimum 44px touch targets on all interactive elements.
+
+---
+
+## 12. CLEANUP
+
+### Remove across entire codebase:
+- Any `// TODO` comments
+- Any `// placeholder` or mock data references
+- Any `as any` type assertions that can be properly typed
+- Unused imports
+
+### Verify all dashboards read from real database:
+- AdminDashboard stats -- uses `useAdminStats` (real query) -- OK
+- AdminAnalytics -- uses `useAdminAnalytics` (real query) -- OK
+- AffiliateReferrals -- uses `useReferredUsers` (real query) -- OK
+- AffiliateAnalytics -- uses real affiliate_links and sales queries -- OK
+- Leaderboard -- uses `useLeaderboard` (real query) -- OK
 
 ---
 
 ## Technical Summary
 
-### New Database Tables
-- `vendor_coupons` (vendor coupon builder)
-- `affiliate_ranks` (rank definitions and thresholds)
-- `certificates` (issued certificates with verification)
-- `experiments` (A/B test configuration)
-- `ai_decisions` (AI copilot action log)
-
-### Modified Tables
-- `profiles`: add `vendor_tier`, `is_verified`, `affiliate_rank`
-- `products`: add `is_subscription`, `subscription_interval`
-- `platform_settings`: extended for feature flags with metadata
-
-### New Pages (approximately 8)
-- `/install` (PWA install prompt)
-- `/vp-admin-x7k9/feature-flags`
-- `/vp-admin-x7k9/ai-copilot`
-- `/vp-admin-x7k9/experiments`
-- `/dashboard/certificates`
-- `/dashboard/analytics` (enhanced affiliate analytics)
-- `/verify-certificate/:id` (public verification)
+### Database Changes
+- New table: `daily_digests` (user_id, digest_type, content, created_at, is_read)
+- New platform_settings key: `admin_signature` (stores signature image)
 
 ### New/Modified Edge Functions
-- `track-click`: duplicate filtering, device fingerprint
-- `process-sale`: self-referral blocking, commission rule evaluation
-- `ai-insights`: 4 new analysis types
-- New `generate-certificate` function
+- `generate-daily-digest`: AI-powered daily summaries for affiliates and vendors
+- `process-sale`: Add commission rule engine evaluation with weekly threshold logic
+- `ai-insights`: Add guardrail enforcement and action logging
 
-Sometime the admins can decide to be a vendor or an affiliate or both so make sure that anything premium doesnt apply to them they are already premium 
+### Modified Pages (approximately 15)
+- All admin pages for mobile responsiveness
+- CertificatesPage for unique rank designs and admin signature
+- VerifyCertificate for enhanced display
+- AdminAICopilot for working auto mode
+- AdminUsers for vendor tier management
+- PayoutsPage for fee breakdown display
+- Dashboard for daily digest card
+- SettingsPage (admin section) for signature pad
 
-### Dependencies to Add
-- `vite-plugin-pwa`
-- `html2canvas` or `jspdf` (for certificate PDF generation)
+### New Components
+- SignaturePad component (canvas-based drawing)
+- DailyDigestCard component
