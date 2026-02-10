@@ -322,6 +322,33 @@ export type Database = {
           },
         ]
       }
+      daily_digests: {
+        Row: {
+          content: Json
+          created_at: string
+          digest_type: string
+          id: string
+          is_read: boolean
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          digest_type?: string
+          id?: string
+          is_read?: boolean
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          digest_type?: string
+          id?: string
+          is_read?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       experiments: {
         Row: {
           created_at: string

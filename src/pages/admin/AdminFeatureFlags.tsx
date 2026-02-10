@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ToggleLeft, ToggleRight, RotateCcw, Save, Clock, User, MessageSquare } from "lucide-react";
+import { ToggleLeft, RotateCcw, Clock, User, MessageSquare, Download } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +46,6 @@ export default function AdminFeatureFlags() {
   const { user, profile } = useAuth();
   const [flags, setFlags] = useState<FeatureFlag[]>(DEFAULT_FLAGS);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [reasonDialog, setReasonDialog] = useState<{ key: string; newValue: boolean } | null>(null);
   const [reason, setReason] = useState("");
 
@@ -102,7 +100,6 @@ export default function AdminFeatureFlags() {
     setFlags(updatedFlags);
     setReasonDialog(null);
 
-    // Save immediately
     const flagsObj: Record<string, any> = {};
     updatedFlags.forEach((f) => {
       flagsObj[f.key] = {
@@ -118,6 +115,18 @@ export default function AdminFeatureFlags() {
       { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
       { onConflict: "key" }
     );
+
+    // Log to system_logs
+    await supabase.rpc("write_system_log", {
+      _event_type: "feature_flag_changed",
+      _category: "system",
+      _description: `Feature flag "${key}" ${newValue ? "enabled" : "disabled"}: ${reason || "No reason"}`,
+      _actor_id: user?.id,
+      _related_id: key,
+      _related_type: "feature_flag",
+      _status: newValue ? "enabled" : "disabled",
+    });
+
     toast.success(`${key.replace(/_/g, " ")} ${newValue ? "enabled" : "disabled"}`);
   };
 
@@ -154,7 +163,33 @@ export default function AdminFeatureFlags() {
       { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
       { onConflict: "key" }
     );
+
+    await supabase.rpc("write_system_log", {
+      _event_type: "feature_flag_changed",
+      _category: "system",
+      _description: `Feature flag "${key}" rolled back to ${flag.previousValue ? "enabled" : "disabled"}`,
+      _actor_id: user?.id,
+      _related_id: key,
+      _related_type: "feature_flag",
+      _status: "rollback",
+    });
+
     toast.success(`Rolled back ${key.replace(/_/g, " ")}`);
+  };
+
+  const exportCSV = () => {
+    const rows = [["Flag", "Status", "Changed By", "Changed At", "Reason"].join(",")];
+    flags.forEach(f => {
+      rows.push([f.label, f.enabled ? "ON" : "OFF", f.changedBy || "", f.changedAt || "", `"${f.reason || ""}"`].join(","));
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `feature-flags-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exported flag history");
   };
 
   if (isLoading) {
@@ -170,17 +205,22 @@ export default function AdminFeatureFlags() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ToggleLeft className="h-7 w-7 text-primary" />
-            Feature Flags
-          </h1>
-          <p className="text-muted-foreground text-sm">Toggle platform features on/off with full audit trail</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <ToggleLeft className="h-7 w-7 text-primary" />
+              Feature Flags
+            </h1>
+            <p className="text-muted-foreground text-sm">Toggle platform features on/off with full audit trail</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download className="h-4 w-4 mr-1" />Export CSV
+          </Button>
         </div>
 
         <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-6">
           {categories.map((cat) => (
-            <motion.div key={cat} variants={staggerItem} className="glass-card p-6 space-y-4">
+            <motion.div key={cat} variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-4">
               <h2 className="text-lg font-semibold">{cat}</h2>
               <div className="space-y-3">
                 {flags
@@ -188,10 +228,10 @@ export default function AdminFeatureFlags() {
                   .map((flag) => (
                     <div
                       key={flag.key}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-muted/50 border"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-lg bg-muted/50 border"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium text-sm">{flag.label}</p>
                           <Badge variant={flag.enabled ? "default" : "secondary"} className="text-xs">
                             {flag.enabled ? "ON" : "OFF"}
@@ -199,7 +239,7 @@ export default function AdminFeatureFlags() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{flag.description}</p>
                         {flag.changedAt && (
-                          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />{flag.changedBy}
                             </span>
@@ -207,21 +247,16 @@ export default function AdminFeatureFlags() {
                               <Clock className="h-3 w-3" />{formatDate(flag.changedAt)}
                             </span>
                             {flag.reason && (
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="h-3 w-3" />{flag.reason}
+                              <span className="flex items-center gap-1 truncate max-w-[200px]">
+                                <MessageSquare className="h-3 w-3 shrink-0" />{flag.reason}
                               </span>
                             )}
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         {flag.previousValue !== undefined && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRollback(flag.key)}
-                            title="Rollback"
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleRollback(flag.key)} title="Rollback" className="min-h-[44px] min-w-[44px]">
                             <RotateCcw className="h-4 w-4" />
                           </Button>
                         )}
@@ -238,9 +273,8 @@ export default function AdminFeatureFlags() {
         </motion.div>
       </div>
 
-      {/* Reason Dialog */}
       <Dialog open={!!reasonDialog} onOpenChange={() => setReasonDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {reasonDialog?.newValue ? "Enable" : "Disable"} Feature

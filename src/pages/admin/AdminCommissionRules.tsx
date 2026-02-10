@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Settings, Plus, Trash2, Edit, Check, X, Zap } from "lucide-react";
+import { Settings, Plus, Trash2, Zap } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useCommissionRules, useCreateCommissionRule, useUpdateCommissionRule, useDeleteCommissionRule, CommissionRule } from "@/hooks/useCommissionRules";
+import { useCommissionRules, useCreateCommissionRule, useUpdateCommissionRule, useDeleteCommissionRule } from "@/hooks/useCommissionRules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ const RULE_TYPES = [
   { value: "per_product", label: "Per Product Override" },
   { value: "per_affiliate", label: "Per Affiliate Override" },
   { value: "recurring", label: "Recurring Commission" },
+  { value: "weekly_threshold", label: "Weekly Threshold" },
 ];
 
 export default function AdminCommissionRules() {
@@ -53,9 +54,18 @@ export default function AdminCommissionRules() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Commission Rules</h1>
             <p className="text-muted-foreground text-sm">Configure tiered, boosted, and custom commission structures</p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
+          <Button onClick={() => setShowCreate(true)} className="min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />Add Rule
           </Button>
+        </div>
+
+        {/* Weekly threshold info */}
+        <div className="rounded-lg border bg-muted/50 p-3 sm:p-4 text-sm">
+          <p className="font-medium mb-1">Weekly Threshold Logic</p>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            When an affiliate reaches 15 sales/week, their commission automatically upgrades to 40% (forward-only). 
+            The rate is maintained as long as the threshold is met weekly, with a 1-week grace period before reverting.
+          </p>
         </div>
 
         {isLoading ? (
@@ -71,25 +81,26 @@ export default function AdminCommissionRules() {
             {rules.map((rule) => (
               <motion.div key={rule.id} variants={staggerItem} className="glass-card p-4 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" />
+                      <Zap className="h-4 w-4 text-primary shrink-0" />
                       <h3 className="font-semibold">{rule.name}</h3>
                       <Badge variant="outline">{RULE_TYPES.find(t => t.value === rule.rule_type)?.label || rule.rule_type}</Badge>
                       {!rule.is_active && <Badge variant="secondary">Inactive</Badge>}
+                      {rule.rule_type === "weekly_threshold" && <Badge className="bg-primary/10 text-primary border-primary/20">Weekly</Badge>}
                     </div>
-                    <div className="flex flex-wrap gap-x-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       {rule.commission_override != null && <span>Override: {rule.commission_override}%</span>}
-                      {rule.boost_percent > 0 && <span>Boost: +{rule.boost_percent}%</span>}
-                      {rule.bonus_amount > 0 && <span>Bonus: ₦{rule.bonus_amount}</span>}
-                      {rule.min_sales > 0 && <span>After {rule.min_sales} sales</span>}
+                      {(rule.boost_percent as number) > 0 && <span>Boost: +{rule.boost_percent}%</span>}
+                      {(rule.bonus_amount as number) > 0 && <span>Bonus: ₦{rule.bonus_amount}</span>}
+                      {(rule.min_sales as number) > 0 && <span>After {rule.min_sales} sales</span>}
                       {rule.starts_at && <span>From {formatDate(rule.starts_at)}</span>}
                       {rule.ends_at && <span>Until {formatDate(rule.ends_at)}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Switch checked={rule.is_active} onCheckedChange={(checked) => updateRule.mutate({ id: rule.id, is_active: checked } as any)} />
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteRule.mutate(rule.id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => deleteRule.mutate(rule.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -100,7 +111,7 @@ export default function AdminCommissionRules() {
         )}
 
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Create Commission Rule</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -116,7 +127,7 @@ export default function AdminCommissionRules() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Commission Override %</Label>
                   <Input type="number" value={form.commission_override} onChange={e => setForm({...form, commission_override: e.target.value})} placeholder="e.g., 40" />
@@ -134,7 +145,7 @@ export default function AdminCommissionRules() {
                   <Input type="number" value={form.min_sales} onChange={e => setForm({...form, min_sales: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Start Date</Label>
                   <Input type="date" value={form.starts_at} onChange={e => setForm({...form, starts_at: e.target.value})} />

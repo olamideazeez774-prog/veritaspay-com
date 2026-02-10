@@ -19,6 +19,8 @@ export interface Profile {
   avatar_url: string | null;
   referral_code: string | null;
   referred_by: string | null;
+  is_verified: boolean;
+  vendor_tier: string;
   created_at: string;
   updated_at: string;
 }
@@ -43,12 +45,17 @@ export interface Product {
   status: ProductStatus;
   is_approved: boolean;
   affiliate_enabled: boolean;
+  is_subscription: boolean;
+  subscription_interval: string | null;
   file_url: string | null;
   external_url: string | null;
   cover_image_url: string | null;
+  is_featured: boolean | null;
+  is_sponsored: boolean | null;
+  ranking_score: number | null;
+  second_tier_commission_percent: number | null;
   created_at: string;
   updated_at: string;
-  // Joined fields
   vendor?: Profile;
 }
 
@@ -60,7 +67,6 @@ export interface AffiliateLink {
   clicks_count: number;
   conversions_count: number;
   created_at: string;
-  // Joined fields
   product?: Product;
   affiliate?: Profile;
 }
@@ -90,9 +96,10 @@ export interface Sale {
   refund_eligible_until: string | null;
   payment_reference: string | null;
   payment_gateway: string | null;
+  second_tier_affiliate_id: string | null;
+  second_tier_commission: number | null;
   created_at: string;
   updated_at: string;
-  // Joined fields
   product?: Product;
   vendor?: Profile;
   affiliate?: Profile;
@@ -137,7 +144,6 @@ export interface PayoutRequest {
   updated_at: string;
 }
 
-// Dashboard stats types
 export interface VendorStats {
   totalProducts: number;
   activeProducts: number;

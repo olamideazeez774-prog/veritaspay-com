@@ -13,6 +13,20 @@ import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferra
 const REF_STORAGE_KEY = "vp_referral_code";
 const REF_ID_STORAGE_KEY = "vp_referrer_id";
 
+function setRefCookie(code: string) {
+  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `vp_ref=${encodeURIComponent(code)};expires=${expires};path=/;SameSite=Lax`;
+}
+
+function getRefCookie(): string {
+  const match = document.cookie.match(/(?:^|;\s*)vp_ref=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+function clearRefCookie() {
+  document.cookie = "vp_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+}
+
 export default function Register() {
   const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
@@ -24,14 +38,16 @@ export default function Register() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
-  // Persist ref param to localStorage immediately on page load
+  // Persist ref param to localStorage + cookie immediately on page load
   const paramRef = searchParams.get("ref");
   const [referralCode, setReferralCode] = useState(() => {
     if (paramRef) {
-      localStorage.setItem(REF_STORAGE_KEY, paramRef.toUpperCase());
-      return paramRef.toUpperCase();
+      const upper = paramRef.toUpperCase();
+      localStorage.setItem(REF_STORAGE_KEY, upper);
+      setRefCookie(upper);
+      return upper;
     }
-    return localStorage.getItem(REF_STORAGE_KEY) || "";
+    return localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "";
   });
 
   // Validate referral code when it changes
@@ -45,6 +61,7 @@ export default function Register() {
         if (result.valid && result.referrerId) {
           localStorage.setItem(REF_STORAGE_KEY, trimmed);
           localStorage.setItem(REF_ID_STORAGE_KEY, result.referrerId);
+          setRefCookie(trimmed);
         }
       } else {
         setReferralValid(null);
@@ -68,15 +85,16 @@ export default function Register() {
     } else {
       // Record referral if valid
       const storedReferrerId = referrerId || localStorage.getItem(REF_ID_STORAGE_KEY);
-      const storedCode = referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || "";
+      const storedCode = referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "";
       
       if (storedReferrerId && data?.user?.id && storedReferrerId !== data.user.id) {
         await recordPlatformReferral(storedReferrerId, data.user.id, storedCode);
       }
 
-      // Clean up localStorage
+      // Clean up storage
       localStorage.removeItem(REF_STORAGE_KEY);
       localStorage.removeItem(REF_ID_STORAGE_KEY);
+      clearRefCookie();
 
       toast.success("Account created successfully! Please check your email to verify.");
       navigate("/login");
