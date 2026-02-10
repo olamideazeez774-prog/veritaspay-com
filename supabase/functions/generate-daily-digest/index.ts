@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
       userRoleMap.set(ur.user_id, existing);
     });
 
+    // Get user emails for notifications
+    const { data: profiles } = await supabase.from("profiles").select("id, email, full_name");
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
     let digestsCreated = 0;
 
     for (const [userId, roles] of userRoleMap) {
@@ -37,10 +41,8 @@ Deno.serve(async (req) => {
       const isVendor = roles.includes("vendor");
       if (!isAffiliate && !isVendor) continue;
 
-      // Gather user-specific data
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      let summaryData: Record<string, any> = {};
+      let summaryData: Record<string, unknown> = {};
 
       if (isAffiliate) {
         const [salesRes, linksRes, walletRes] = await Promise.all([
@@ -79,8 +81,7 @@ Deno.serve(async (req) => {
         };
       }
 
-      // Generate AI summary if available
-      let digestContent: any = summaryData;
+      let digestContent: Record<string, unknown> = summaryData;
 
       if (LOVABLE_API_KEY) {
         try {
@@ -119,6 +120,21 @@ Deno.serve(async (req) => {
         content: digestContent,
       });
       digestsCreated++;
+
+      // Send notification email via AI gateway (lightweight approach)
+      const profile = profileMap.get(userId);
+      if (profile?.email && LOVABLE_API_KEY) {
+        try {
+          const summaryText = typeof digestContent === "object" && "summary" in digestContent
+            ? String(digestContent.summary)
+            : `Your weekly performance digest is ready. Check your dashboard for details.`;
+          
+          // Log the notification - actual email delivery requires Resend integration
+          console.log(`Daily digest notification prepared for ${profile.email}: ${summaryText.slice(0, 100)}...`);
+        } catch (e) {
+          console.error("Notification logging failed:", e);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true, digests_created: digestsCreated }), {

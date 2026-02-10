@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Bot, Sparkles, Shield, AlertTriangle, TrendingUp, RefreshCw, History, Undo2, DollarSign } from "lucide-react";
+import { Bot, Sparkles, Shield, AlertTriangle, TrendingUp, RefreshCw, History, Undo2, DollarSign, Power } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAIInsight } from "@/hooks/useAIInsights";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,11 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatDateTime, formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
+
+const AUTO_INTERVAL_MS = 60_000; // Run every 60 seconds when enabled
 
 export default function AdminAICopilot() {
   const { user } = useAuth();
@@ -23,9 +26,11 @@ export default function AdminAICopilot() {
   const [advisoryResult, setAdvisoryResult] = useState<string | null>(null);
   const [budgetCap, setBudgetCap] = useState(50000);
   const [marginFloor, setMarginFloor] = useState(5);
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiInsight = useAIInsight();
 
-  const { data: platformData } = useQuery({
+  const { data: platformData, refetch: refetchPlatform } = useQuery({
     queryKey: ["ai-copilot-platform-data"],
     queryFn: async () => {
       const [sales, products, fraud, wallets] = await Promise.all([
@@ -52,14 +57,14 @@ export default function AdminAICopilot() {
     },
   });
 
-  const logDecision = async (type: string, action: string, reasoning: string, wasAuto: boolean, snapshot?: any) => {
-    await supabase.from("ai_decisions").insert({
+  const logDecision = async (type: string, action: string, reasoning: string, wasAuto: boolean, snapshot?: Record<string, number>) => {
+    await supabase.from("ai_decisions").insert([{
       decision_type: type,
       action_taken: action,
       reasoning,
       was_auto: wasAuto,
-      data_snapshot: snapshot || {},
-    } as any);
+      data_snapshot: (snapshot || {}) as unknown as import("@/integrations/supabase/types").Json,
+    }]);
     refetchDecisions();
   };
 
@@ -94,39 +99,81 @@ export default function AdminAICopilot() {
     );
   };
 
-  // Auto actions
-  const autoHoldFraud = async () => {
-    const flagged = platformData?.pending_fraud || [];
-    if (!flagged.length) { toast.info("No flagged fraud events to process"); return; }
+  // Auto action: hold fraud commissions
+  const autoHoldFraud = useCallback(async () => {
+    const { data: flagged } = await supabase
+      .from("fraud_events")
+      .select("id, commission_held")
+      .eq("status", "flagged")
+      .eq("commission_held", false)
+      .limit(20);
+    if (!flagged?.length) return 0;
     let held = 0;
     for (const event of flagged) {
-      if (!event.commission_held) {
-        await supabase.from("fraud_events").update({ commission_held: true, status: "reviewed" }).eq("id", event.id);
-        held++;
-      }
+      await supabase.from("fraud_events").update({ commission_held: true, status: "reviewed" }).eq("id", event.id);
+      held++;
     }
-    await logDecision("fraud_hold", `Held commissions on ${held} flagged events`, "Auto-hold: flagged fraud events with unheld commissions", true, { event_count: held });
-    toast.success(`Held commissions on ${held} events`);
-    qc.invalidateQueries({ queryKey: ["ai-copilot-platform-data"] });
-  };
+    if (held > 0) {
+      await logDecision("fraud_hold", `Held commissions on ${held} flagged events`, "Auto-hold: flagged fraud events with unheld commissions", true, { event_count: held });
+    }
+    return held;
+  }, []);
 
-  const autoAdjustRankings = async () => {
-    const products = platformData?.products || [];
-    if (!products.length) { toast.info("No products to adjust"); return; }
+  // Auto action: adjust rankings
+  const autoAdjustRankings = useCallback(async () => {
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, ranking_score, is_approved, status")
+      .eq("is_approved", true)
+      .eq("status", "active")
+      .limit(50);
+    if (!products?.length) return 0;
     let adjusted = 0;
     for (const product of products) {
-      if (product.is_approved && product.status === "active") {
-        const currentScore = (product as any).ranking_score || 0;
-        const newScore = Math.max(0, currentScore + Math.floor(Math.random() * 5) - 2);
-        if (newScore !== currentScore) {
-          await supabase.from("products").update({ ranking_score: newScore }).eq("id", product.id);
-          adjusted++;
-        }
+      const currentScore = product.ranking_score || 0;
+      const newScore = Math.max(0, currentScore + Math.floor(Math.random() * 5) - 2);
+      if (newScore !== currentScore) {
+        await supabase.from("products").update({ ranking_score: newScore }).eq("id", product.id);
+        adjusted++;
       }
     }
-    await logDecision("ranking_adjustment", `Adjusted ranking scores for ${adjusted} products`, "Auto-adjustment based on performance data", true, { adjusted_count: adjusted });
-    toast.success(`Adjusted ${adjusted} product rankings`);
-  };
+    if (adjusted > 0) {
+      await logDecision("ranking_adjustment", `Adjusted ranking scores for ${adjusted} products`, "Auto-adjustment based on performance data", true, { adjusted_count: adjusted });
+    }
+    return adjusted;
+  }, []);
+
+  // Combined auto-run cycle
+  const runAutoCycle = useCallback(async () => {
+    try {
+      await refetchPlatform();
+      const fraudHeld = await autoHoldFraud();
+      const rankingsAdjusted = await autoAdjustRankings();
+      if (fraudHeld > 0 || rankingsAdjusted > 0) {
+        qc.invalidateQueries({ queryKey: ["ai-copilot-platform-data"] });
+      }
+    } catch (err) {
+      console.error("Auto cycle error:", err);
+    }
+  }, [autoHoldFraud, autoAdjustRankings, refetchPlatform, qc]);
+
+  // Toggle auto mode
+  useEffect(() => {
+    if (autoEnabled) {
+      // Run immediately on enable
+      runAutoCycle();
+      intervalRef.current = setInterval(runAutoCycle, AUTO_INTERVAL_MS);
+      toast.success("AI Copilot auto-mode enabled — running every 60s");
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [autoEnabled, runAutoCycle]);
 
   return (
     <DashboardLayout>
@@ -136,6 +183,22 @@ export default function AdminAICopilot() {
             <Bot className="h-7 w-7 text-primary" /> AI Copilot
           </h1>
           <p className="text-muted-foreground text-sm">AI-powered platform intelligence and automated actions</p>
+        </div>
+
+        {/* Auto-Mode Master Toggle */}
+        <div className={`rounded-lg border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${autoEnabled ? "border-success/40 bg-success/5" : "border-muted"}`}>
+          <div className="flex items-center gap-3">
+            <Power className={`h-5 w-5 ${autoEnabled ? "text-success" : "text-muted-foreground"}`} />
+            <div>
+              <p className="font-semibold text-sm">Autonomous Mode</p>
+              <p className="text-xs text-muted-foreground">
+                {autoEnabled
+                  ? "Running automatically every 60 seconds — fraud holds & ranking adjustments"
+                  : "Toggle on to let the AI Copilot run actions automatically in the background"}
+              </p>
+            </div>
+          </div>
+          <Switch checked={autoEnabled} onCheckedChange={setAutoEnabled} />
         </div>
 
         {/* Guardrails Notice */}
@@ -202,14 +265,14 @@ export default function AdminAICopilot() {
               </div>
             </div>
 
-            {/* Auto Action Buttons */}
+            {/* Manual trigger buttons */}
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={autoHoldFraud}>
+              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={async () => { const n = await autoHoldFraud(); toast.success(`Held commissions on ${n} events`); qc.invalidateQueries({ queryKey: ["ai-copilot-platform-data"] }); }}>
                 <Shield className="h-5 w-5 text-destructive" />
                 <span className="text-sm font-medium">Hold Fraud Commissions</span>
                 <span className="text-xs text-muted-foreground">{platformData?.pending_fraud?.length || 0} flagged events</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={autoAdjustRankings}>
+              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={async () => { const n = await autoAdjustRankings(); toast.success(`Adjusted ${n} product rankings`); }}>
                 <TrendingUp className="h-5 w-5 text-primary" />
                 <span className="text-sm font-medium">Adjust Rankings</span>
                 <span className="text-xs text-muted-foreground">Performance-based scores</span>

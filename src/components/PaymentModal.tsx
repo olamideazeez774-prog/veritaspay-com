@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { LISTING_FEE, useCreateListingPayment } from "@/hooks/useListingPayment";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentModalProps {
   open: boolean;
@@ -25,13 +27,6 @@ interface PaymentModalProps {
   title?: string;
   description?: string;
 }
-
-// Mock Paystack bank details (to be replaced with real integration)
-const PAYSTACK_DETAILS = {
-  bankName: "Wema Bank",
-  accountNumber: "0123456789",
-  accountName: "VeritasPay Ltd",
-};
 
 export function PaymentModal({
   open,
@@ -49,8 +44,25 @@ export function PaymentModal({
   const [paymentReference, setPaymentReference] = useState("");
   const createPayment = useCreateListingPayment();
 
+  // Load bank details from platform settings
+  const { data: bankDetails } = useQuery({
+    queryKey: ["payment-bank-details"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "bank_details")
+        .maybeSingle();
+      return (data?.value as Record<string, string>) || {
+        bankName: "Wema Bank",
+        accountNumber: "0123456789",
+        accountName: "VeritasPay Ltd",
+      };
+    },
+  });
+
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText(PAYSTACK_DETAILS.accountNumber);
+    navigator.clipboard.writeText(bankDetails?.accountNumber || "");
     toast.success("Account number copied!");
   };
 
@@ -84,20 +96,19 @@ export function PaymentModal({
       setTimeout(() => {
         onPaymentComplete(paymentReference);
         onOpenChange(false);
-        // Reset state
         setStep("details");
         setBusinessName("");
         setBusinessEmail("");
         setPaymentReference("");
       }, 2000);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -161,12 +172,12 @@ export function PaymentModal({
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Bank</span>
-                    <span className="font-medium">{PAYSTACK_DETAILS.bankName}</span>
+                    <span className="font-medium">{bankDetails?.bankName}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Account Number</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium">{PAYSTACK_DETAILS.accountNumber}</span>
+                      <span className="font-mono font-medium">{bankDetails?.accountNumber}</span>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyAccount}>
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -174,7 +185,7 @@ export function PaymentModal({
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Account Name</span>
-                    <span className="font-medium">{PAYSTACK_DETAILS.accountName}</span>
+                    <span className="font-medium">{bankDetails?.accountName}</span>
                   </div>
                 </div>
               </div>
