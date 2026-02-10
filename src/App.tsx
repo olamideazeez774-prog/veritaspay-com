@@ -20,6 +20,7 @@ import About from "./pages/About";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
+import Install from "./pages/Install";
 
 // Dashboard pages
 import Dashboard from "./pages/Dashboard";
@@ -49,10 +50,14 @@ import AdminRankings from "./pages/admin/AdminRankings";
 import AdminMessaging from "./pages/admin/AdminMessaging";
 import AdminPromoMaterials from "./pages/admin/AdminPromoMaterials";
 import AdminRevenueControls from "./pages/admin/AdminRevenueControls";
+import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
 
 // Extra dashboard pages
 import AffiliateToolkit from "./pages/dashboard/AffiliateToolkit";
 import VendorAnnouncements from "./pages/dashboard/VendorAnnouncements";
+import CertificatesPage from "./pages/dashboard/CertificatesPage";
+import AffiliateAnalytics from "./pages/dashboard/AffiliateAnalytics";
+import VerifyCertificate from "./pages/VerifyCertificate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +91,8 @@ const App = () => (
               <Route path="/ref/:code" element={<ProductDetail />} />
               <Route path="/checkout/:productId" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/verify-certificate/:hash" element={<VerifyCertificate />} />
 
               {/* Protected Dashboard Routes */}
               <Route
@@ -169,6 +176,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["affiliate"]}>
                     <AffiliateToolkit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/analytics"
+                element={
+                  <ProtectedRoute requiredRoles={["affiliate"]}>
+                    <AffiliateAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/certificates"
+                element={
+                  <ProtectedRoute>
+                    <CertificatesPage />
                   </ProtectedRoute>
                 }
               />
@@ -319,6 +342,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <AdminRevenueControls />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/feature-flags"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminFeatureFlags />
                   </ProtectedRoute>
                 }
               />
