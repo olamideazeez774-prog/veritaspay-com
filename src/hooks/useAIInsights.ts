@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type InsightType = "fraud_scoring" | "affiliate_coaching" | "product_matching" | "commission_optimization";
+export type InsightType = "fraud_scoring" | "affiliate_coaching" | "product_matching" | "commission_optimization" | "churn_prediction" | "promo_timing" | "complaint_sentiment" | "smart_matching" | "platform_advisory";
 
 export function useAIInsight() {
   return useMutation({

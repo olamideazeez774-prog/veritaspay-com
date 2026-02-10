@@ -7,12 +7,14 @@ import { useAIInsight } from "@/hooks/useAIInsights";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { StatCard } from "@/components/ui/stat-card";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatDateTime } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function AdminFraudDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -23,6 +25,7 @@ export default function AdminFraudDashboard() {
   const [selected, setSelected] = useState<FraudEvent | null>(null);
   const [notes, setNotes] = useState("");
   const [aiResult, setAiResult] = useState<string | null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
 
   const getSeverityColor = (s: string) => {
     switch (s) {
@@ -42,6 +45,33 @@ export default function AdminFraudDashboard() {
     );
   };
 
+  const toggleBulk = (id: string) => {
+    setBulkSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (!events) return;
+    if (bulkSelected.size === events.length) {
+      setBulkSelected(new Set());
+    } else {
+      setBulkSelected(new Set(events.map(e => e.id)));
+    }
+  };
+
+  const bulkAction = async (status: "dismissed" | "confirmed") => {
+    const ids = [...bulkSelected];
+    if (!ids.length) return;
+    for (const id of ids) {
+      await updateEvent.mutateAsync({ id, status, commission_held: status === "confirmed" } as any);
+    }
+    setBulkSelected(new Set());
+    toast.success(`${ids.length} events ${status}`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -59,7 +89,7 @@ export default function AdminFraudDashboard() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -70,6 +100,17 @@ export default function AdminFraudDashboard() {
               <SelectItem value="dismissed">Dismissed</SelectItem>
             </SelectContent>
           </Select>
+          {bulkSelected.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{bulkSelected.size} selected</span>
+              <Button variant="outline" size="sm" onClick={() => bulkAction("dismissed")}>
+                <CheckCircle className="h-4 w-4 mr-1" />Dismiss All
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => bulkAction("confirmed")}>
+                <Ban className="h-4 w-4 mr-1" />Confirm All
+              </Button>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -81,27 +122,36 @@ export default function AdminFraudDashboard() {
             <p className="text-sm text-muted-foreground">The platform is clean!</p>
           </div>
         ) : (
-          <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
-            {events.map((event) => (
-              <motion.div key={event.id} variants={staggerItem} className="glass-card p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={getSeverityColor(event.severity)}>{event.severity}</Badge>
-                      <span className="text-sm font-medium">{event.event_type.replace(/_/g, " ")}</span>
-                      <Badge variant="outline">{event.status}</Badge>
-                      {event.commission_held && <Badge variant="destructive">Commission Held</Badge>}
+          <>
+            <div className="flex items-center gap-2 px-1">
+              <Checkbox checked={events.length > 0 && bulkSelected.size === events.length} onCheckedChange={selectAll} />
+              <span className="text-xs text-muted-foreground">Select all</span>
+            </div>
+            <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
+              {events.map((event) => (
+                <motion.div key={event.id} variants={staggerItem} className="glass-card p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <Checkbox checked={bulkSelected.has(event.id)} onCheckedChange={() => toggleBulk(event.id)} className="mt-1" />
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={getSeverityColor(event.severity)}>{event.severity}</Badge>
+                          <span className="text-sm font-medium">{event.event_type.replace(/_/g, " ")}</span>
+                          <Badge variant="outline">{event.status}</Badge>
+                          {event.commission_held && <Badge variant="destructive">Commission Held</Badge>}
+                        </div>
+                        <p className="text-sm text-foreground truncate">{event.description}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateTime(event.created_at)}</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-foreground truncate">{event.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(event.created_at)}</p>
+                    <Button variant="outline" size="sm" onClick={() => { setSelected(event); setNotes(event.admin_notes || ""); setAiResult(null); }}>
+                      <Eye className="h-4 w-4 mr-1" /> Review
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => { setSelected(event); setNotes(event.admin_notes || ""); setAiResult(null); }}>
-                    <Eye className="h-4 w-4 mr-1" /> Review
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </>
         )}
 
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
@@ -114,6 +164,7 @@ export default function AdminFraudDashboard() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Severity</span><Badge className={getSeverityColor(selected.severity)}>{selected.severity}</Badge></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span>{selected.status}</span></div>
                   {selected.ip_address && <div className="flex justify-between"><span className="text-muted-foreground">IP</span><span className="font-mono text-xs">{selected.ip_address}</span></div>}
+                  {selected.device_fingerprint && <div className="flex justify-between"><span className="text-muted-foreground">Device</span><span className="font-mono text-xs truncate max-w-[200px]">{selected.device_fingerprint}</span></div>}
                 </div>
                 <p className="text-sm">{selected.description}</p>
                 <Button variant="outline" size="sm" onClick={handleAIAnalysis} disabled={aiInsight.isPending}>

@@ -33,6 +33,26 @@ serve(async (req) => {
         systemPrompt = "You are a commission strategy advisor for a digital product marketplace.";
         userPrompt = `Analyze these commission rules and sales data:\n${JSON.stringify(data)}\n\nSuggest optimizations to maximize both affiliate motivation and platform revenue. Include specific percentage recommendations.`;
         break;
+      case "churn_prediction":
+        systemPrompt = "You are an affiliate retention analyst. Analyze activity patterns to predict which affiliates are at risk of churning.";
+        userPrompt = `Analyze this affiliate activity data:\n${JSON.stringify(data)}\n\nIdentify affiliates at risk of churning. For each, provide: churn_risk (low/medium/high), last_active, days_inactive, recommended_action. Summarize patterns.`;
+        break;
+      case "promo_timing":
+        systemPrompt = "You are a promotion timing optimizer for a digital marketplace. Analyze sales patterns to suggest optimal promotion windows.";
+        userPrompt = `Based on this sales and traffic data:\n${JSON.stringify(data)}\n\nSuggest the top 3 optimal time windows for running promotions. Include day of week, time of day, and expected uplift percentage.`;
+        break;
+      case "complaint_sentiment":
+        systemPrompt = "You are a customer sentiment analyst. Analyze support messages and identify patterns in complaints.";
+        userPrompt = `Analyze these support messages/complaints:\n${JSON.stringify(data)}\n\nProvide: overall_sentiment (positive/neutral/negative), top_issues (array), severity_distribution, recommended_actions.`;
+        break;
+      case "smart_matching":
+        systemPrompt = "You are an intelligent product-affiliate matching engine. Match affiliates to products based on historical performance.";
+        userPrompt = `Given this data of affiliate performance and available products:\n${JSON.stringify(data)}\n\nFor each affiliate, recommend the top 3 products they should promote and explain why. Consider their audience, past conversion rates, and commission potential.`;
+        break;
+      case "platform_advisory":
+        systemPrompt = "You are an AI copilot for a digital marketplace admin. Analyze platform-wide data and provide strategic recommendations. Be specific and actionable. Format your response with clear sections.";
+        userPrompt = `Here is the current platform data:\n${JSON.stringify(data)}\n\nProvide:\n1. Top 3 risks or issues requiring attention\n2. Top 3 growth opportunities\n3. Specific recommended actions (mark each as safe_auto or requires_review)\n4. Revenue optimization suggestions`;
+        break;
       default:
         return new Response(JSON.stringify({ error: "Unknown insight type" }), {
           status: 400,
