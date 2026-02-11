@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, Shield, ShoppingBag, Link2, Crown, BadgeCheck } from "lucide-react";
+import { Users, Search, Shield, ShoppingBag, Link2, Crown, BadgeCheck, Ban, Clock, MessageSquare, AlertTriangle, FileWarning } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,6 +20,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -28,13 +33,18 @@ interface UserWithRoles {
   full_name: string | null;
   vendor_tier: string;
   is_verified: boolean;
+  is_banned: boolean;
+  suspended_until: string | null;
   created_at: string;
   roles: AppRole[];
 }
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{ open: boolean; userId: string; userName: string }>({ open: false, userId: "", userName: "" });
+  const [messageText, setMessageText] = useState("");
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -52,6 +62,8 @@ export default function AdminUsers() {
         full_name: profile.full_name,
         vendor_tier: profile.vendor_tier || "normal",
         is_verified: profile.is_verified || false,
+        is_banned: (profile as any).is_banned || false,
+        suspended_until: (profile as any).suspended_until || null,
         created_at: profile.created_at,
         roles: roles.filter((r) => r.user_id === profile.id).map((r) => r.role),
       })) as UserWithRoles[];
@@ -92,6 +104,73 @@ export default function AdminUsers() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Verification updated"); },
     onError: () => { toast.error("Failed to update"); },
+  });
+
+  const toggleBan = useMutation({
+    mutationFn: async ({ userId, ban }: { userId: string; ban: boolean }) => {
+      const { error } = await supabase.from("profiles").update({ is_banned: ban } as any).eq("id", userId);
+      if (error) throw error;
+      await supabase.rpc("write_system_log", {
+        _event_type: ban ? "user_banned" : "user_unbanned",
+        _category: "user",
+        _description: `User ${ban ? "banned" : "unbanned"}`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "profile",
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("User status updated"); },
+    onError: () => { toast.error("Failed to update"); },
+  });
+
+  const suspendUser = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const suspendUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await supabase.from("profiles").update({ suspended_until: suspendUntil } as any).eq("id", userId);
+      if (error) throw error;
+      await supabase.rpc("write_system_log", {
+        _event_type: "user_suspended",
+        _category: "user",
+        _description: `User suspended for 7 days`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "profile",
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("User suspended for 7 days"); },
+    onError: () => { toast.error("Failed to suspend"); },
+  });
+
+  const fraudFlag = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { error } = await supabase.from("fraud_events").insert({
+        user_id: userId,
+        event_type: "admin_manual_flag",
+        description: `Manually flagged by admin for review: ${email}`,
+        severity: "high",
+        status: "flagged",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("User flagged for fraud review"); },
+    onError: () => { toast.error("Failed to flag"); },
+  });
+
+  const sendMessage = useMutation({
+    mutationFn: async ({ toUserId, message }: { toUserId: string; message: string }) => {
+      const { error } = await supabase.from("user_messages").insert({
+        from_admin_id: currentUser!.id,
+        to_user_id: toUserId,
+        message,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Message sent");
+      setMessageDialog({ open: false, userId: "", userName: "" });
+      setMessageText("");
+    },
+    onError: () => { toast.error("Failed to send message"); },
   });
 
   const filteredUsers = users?.filter(
@@ -143,8 +222,33 @@ export default function AdminUsers() {
           <BadgeCheck className="h-4 w-4 mr-2" />
           {user.is_verified ? "Remove Verified" : "Set Verified"}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => toggleBan.mutate({ userId: user.id, ban: !user.is_banned })} className={user.is_banned ? "text-success" : "text-destructive"}>
+          <Ban className="h-4 w-4 mr-2" />
+          {user.is_banned ? "Unban User" : "Ban User"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => suspendUser.mutate({ userId: user.id })}>
+          <Clock className="h-4 w-4 mr-2" />Suspend 7 Days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setMessageDialog({ open: true, userId: user.id, userName: user.full_name || user.email })}>
+          <MessageSquare className="h-4 w-4 mr-2" />Send Message
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => fraudFlag.mutate({ userId: user.id, email: user.email })} className="text-destructive">
+          <FileWarning className="h-4 w-4 mr-2" />Fraud Flag
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+
+  const UserStatusBadges = ({ user }: { user: UserWithRoles }) => (
+    <>
+      {user.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
+      {user.vendor_tier === "premium" && <Crown className="h-4 w-4 text-warning" />}
+      {user.is_banned && <Badge variant="destructive" className="text-xs">Banned</Badge>}
+      {user.suspended_until && new Date(user.suspended_until) > new Date() && (
+        <Badge variant="outline" className="text-xs text-warning border-warning/30">Suspended</Badge>
+      )}
+    </>
   );
 
   return (
@@ -152,7 +256,7 @@ export default function AdminUsers() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Manage Users</h1>
-          <p className="text-muted-foreground text-sm">View and manage user accounts, roles, and vendor tiers</p>
+          <p className="text-muted-foreground text-sm">View and manage user accounts, roles, and moderation</p>
         </div>
 
         <div className="relative max-w-sm">
@@ -171,10 +275,9 @@ export default function AdminUsers() {
               {filteredUsers.map((user) => (
                 <motion.div key={user.id} variants={staggerItem} className="glass-card p-4 space-y-3">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium">{user.full_name || "No name"}</p>
-                      {user.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
-                      {user.vendor_tier === "premium" && <Crown className="h-4 w-4 text-warning" />}
+                      <UserStatusBadges user={user} />
                     </div>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
@@ -201,7 +304,7 @@ export default function AdminUsers() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Roles</TableHead>
-                      <TableHead>Tier</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Joined</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -210,12 +313,9 @@ export default function AdminUsers() {
                     {filteredUsers.map((user) => (
                       <motion.tr key={user.id} variants={staggerItem}>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div>
-                              <p className="font-medium">{user.full_name || "No name"}</p>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                            </div>
-                            {user.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
+                          <div>
+                            <p className="font-medium">{user.full_name || "No name"}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -228,9 +328,9 @@ export default function AdminUsers() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            {user.vendor_tier === "premium" && <Crown className="h-4 w-4 text-warning" />}
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="capitalize text-sm">{user.vendor_tier}</span>
+                            <UserStatusBadges user={user} />
                           </div>
                         </TableCell>
                         <TableCell>{formatDate(user.created_at)}</TableCell>
@@ -245,6 +345,27 @@ export default function AdminUsers() {
             </motion.div>
           </>
         )}
+
+        {/* Send Message Dialog */}
+        <Dialog open={messageDialog.open} onOpenChange={(open) => setMessageDialog({ ...messageDialog, open })}>
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Send Message to {messageDialog.userName}</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <Textarea
+                placeholder="Type your message..."
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMessageDialog({ open: false, userId: "", userName: "" })}>Cancel</Button>
+              <Button onClick={() => sendMessage.mutate({ toUserId: messageDialog.userId, message: messageText })} disabled={!messageText.trim() || sendMessage.isPending}>
+                Send
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

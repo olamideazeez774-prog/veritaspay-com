@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, Save, Camera, Moon, Sun, PenTool, Trash2 } from "lucide-react";
+import { User, Mail, Lock, Save, Upload, Moon, Sun, PenTool, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -15,11 +15,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
-  const { user, profile, isLoading, isAdmin } = useAuth();
+  const { user, profile, isLoading, isAdmin, refreshProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({ full_name: "", email: "" });
   const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Signature pad state
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,7 +34,6 @@ export default function SettingsPage() {
     }
   }, [profile, user]);
 
-  // Load existing signature for admins
   useEffect(() => {
     if (isAdmin) {
       supabase.from("platform_settings").select("value").eq("key", "admin_signature").maybeSingle().then(({ data }) => {
@@ -49,10 +50,53 @@ export default function SettingsPage() {
       const { error } = await supabase.from("profiles").update({ full_name: formData.full_name }).eq("id", user?.id);
       if (error) throw error;
       toast.success("Profile updated successfully");
+      refreshProfile();
     } catch {
       toast.error("Failed to update profile");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      toast.error("Only JPEG and PNG are allowed");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+      if (updateError) throw updateError;
+
+      toast.success("Profile photo updated!");
+      refreshProfile();
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -159,13 +203,28 @@ export default function SettingsPage() {
                     <AvatarImage src={profile?.avatar_url || undefined} />
                     <AvatarFallback className="text-xl bg-primary/10 text-primary">{initials}</AvatarFallback>
                   </Avatar>
-                  <Button type="button" size="icon" variant="outline" className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full" disabled>
-                    <Camera className="h-4 w-4" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? <LoadingSpinner size="sm" /> : <Upload className="h-4 w-4" />}
                   </Button>
                 </div>
                 <div>
                   <p className="font-medium">{profile?.full_name || "Add your name"}</p>
                   <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">JPEG/PNG, max 2MB</p>
                 </div>
               </div>
               <div className="space-y-2">

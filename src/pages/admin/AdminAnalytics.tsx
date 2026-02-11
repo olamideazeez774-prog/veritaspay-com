@@ -67,14 +67,16 @@ export default function AdminAnalytics() {
                 Custom
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-4 space-y-3" align="start">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">From</p>
-                <CalendarPicker mode="single" selected={customFrom} onSelect={setCustomFrom} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">To</p>
-                <CalendarPicker mode="single" selected={customTo} onSelect={setCustomTo} />
+            <PopoverContent className="w-auto p-4 space-y-3" align="start" side="bottom">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">From</p>
+                  <CalendarPicker mode="single" selected={customFrom} onSelect={setCustomFrom} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">To</p>
+                  <CalendarPicker mode="single" selected={customTo} onSelect={setCustomTo} />
+                </div>
               </div>
               <Button size="sm" onClick={handleCustomRange} disabled={!customFrom || !customTo} className="w-full">
                 Apply Range

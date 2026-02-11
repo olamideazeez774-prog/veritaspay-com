@@ -442,6 +442,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          cta_url: string | null
+          id: string
+          image_url: string | null
+          is_read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          cta_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          cta_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_requests: {
         Row: {
           account_name: string | null
@@ -682,38 +718,47 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admin_notes: string | null
           avatar_url: string | null
           created_at: string
           email: string
           full_name: string | null
           id: string
+          is_banned: boolean
           is_verified: boolean
           referral_code: string | null
           referred_by: string | null
+          suspended_until: string | null
           updated_at: string
           vendor_tier: string
         }
         Insert: {
+          admin_notes?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
           full_name?: string | null
           id: string
+          is_banned?: boolean
           is_verified?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          suspended_until?: string | null
           updated_at?: string
           vendor_tier?: string
         }
         Update: {
+          admin_notes?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean
           is_verified?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          suspended_until?: string | null
           updated_at?: string
           vendor_tier?: string
         }
@@ -947,6 +992,33 @@ export type Database = {
           },
         ]
       }
+      user_messages: {
+        Row: {
+          created_at: string
+          from_admin_id: string
+          id: string
+          is_read: boolean
+          message: string
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_admin_id: string
+          id?: string
+          is_read?: boolean
+          message: string
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_admin_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          to_user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1070,6 +1142,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      verification_requests: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          payment_reference: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path?: string
+          payment_reference?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          payment_reference?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       wallets: {
         Row: {

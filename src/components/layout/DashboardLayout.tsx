@@ -27,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SignOutDialog } from "@/components/SignOutDialog";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface NavItem {
   title: string;
@@ -152,7 +153,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </motion.span>
           )}
         </Link>
-        {sidebarOpen && <ThemeToggle />}
+        {sidebarOpen && (
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
+        )}
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -281,7 +287,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
           <span className="font-serif text-lg font-semibold">{PLATFORM_NAME}</span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Mobile Sidebar */}
