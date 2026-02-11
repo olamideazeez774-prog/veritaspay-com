@@ -121,32 +121,50 @@ export default function AffiliateAnalytics() {
                 {productStats.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No products linked yet</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2 font-medium">Product</th>
-                          <th className="text-right py-3 px-2 font-medium">Clicks</th>
-                          <th className="text-right py-3 px-2 font-medium">Conv.</th>
-                          <th className="text-right py-3 px-2 font-medium">Rate</th>
-                          <th className="text-right py-3 px-2 font-medium">EPC</th>
-                          <th className="text-right py-3 px-2 font-medium">Commission</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {productStats.map((p, i) => (
-                          <tr key={i} className="border-b last:border-0">
-                            <td className="py-3 px-2 font-medium truncate max-w-[200px]">{p.title}</td>
-                            <td className="py-3 px-2 text-right">{p.clicks}</td>
-                            <td className="py-3 px-2 text-right">{p.conversions}</td>
-                            <td className="py-3 px-2 text-right">{p.conversionRate.toFixed(1)}%</td>
-                            <td className="py-3 px-2 text-right">{formatCurrency(p.epc)}</td>
-                            <td className="py-3 px-2 text-right font-semibold">{formatCurrency(p.commission)}</td>
+                  <>
+                    {/* Desktop table */}
+                    <div className="overflow-x-auto hidden sm:block">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-2 font-medium">Product</th>
+                            <th className="text-right py-3 px-2 font-medium">Clicks</th>
+                            <th className="text-right py-3 px-2 font-medium">Conv.</th>
+                            <th className="text-right py-3 px-2 font-medium">Rate</th>
+                            <th className="text-right py-3 px-2 font-medium">EPC</th>
+                            <th className="text-right py-3 px-2 font-medium">Commission</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {productStats.map((p, i) => (
+                            <tr key={i} className="border-b last:border-0">
+                              <td className="py-3 px-2 font-medium truncate max-w-[200px]">{p.title}</td>
+                              <td className="py-3 px-2 text-right">{p.clicks}</td>
+                              <td className="py-3 px-2 text-right">{p.conversions}</td>
+                              <td className="py-3 px-2 text-right">{p.conversionRate.toFixed(1)}%</td>
+                              <td className="py-3 px-2 text-right">{formatCurrency(p.epc)}</td>
+                              <td className="py-3 px-2 text-right font-semibold">{formatCurrency(p.commission)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Mobile cards */}
+                    <div className="space-y-3 sm:hidden">
+                      {productStats.map((p, i) => (
+                        <div key={i} className="rounded-lg border p-3 space-y-2">
+                          <p className="font-medium text-sm truncate">{p.title}</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div><span className="text-muted-foreground">Clicks:</span> {p.clicks}</div>
+                            <div><span className="text-muted-foreground">Conv:</span> {p.conversions}</div>
+                            <div><span className="text-muted-foreground">Rate:</span> {p.conversionRate.toFixed(1)}%</div>
+                            <div><span className="text-muted-foreground">EPC:</span> {formatCurrency(p.epc)}</div>
+                          </div>
+                          <p className="text-sm font-semibold">{formatCurrency(p.commission)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

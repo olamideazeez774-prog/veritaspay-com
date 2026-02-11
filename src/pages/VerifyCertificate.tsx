@@ -3,11 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { CheckCircle, XCircle, Award } from "lucide-react";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { formatDate, formatCurrency } from "@/lib/format";
 
+const RANK_ICONS: Record<string, string> = {
+  Bronze: "🥉", Silver: "🥈", Gold: "🏅", Diamond: "💎", Platinum: "⬡", Elite: "👑",
+};
 
 export default function VerifyCertificate() {
   const { hash } = useParams<{ hash: string }>();
@@ -23,10 +27,9 @@ export default function VerifyCertificate() {
       if (error) throw error;
       if (!data) return null;
 
-      // Fetch profile for affiliate name
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, email")
+        .select("full_name, email, avatar_url")
         .eq("id", data.user_id)
         .single();
 
@@ -37,6 +40,8 @@ export default function VerifyCertificate() {
 
   const metadata = cert?.metadata as Record<string, any> | null;
   const affiliateName = cert?.profile?.full_name || metadata?.full_name || "Unknown";
+  const avatarUrl = cert?.profile?.avatar_url || metadata?.avatar_url;
+  const rankIcon = RANK_ICONS[cert?.rank_name || ""] || "🏅";
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
@@ -58,15 +63,18 @@ export default function VerifyCertificate() {
               </div>
               <h3 className="text-lg font-semibold text-success">Certificate Valid ✓</h3>
               <div className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex justify-center">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Award className="h-6 w-6 text-primary" />
+                {avatarUrl && (
+                  <div className="flex justify-center">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={avatarUrl} />
+                      <AvatarFallback>{affiliateName[0]}</AvatarFallback>
+                    </Avatar>
                   </div>
-                </div>
+                )}
                 <p className="text-lg font-semibold text-foreground">{affiliateName}</p>
-                <p>Rank: <Badge className="ml-1">{cert.rank_name}</Badge></p>
+                <p>Rank: <Badge className="ml-1">{rankIcon} {cert.rank_name}</Badge></p>
                 {metadata?.total_commission && (
-                  <p>Total Commission: <span className="font-semibold text-foreground">{formatCurrency(metadata.total_commission)}</span></p>
+                  <p>Total Verified Earnings: <span className="font-semibold text-foreground">{formatCurrency(metadata.total_commission)}</span></p>
                 )}
                 <p className="font-mono text-xs">{cert.certificate_hash}</p>
                 <p>Issued: {formatDate(cert.issued_at)}</p>
