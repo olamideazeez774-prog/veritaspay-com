@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, Save, Upload, Moon, Sun, PenTool, Trash2 } from "lucide-react";
+import { User, Mail, Lock, Save, Upload, Moon, Sun, PenTool, Trash2, BadgeCheck, Shield } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 export default function SettingsPage() {
   const { user, profile, isLoading, isAdmin, refreshProfile } = useAuth();
@@ -27,6 +29,52 @@ export default function SettingsPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
+
+  // Verification
+  const [applyingVerification, setApplyingVerification] = useState(false);
+
+  const { data: verificationRequest } = useQuery({
+    queryKey: ["my-verification", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("verification_requests")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: wallet } = useQuery({
+    queryKey: ["my-wallet-for-verify", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("wallets")
+        .select("total_earned")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: ranks } = useQuery({
+    queryKey: ["affiliate-ranks-verify"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("affiliate_ranks")
+        .select("rank_name, min_earnings")
+        .order("sort_order", { ascending: true });
+      return data || [];
+    },
+  });
+
+  const totalEarned = wallet?.total_earned || 0;
+  const goldRank = ranks?.find(r => r.rank_name === "Gold");
+  const isGoldPlus = goldRank ? totalEarned >= goldRank.min_earnings : false;
 
   useEffect(() => {
     if (profile) {
@@ -114,6 +162,28 @@ export default function SettingsPage() {
       toast.error("Failed to update password");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleApplyVerification = async () => {
+    if (!user) return;
+    setApplyingVerification(true);
+    try {
+      const { error } = await supabase.from("verification_requests").insert({
+        user_id: user.id,
+        path: "earned",
+        status: "pending",
+      });
+      if (error) {
+        if (error.code === "23505") toast.info("Verification request already submitted");
+        else throw error;
+      } else {
+        toast.success("Verification request submitted! You'll be notified once reviewed.");
+      }
+    } catch {
+      toast.error("Failed to submit verification request");
+    } finally {
+      setApplyingVerification(false);
     }
   };
 
@@ -222,7 +292,10 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 <div>
-                  <p className="font-medium">{profile?.full_name || "Add your name"}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{profile?.full_name || "Add your name"}</p>
+                    {profile?.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
+                  </div>
                   <p className="text-sm text-muted-foreground">{profile?.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">JPEG/PNG, max 2MB</p>
                 </div>
@@ -248,6 +321,53 @@ export default function SettingsPage() {
               </Button>
             </form>
           </motion.div>
+
+          {/* Verification Badge */}
+          {!isAdmin && (
+            <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <BadgeCheck className="h-5 w-5 text-primary" />
+                Verification Badge
+              </h2>
+              {profile?.is_verified ? (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-success/10 border border-success/30">
+                  <BadgeCheck className="h-6 w-6 text-success" />
+                  <div>
+                    <p className="font-semibold text-success">Verified Account</p>
+                    <p className="text-sm text-muted-foreground">Your account has been verified. The badge is visible on your profile.</p>
+                  </div>
+                </div>
+              ) : verificationRequest?.status === "pending" ? (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
+                  <Shield className="h-6 w-6 text-warning" />
+                  <div>
+                    <p className="font-semibold">Verification Pending</p>
+                    <p className="text-sm text-muted-foreground">Your verification request is under review. You'll be notified once approved.</p>
+                  </div>
+                </div>
+              ) : isGoldPlus ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    You've reached Gold rank or above! You're eligible for a free verification badge.
+                  </p>
+                  <Button onClick={handleApplyVerification} disabled={applyingVerification} className="min-h-[44px]">
+                    <BadgeCheck className="h-4 w-4 mr-2" />
+                    Apply for Verification
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Verification badges are available to Gold rank and above affiliates. Keep earning to unlock!
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Current: {totalEarned > 0 ? `₦${totalEarned.toLocaleString()}` : "No earnings yet"}
+                    {goldRank && ` · Need: ₦${goldRank.min_earnings.toLocaleString()}`}
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {/* Admin Signature Pad */}
           {isAdmin && (
