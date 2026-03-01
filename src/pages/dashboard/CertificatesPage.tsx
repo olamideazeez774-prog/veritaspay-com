@@ -13,6 +13,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
+import { generatePremiumCertificatePDF } from "@/lib/certificateGenerator";
 
 interface AffiliateRank {
   id: string;
@@ -39,17 +40,6 @@ const RANK_ICONS: Record<string, string> = {
   Diamond: "💎",
   Platinum: "⬡",
   Elite: "👑",
-};
-
-const RANK_DESIGNS: Record<string, {
-  bg: string; accent: string; borderStyle: "single" | "double" | "triple" | "diamond" | "metallic" | "elite";
-}> = {
-  Bronze: { bg: "#1e293b", accent: "#b87333", borderStyle: "single" },
-  Silver: { bg: "#374151", accent: "#c0c0c0", borderStyle: "double" },
-  Gold: { bg: "#0f172a", accent: "#d4af37", borderStyle: "triple" },
-  Diamond: { bg: "#030712", accent: "#93c5fd", borderStyle: "diamond" },
-  Platinum: { bg: "#1e1b4b", accent: "#e5e7eb", borderStyle: "metallic" },
-  Elite: { bg: "#000000", accent: "#f59e0b", borderStyle: "elite" },
 };
 
 export default function CertificatesPage() {
@@ -107,6 +97,27 @@ export default function CertificatesPage() {
     },
   });
 
+  const { data: ceoName } = useQuery({
+    queryKey: ["ceo-name"],
+    queryFn: async () => {
+      // Get the first admin's name for signing
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .limit(1);
+      if (adminRoles?.[0]) {
+        const { data: adminProfile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", adminRoles[0].user_id)
+          .single();
+        return adminProfile?.full_name || PLATFORM_NAME;
+      }
+      return PLATFORM_NAME;
+    },
+  });
+
   const totalEarned = isAdmin ? 999999999 : (wallet?.total_earned || 0);
   const currentRank = ranks?.filter((r) => totalEarned >= r.min_earnings).pop();
   const nextRank = isAdmin ? null : ranks?.find((r) => totalEarned < r.min_earnings);
@@ -118,7 +129,7 @@ export default function CertificatesPage() {
       return;
     }
     const hash = `VP-${rankName.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
-    
+
     const metadata: Record<string, any> = {
       full_name: profile?.full_name,
       email: profile?.email,
@@ -127,10 +138,6 @@ export default function CertificatesPage() {
       platform_name: PLATFORM_NAME,
       avatar_url: profile?.avatar_url,
     };
-
-    if (isAdmin) {
-      metadata.is_preview = true;
-    }
 
     const { error } = await supabase.from("certificates").insert({
       user_id: user.id,
@@ -148,176 +155,20 @@ export default function CertificatesPage() {
     }
   };
 
-  const drawBorders = (doc: any, design: typeof RANK_DESIGNS.Bronze, hexToRgb: (h: string) => [number, number, number]) => {
-    const [brR, brG, brB] = hexToRgb(design.accent);
-    doc.setDrawColor(brR, brG, brB);
-
-    switch (design.borderStyle) {
-      case "single":
-        doc.setLineWidth(1.5);
-        doc.rect(10, 10, 277, 190);
-        break;
-      case "double":
-        doc.setLineWidth(1);
-        doc.rect(8, 8, 281, 194);
-        doc.rect(13, 13, 271, 184);
-        break;
-      case "triple":
-        doc.setLineWidth(1.5);
-        doc.rect(6, 6, 285, 198);
-        doc.setLineWidth(0.8);
-        doc.rect(10, 10, 277, 190);
-        doc.rect(14, 14, 269, 182);
-        break;
-      case "diamond":
-        doc.setLineWidth(0.8);
-        for (let i = 0; i < 4; i++) {
-          doc.rect(6 + i * 3, 6 + i * 3, 285 - i * 6, 198 - i * 6);
-        }
-        break;
-      case "metallic":
-        doc.setLineWidth(2.5);
-        doc.rect(8, 8, 281, 194);
-        doc.setLineWidth(0.5);
-        doc.rect(14, 14, 269, 182);
-        break;
-      case "elite":
-        doc.setLineWidth(3);
-        doc.rect(6, 6, 285, 198);
-        doc.setLineWidth(1);
-        doc.rect(12, 12, 273, 186);
-        // Corner sparkle dots
-        const corners = [[18, 18], [18, 192], [279, 18], [279, 192]];
-        doc.setFillColor(brR, brG, brB);
-        corners.forEach(([x, y]) => {
-          doc.circle(x, y, 2, "F");
-          doc.circle(x + 4, y, 1, "F");
-          doc.circle(x, y + 4, 1, "F");
-        });
-        break;
-    }
-  };
-
-  const drawSeal = (doc: any, x: number, y: number, hexToRgb: (h: string) => [number, number, number], accentColor: string) => {
-    const [r, g, b] = hexToRgb(accentColor);
-    doc.setDrawColor(r, g, b);
-    doc.setLineWidth(1.5);
-    doc.circle(x, y, 14);
-    doc.setLineWidth(0.5);
-    doc.circle(x, y, 11);
-    doc.circle(x, y, 8);
-    doc.setFontSize(6);
-    doc.setTextColor(r, g, b);
-    doc.text("VERIFIED", x, y - 2, { align: "center" });
-    doc.text("•  AUTHENTIC  •", x, y + 3, { align: "center" });
-  };
-
   const handleDownloadCert = async (cert: Certificate) => {
     try {
-      const { default: jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const design = RANK_DESIGNS[cert.rank_name] || RANK_DESIGNS.Bronze;
-      const rankIcon = RANK_ICONS[cert.rank_name] || "🏅";
-      const hexToRgb = (hex: string): [number, number, number] => {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return [r, g, b];
-      };
-      const [bgR, bgG, bgB] = hexToRgb(design.bg);
-      const [tcR, tcG, tcB] = hexToRgb(design.accent);
-
-      // Background
-      doc.setFillColor(bgR, bgG, bgB);
-      doc.rect(0, 0, 297, 210, "F");
-
-      // Rank-specific borders
-      drawBorders(doc, design, hexToRgb);
-
-      // Rank icon watermark
-      doc.setFontSize(100);
-      doc.setTextColor(tcR, tcG, tcB);
-      doc.setGState(new (doc as any).GState({ opacity: 0.04 }));
-      doc.text(rankIcon, 148.5, 130, { align: "center" });
-      doc.setGState(new (doc as any).GState({ opacity: 1 }));
-
-      // Title: CERTIFICATE OF ACHIEVEMENT
-      doc.setTextColor(tcR, tcG, tcB);
-      doc.setFontSize(28);
-      doc.text("CERTIFICATE OF ACHIEVEMENT", 148.5, 40, { align: "center" });
-
-      // Decorative lines
-      doc.setDrawColor(tcR, tcG, tcB);
-      doc.setLineWidth(0.5);
-      doc.line(55, 46, 242, 46);
-      doc.setLineWidth(0.3);
-      doc.line(70, 48, 227, 48);
-
-      // Rank name with icon
-      doc.setFontSize(22);
-      doc.text(`${rankIcon}  ${cert.rank_name.toUpperCase()} RANK  ${rankIcon}`, 148.5, 62, { align: "center" });
-
-      // "Awarded to"
-      doc.setFontSize(11);
-      doc.setTextColor(180, 180, 180);
-      doc.text("Awarded to", 148.5, 78, { align: "center" });
-
-      // Affiliate name
-      doc.setFontSize(24);
-      doc.setTextColor(255, 255, 255);
-      const name = (cert.metadata as any)?.full_name || profile?.full_name || "User";
-      doc.text(name, 148.5, 92, { align: "center" });
-
-      // Body copy
-      doc.setFontSize(10);
-      doc.setTextColor(170, 170, 170);
-      const bodyLines = doc.splitTextToSize(
-        "In recognition of outstanding performance and verified achievement on VeritasPay, demonstrating exceptional results and commitment to platform excellence.",
-        200
-      );
-      doc.text(bodyLines, 148.5, 106, { align: "center" });
-
-      // Earnings & milestone
-      const commission = (cert.metadata as any)?.total_commission;
-      const milestoneDate = (cert.metadata as any)?.milestone_date || cert.issued_at;
-      doc.setFontSize(11);
-      doc.setTextColor(tcR, tcG, tcB);
-      if (commission) {
-        doc.text(`Total Verified Earnings: ${formatCurrency(commission)}`, 148.5, 125, { align: "center" });
-      }
-      doc.text(`Rank Milestone Achieved: ${formatDate(milestoneDate)}`, 148.5, 133, { align: "center" });
-
-      // Signature line
-      doc.setDrawColor(120, 120, 120);
-      doc.setLineWidth(0.3);
-      doc.line(105, 160, 190, 160);
-
-      if (adminSignature) {
-        try {
-          doc.addImage(adminSignature, "PNG", 125, 143, 45, 17);
-        } catch { /* skip */ }
-      }
-
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text("Chief Executive Officer", 148.5, 167, { align: "center" });
-
-      // Embossed seal
-      drawSeal(doc, 52, 155, hexToRgb, design.accent);
-
-      // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Certificate ID: ${cert.certificate_hash}`, 148.5, 182, { align: "center" });
-      doc.text(`Issue Date: ${formatDate(cert.issued_at)}`, 148.5, 187, { align: "center" });
-      doc.text(`Verify at: ${window.location.origin}/verify-certificate/${cert.certificate_hash}`, 148.5, 192, { align: "center" });
-
-      // Platform branding top-left
-      doc.setFontSize(10);
-      doc.setTextColor(tcR, tcG, tcB);
-      doc.text(PLATFORM_NAME, 20, 20);
-
-      doc.save(`${PLATFORM_NAME}-${cert.rank_name}-Certificate.pdf`);
+      const meta = cert.metadata as Record<string, any> | null;
+      await generatePremiumCertificatePDF({
+        rankName: cert.rank_name,
+        fullName: meta?.full_name || profile?.full_name || "User",
+        certificateHash: cert.certificate_hash,
+        issuedAt: cert.issued_at,
+        totalCommission: meta?.total_commission || 0,
+        milestoneDate: meta?.milestone_date || cert.issued_at,
+        avatarUrl: meta?.avatar_url || profile?.avatar_url,
+        adminSignatureUrl: adminSignature,
+        ceoName: ceoName || PLATFORM_NAME,
+      });
       toast.success("Certificate downloaded!");
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -335,7 +186,6 @@ export default function CertificatesPage() {
     );
   }
 
-  const earnedRanks = ranks?.filter((r) => totalEarned >= r.min_earnings) || [];
   const claimedHashes = new Set(certificates?.map((c) => c.rank_name) || []);
 
   return (
@@ -348,13 +198,6 @@ export default function CertificatesPage() {
           </h1>
           <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
         </div>
-
-        {isAdmin && (
-          <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-            <span><strong>Preview Mode</strong> — These are sample certificates for QA. Admin certificates do not affect the leaderboard or grant rewards.</span>
-          </div>
-        )}
 
         {!adminSignature && !isAdmin && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm flex items-center gap-2">
@@ -448,7 +291,6 @@ export default function CertificatesPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{RANK_ICONS[cert.rank_name] || "🏅"}</span>
                       <p className="font-semibold">{cert.rank_name} Achievement</p>
-                      {(cert.metadata as any)?.is_preview && <Badge variant="outline" className="text-xs">Preview</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">{cert.certificate_hash}</p>
                     <p className="text-xs text-muted-foreground">Issued: {formatDate(cert.issued_at)}</p>

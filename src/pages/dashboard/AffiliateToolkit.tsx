@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { QrCode, Link2, Copy, Tag, Megaphone, FileText, ExternalLink } from "lucide-react";
+import { QrCode, Link2, Copy, Tag, Megaphone, FileText, Calculator, TrendingUp, Lightbulb, Type } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useAffiliateLinks } from "@/hooks/useAffiliateLinks";
@@ -16,8 +16,9 @@ import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatCurrency } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CURRENCY } from "@/lib/constants";
 
 export default function AffiliateToolkit() {
   const { user } = useAuth();
@@ -31,6 +32,16 @@ export default function AffiliateToolkit() {
   const [selectedLink, setSelectedLink] = useState("");
   const [utm, setUtm] = useState({ source: "", medium: "", campaign: "", content: "" });
   const [qrLink, setQrLink] = useState("");
+
+  // Profit Estimator state
+  const [estClicks, setEstClicks] = useState(1000);
+  const [estConvRate, setEstConvRate] = useState(3);
+  const [estAvgPrice, setEstAvgPrice] = useState(10000);
+  const [estCommission, setEstCommission] = useState(30);
+
+  const estSales = Math.floor(estClicks * (estConvRate / 100));
+  const estRevenue = estSales * estAvgPrice;
+  const estProfit = estRevenue * (estCommission / 100);
 
   const selectedLinkData = links?.find(l => l.id === selectedLink);
   const baseUrl = selectedLinkData ? `${window.location.origin}/ref/${selectedLinkData.unique_code}` : "";
@@ -54,21 +65,21 @@ export default function AffiliateToolkit() {
     toast.success("Copied to clipboard!");
   };
 
-  // QR code URL using a free API
   const qrCodeUrl = qrLink ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrLink)}` : "";
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Affiliate Toolkit</h1>
-          <p className="text-muted-foreground">QR codes, UTM campaigns, promo materials, and announcements</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Affiliate Toolkit</h1>
+          <p className="text-muted-foreground text-sm">QR codes, UTM campaigns, profit tools, and promo materials</p>
         </div>
 
         <Tabs defaultValue="qr">
           <TabsList className="w-full sm:w-auto flex-wrap">
             <TabsTrigger value="qr" className="flex-1 sm:flex-none">QR Codes</TabsTrigger>
             <TabsTrigger value="utm" className="flex-1 sm:flex-none">UTM Builder</TabsTrigger>
+            <TabsTrigger value="tools" className="flex-1 sm:flex-none">Tools</TabsTrigger>
             <TabsTrigger value="materials" className="flex-1 sm:flex-none">Materials</TabsTrigger>
             <TabsTrigger value="news" className="flex-1 sm:flex-none">Updates</TabsTrigger>
           </TabsList>
@@ -139,13 +150,12 @@ export default function AffiliateToolkit() {
               </CardContent>
             </Card>
 
-            {/* Campaign History */}
             {campaigns && campaigns.length > 0 && (
               <Card>
                 <CardHeader><CardTitle>Your Campaigns</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {campaigns.map(c => (
-                    <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/50">
                       <div>
                         <p className="font-medium text-sm">{c.campaign_name}</p>
                         <p className="text-xs text-muted-foreground">{c.utm_source}/{c.utm_medium} · {formatDate(c.created_at)}</p>
@@ -159,6 +169,77 @@ export default function AffiliateToolkit() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Affiliate Tools */}
+          <TabsContent value="tools" className="space-y-4 mt-4">
+            {/* Profit Estimator */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" />Profit Estimator</CardTitle>
+                <CardDescription>Estimate your potential commission earnings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Expected Clicks</Label>
+                    <Input type="number" value={estClicks} onChange={e => setEstClicks(Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Conversion Rate (%)</Label>
+                    <Input type="number" value={estConvRate} onChange={e => setEstConvRate(Number(e.target.value))} step="0.5" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Avg Product Price ({CURRENCY.symbol})</Label>
+                    <Input type="number" value={estAvgPrice} onChange={e => setEstAvgPrice(Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Commission Rate (%)</Label>
+                    <Input type="number" value={estCommission} onChange={e => setEstCommission(Number(e.target.value))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-4 rounded-lg bg-muted/50 border">
+                    <p className="text-2xl font-bold text-primary">{estSales}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Est. Sales</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-muted/50 border">
+                    <p className="text-2xl font-bold">{formatCurrency(estRevenue)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total Revenue</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-success/10 border border-success/30">
+                    <p className="text-2xl font-bold text-success">{formatCurrency(estProfit)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Your Commission</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ROI Calculator */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />Quick Tips</CardTitle>
+                <CardDescription>Boost your affiliate earnings with these strategies</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { icon: Lightbulb, title: "Promote High-Commission Products", desc: "Focus on products with 30%+ commission rates to maximize earnings per sale." },
+                    { icon: TrendingUp, title: "Leverage UTM Tracking", desc: "Use UTM parameters to identify which channels convert best and double down." },
+                    { icon: Type, title: "Write Compelling Captions", desc: "Use product benefits, urgency, and social proof in your promotional content." },
+                    { icon: QrCode, title: "Use QR Codes Offline", desc: "Print QR codes on business cards, flyers, or packaging to drive offline traffic." },
+                  ].map((tip, i) => (
+                    <div key={i} className="p-4 rounded-lg bg-muted/50 border space-y-2">
+                      <div className="flex items-center gap-2">
+                        <tip.icon className="h-4 w-4 text-primary shrink-0" />
+                        <p className="font-medium text-sm">{tip.title}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{tip.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Promo Materials */}
