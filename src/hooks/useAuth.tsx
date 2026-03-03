@@ -115,6 +115,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
 
+    if (!error) {
+      // Check if user is banned or suspended
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("is_banned, suspended_until")
+          .eq("id", authUser.id)
+          .single();
+
+        if (prof?.is_banned) {
+          await supabase.auth.signOut();
+          return { error: new Error("Your account has been permanently banned. Contact support for more information.") };
+        }
+
+        if (prof?.suspended_until && new Date(prof.suspended_until) > new Date()) {
+          await supabase.auth.signOut();
+          const until = new Date(prof.suspended_until).toLocaleDateString();
+          return { error: new Error(`Your account is temporarily suspended until ${until}. Contact support for more information.`) };
+        }
+      }
+    }
+
     return { error: error as Error | null };
   };
 

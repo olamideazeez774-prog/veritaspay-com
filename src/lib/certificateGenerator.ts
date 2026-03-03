@@ -1,148 +1,161 @@
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 
-// Rank-specific design configs matching the premium HTML certificate themes
 interface RankDesign {
   theme: "midnight" | "ivory" | "royal";
-  bgPrimary: string;
-  bgSecondary: string;
+  bgGradientFrom: string;
+  bgGradientTo: string;
   accentPrimary: string;
   accentSecondary: string;
   accentGlow: string;
-  textPrimary: string;
-  textSecondary: string;
+  textTitle: string;
+  textSubtitle: string;
+  textBody: string;
   textMuted: string;
   sealOuter: string;
   sealInner: string;
-  ribbonLeft: string;
-  ribbonRight: string;
-  borderLayers: number;
-  cornerOrnaments: boolean;
-  sideFlourishes: boolean;
+  sealText: string;
+  ribbonA: string;
+  ribbonB: string;
+  borderColor: string;
+  cornerColor: string;
   subtitleText: string;
   rankIcon: string;
+  flourishColor: string;
 }
 
 const RANK_DESIGNS: Record<string, RankDesign> = {
   Bronze: {
     theme: "midnight",
-    bgPrimary: "#1e293b",
-    bgSecondary: "#0f172a",
+    bgGradientFrom: "#1e293b",
+    bgGradientTo: "#0f172a",
     accentPrimary: "#b87333",
     accentSecondary: "#d4956a",
     accentGlow: "#cd7f32",
-    textPrimary: "#fde6d0",
-    textSecondary: "#b87333",
+    textTitle: "#d4956a",
+    textSubtitle: "#b87333",
+    textBody: "#e2c4a8",
     textMuted: "#94a3b8",
     sealOuter: "#b87333",
     sealInner: "#0f172a",
-    ribbonLeft: "#8b5a2b",
-    ribbonRight: "#cd7f32",
-    borderLayers: 2,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#b87333",
+    ribbonA: "#8b5a2b",
+    ribbonB: "#cd7f32",
+    borderColor: "#b87333",
+    cornerColor: "#b87333",
     subtitleText: "Of Achievement",
     rankIcon: "🥉",
+    flourishColor: "#b87333",
   },
   Silver: {
     theme: "midnight",
-    bgPrimary: "#1a1a2e",
-    bgSecondary: "#16213e",
+    bgGradientFrom: "#1a1a2e",
+    bgGradientTo: "#16213e",
     accentPrimary: "#c0c0c0",
     accentSecondary: "#e8e8e8",
     accentGlow: "#d9d9d9",
-    textPrimary: "#f0f0f0",
-    textSecondary: "#c0c0c0",
+    textTitle: "#e0e0e0",
+    textSubtitle: "#c0c0c0",
+    textBody: "#f0f0f0",
     textMuted: "#8899aa",
     sealOuter: "#c0c0c0",
     sealInner: "#16213e",
-    ribbonLeft: "#808080",
-    ribbonRight: "#b0b0b0",
-    borderLayers: 2,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#c0c0c0",
+    ribbonA: "#808080",
+    ribbonB: "#b0b0b0",
+    borderColor: "#c0c0c0",
+    cornerColor: "#c0c0c0",
     subtitleText: "Of Achievement",
     rankIcon: "🥈",
+    flourishColor: "#c0c0c0",
   },
   Gold: {
     theme: "midnight",
-    bgPrimary: "#1e293b",
-    bgSecondary: "#0f172a",
+    bgGradientFrom: "#1e293b",
+    bgGradientTo: "#0f172a",
     accentPrimary: "#d4af37",
     accentSecondary: "#fcf6ba",
     accentGlow: "#b38728",
-    textPrimary: "#fcf6ba",
-    textSecondary: "#d4af37",
+    textTitle: "#d4af37",
+    textSubtitle: "#fcf6ba",
+    textBody: "#fef3c7",
     textMuted: "#94a3b8",
     sealOuter: "#d4af37",
     sealInner: "#0f172a",
-    ribbonLeft: "#aa771c",
-    ribbonRight: "#d4af37",
-    borderLayers: 3,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#d4af37",
+    ribbonA: "#aa771c",
+    ribbonB: "#d4af37",
+    borderColor: "#d4af37",
+    cornerColor: "#d4af37",
     subtitleText: "Of Excellence",
     rankIcon: "🏅",
+    flourishColor: "#d4af37",
   },
   Diamond: {
     theme: "midnight",
-    bgPrimary: "#030712",
-    bgSecondary: "#0f172a",
+    bgGradientFrom: "#030712",
+    bgGradientTo: "#0f172a",
     accentPrimary: "#93c5fd",
     accentSecondary: "#bfdbfe",
     accentGlow: "#60a5fa",
-    textPrimary: "#e0f2fe",
-    textSecondary: "#93c5fd",
+    textTitle: "#93c5fd",
+    textSubtitle: "#bfdbfe",
+    textBody: "#e0f2fe",
     textMuted: "#64748b",
     sealOuter: "#60a5fa",
     sealInner: "#030712",
-    ribbonLeft: "#3b82f6",
-    ribbonRight: "#60a5fa",
-    borderLayers: 3,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#60a5fa",
+    ribbonA: "#3b82f6",
+    ribbonB: "#60a5fa",
+    borderColor: "#93c5fd",
+    cornerColor: "#93c5fd",
     subtitleText: "Of Distinction",
     rankIcon: "💎",
+    flourishColor: "#93c5fd",
   },
   Platinum: {
     theme: "ivory",
-    bgPrimary: "#faf9f6",
-    bgSecondary: "#f1f0ec",
+    bgGradientFrom: "#faf9f6",
+    bgGradientTo: "#f1f0ec",
     accentPrimary: "#d4af37",
     accentSecondary: "#b38728",
     accentGlow: "#aa771c",
-    textPrimary: "#1e293b",
-    textSecondary: "#d4af37",
+    textTitle: "#1e293b",
+    textSubtitle: "#d4af37",
+    textBody: "#374151",
     textMuted: "#64748b",
     sealOuter: "#d4af37",
     sealInner: "#faf9f6",
-    ribbonLeft: "#8b6914",
-    ribbonRight: "#d4af37",
-    borderLayers: 2,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#d4af37",
+    ribbonA: "#8b6914",
+    ribbonB: "#d4af37",
+    borderColor: "#d4af37",
+    cornerColor: "#d4af37",
     subtitleText: "Of Achievement",
     rankIcon: "⬡",
+    flourishColor: "#d4af37",
   },
   Elite: {
     theme: "royal",
-    bgPrimary: "#1c0a1e",
-    bgSecondary: "#2d0a0a",
+    bgGradientFrom: "#1c0a1e",
+    bgGradientTo: "#2d0a0a",
     accentPrimary: "#d4af37",
     accentSecondary: "#fcf6ba",
     accentGlow: "#b38728",
-    textPrimary: "#fef3c7",
-    textSecondary: "#d4af37",
+    textTitle: "#fef3c7",
+    textSubtitle: "#d4af37",
+    textBody: "#fce4ec",
     textMuted: "#a78b8b",
     sealOuter: "#d4af37",
     sealInner: "#1c0a1e",
-    ribbonLeft: "#8b6914",
-    ribbonRight: "#d4af37",
-    borderLayers: 3,
-    cornerOrnaments: true,
-    sideFlourishes: true,
+    sealText: "#d4af37",
+    ribbonA: "#8b6914",
+    ribbonB: "#d4af37",
+    borderColor: "#d4af37",
+    cornerColor: "#d4af37",
     subtitleText: "Of Royal Distinction",
     rankIcon: "👑",
+    flourishColor: "#d4af37",
   },
 };
 
@@ -168,43 +181,63 @@ function setTextCol(doc: any, hex: string) {
   doc.setTextColor(r, g, b);
 }
 
-// Draw gradient background
-function drawGradientRect(doc: any, x: number, y: number, w: number, h: number, colorA: string, colorB: string, steps = 30) {
-  const [r1, g1, b1] = hexToRgb(colorA);
-  const [r2, g2, b2] = hexToRgb(colorB);
-  const stepH = h / steps;
+// Smooth gradient background with multiple steps
+function drawBackground(doc: any, design: RankDesign) {
+  const [r1, g1, b1] = hexToRgb(design.bgGradientFrom);
+  const [r2, g2, b2] = hexToRgb(design.bgGradientTo);
+  const steps = 60;
+  const stepH = 210 / steps;
   for (let i = 0; i < steps; i++) {
     const t = i / steps;
+    // Diagonal gradient effect: blend both x and y
+    const tx = Math.sin(t * Math.PI * 0.5);
     doc.setFillColor(
-      Math.round(r1 + (r2 - r1) * t),
-      Math.round(g1 + (g2 - g1) * t),
-      Math.round(b1 + (b2 - b1) * t)
+      Math.round(r1 + (r2 - r1) * tx),
+      Math.round(g1 + (g2 - g1) * tx),
+      Math.round(b1 + (b2 - b1) * tx)
     );
-    doc.rect(x, y + i * stepH, w, stepH + 0.5, "F");
+    doc.rect(0, i * stepH, 297, stepH + 0.5, "F");
   }
 }
 
-// Draw ambient glow circles (simulates the radial glow from the HTML)
+// Ambient radial glow spots
 function drawAmbientGlows(doc: any, design: RankDesign) {
   const GState = (doc as any).GState;
-  doc.setGState(new GState({ opacity: 0.08 }));
+  // Top-right warm glow
+  doc.setGState(new GState({ opacity: 0.06 }));
   setFill(doc, design.accentPrimary);
-  // Top-right glow
-  doc.circle(240, 30, 60, "F");
-  // Bottom-left glow
-  doc.circle(57, 180, 60, "F");
+  doc.circle(245, 25, 65, "F");
+  // Bottom-left warm glow
+  doc.circle(52, 185, 65, "F");
+  // Center subtle glow
+  doc.setGState(new GState({ opacity: 0.03 }));
+  doc.circle(148.5, 105, 90, "F");
   doc.setGState(new GState({ opacity: 1 }));
 }
 
-// Draw ornate corner brackets (matching the HTML corner-ornament style)
-function drawCornerOrnaments(doc: any, accent: string) {
-  setDraw(doc, accent);
-  const inset = 15;
-  const size = 20;
-  const innerInset = inset - 2;
-  const innerSize = 5;
+// Paper texture simulation with tiny dots
+function drawPaperTexture(doc: any, design: RankDesign) {
+  const GState = (doc as any).GState;
+  doc.setGState(new GState({ opacity: 0.02 }));
+  const color = design.theme === "ivory" ? "#000000" : "#ffffff";
+  setFill(doc, color);
+  // Sparse random dots for texture feel
+  for (let i = 0; i < 200; i++) {
+    const x = Math.random() * 297;
+    const y = Math.random() * 210;
+    doc.circle(x, y, 0.3, "F");
+  }
+  doc.setGState(new GState({ opacity: 1 }));
+}
 
-  doc.setLineWidth(1.2);
+// Corner ornaments matching the reference: L-shaped brackets with inner accent
+function drawCornerOrnaments(doc: any, design: RankDesign) {
+  setDraw(doc, design.cornerColor);
+  const inset = 12;
+  const size = 25;
+
+  // Outer corners - thicker
+  doc.setLineWidth(1.0);
   // Top-left
   doc.line(inset, inset, inset + size, inset);
   doc.line(inset, inset, inset, inset + size);
@@ -218,122 +251,212 @@ function drawCornerOrnaments(doc: any, accent: string) {
   doc.line(297 - inset, 210 - inset, 297 - inset - size, 210 - inset);
   doc.line(297 - inset, 210 - inset, 297 - inset, 210 - inset - size);
 
-  // Inner corner accents (smaller)
-  doc.setLineWidth(0.5);
-  doc.line(innerInset, innerInset, innerInset + innerSize, innerInset);
-  doc.line(innerInset, innerInset, innerInset, innerInset + innerSize);
-  doc.line(297 - innerInset, innerInset, 297 - innerInset - innerSize, innerInset);
-  doc.line(297 - innerInset, innerInset, 297 - innerInset, innerInset + innerSize);
-  doc.line(innerInset, 210 - innerInset, innerInset + innerSize, 210 - innerInset);
-  doc.line(innerInset, 210 - innerInset, innerInset, 210 - innerInset - innerSize);
-  doc.line(297 - innerInset, 210 - innerInset, 297 - innerInset - innerSize, 210 - innerInset);
-  doc.line(297 - innerInset, 210 - innerInset, 297 - innerInset, 210 - innerInset - innerSize);
+  // Inner corner accent marks - thinner, smaller
+  doc.setLineWidth(0.4);
+  const inner = inset - 2;
+  const innerSize = 6;
+  doc.line(inner, inner, inner + innerSize, inner);
+  doc.line(inner, inner, inner, inner + innerSize);
+  doc.line(297 - inner, inner, 297 - inner - innerSize, inner);
+  doc.line(297 - inner, inner, 297 - inner, inner + innerSize);
+  doc.line(inner, 210 - inner, inner + innerSize, 210 - inner);
+  doc.line(inner, 210 - inner, inner, 210 - inner - innerSize);
+  doc.line(297 - inner, 210 - inner, 297 - inner - innerSize, 210 - inner);
+  doc.line(297 - inner, 210 - inner, 297 - inner, 210 - inner - innerSize);
 }
 
-// Draw decorative border layers
-function drawBorderLayers(doc: any, layers: number, accent: string) {
-  setDraw(doc, accent);
-  for (let i = 0; i < layers; i++) {
-    const inset = 8 + i * 4;
-    doc.setLineWidth(i === 0 ? 1.5 : i === 1 ? 0.6 : 0.3);
-    doc.rect(inset, inset, 297 - inset * 2, 210 - inset * 2);
-  }
-}
-
-// Draw side flourish lines (matching HTML's side gradient lines)
-function drawSideFlourishes(doc: any, accent: string) {
+// Side flourish vertical lines
+function drawSideFlourishes(doc: any, design: RankDesign) {
   const GState = (doc as any).GState;
-  setDraw(doc, accent);
+  setDraw(doc, design.flourishColor);
   doc.setLineWidth(0.3);
-  doc.setGState(new GState({ opacity: 0.25 }));
-  doc.line(10, 75, 10, 135);
-  doc.line(287, 75, 287, 135);
+
+  // Left side - gradient-like vertical line
+  const segments = 20;
+  const startY = 70;
+  const lineH = 70;
+  const segH = lineH / segments;
+  for (let i = 0; i < segments; i++) {
+    const t = i / segments;
+    const opacity = Math.sin(t * Math.PI) * 0.3;
+    doc.setGState(new GState({ opacity: Math.max(opacity, 0.02) }));
+    doc.line(8, startY + i * segH, 8, startY + (i + 1) * segH);
+  }
+  // Right side
+  for (let i = 0; i < segments; i++) {
+    const t = i / segments;
+    const opacity = Math.sin(t * Math.PI) * 0.3;
+    doc.setGState(new GState({ opacity: Math.max(opacity, 0.02) }));
+    doc.line(289, startY + i * segH, 289, startY + (i + 1) * segH);
+  }
   doc.setGState(new GState({ opacity: 1 }));
 }
 
-// Draw the star badge (matching HTML's gold-gradient circle with star)
-function drawStarBadge(doc: any, x: number, y: number, radius: number, design: RankDesign) {
+// Premium star badge with shine effect
+function drawStarBadge(doc: any, cx: number, cy: number, radius: number, design: RankDesign) {
   const GState = (doc as any).GState;
-  
-  // Outer gold circle
-  setFill(doc, design.accentPrimary);
-  doc.circle(x, y, radius, "F");
-  
-  // Inner slightly darker circle for depth
-  setFill(doc, design.accentGlow);
-  doc.circle(x, y, radius - 1.5, "F");
-  
-  // Re-fill with primary for the main face
-  setFill(doc, design.accentPrimary);
-  doc.circle(x, y, radius - 2, "F");
-  
-  // Shine effect
-  doc.setGState(new GState({ opacity: 0.3 }));
-  doc.setFillColor(255, 255, 255);
-  doc.ellipse(x - 1, y - 2, radius * 0.5, radius * 0.3, "F");
+
+  // Shadow
+  doc.setGState(new GState({ opacity: 0.15 }));
+  doc.setFillColor(0, 0, 0);
+  doc.circle(cx + 1, cy + 2, radius + 1, "F");
   doc.setGState(new GState({ opacity: 1 }));
-  
-  // Star symbol in center
+
+  // Outer ring
+  setFill(doc, design.accentPrimary);
+  doc.circle(cx, cy, radius, "F");
+
+  // Inner darker ring for depth
+  setFill(doc, design.accentGlow);
+  doc.circle(cx, cy, radius - 1.5, "F");
+
+  // Main face
+  setFill(doc, design.accentPrimary);
+  doc.circle(cx, cy, radius - 2, "F");
+
+  // Shine highlight (ellipse top-left)
+  doc.setGState(new GState({ opacity: 0.35 }));
+  doc.setFillColor(255, 255, 255);
+  doc.ellipse(cx - 2, cy - 3, radius * 0.45, radius * 0.25, "F");
+  doc.setGState(new GState({ opacity: 1 }));
+
+  // Star symbol
   const starColor = design.theme === "ivory" ? "#1e293b" : "#0f172a";
   setTextCol(doc, starColor);
-  doc.setFontSize(radius * 2.2);
+  doc.setFontSize(radius * 2);
   doc.setFont("helvetica", "bold");
-  doc.text("★", x, y + radius * 0.7, { align: "center" });
+  doc.text("★", cx, cy + radius * 0.6, { align: "center" });
 
-  // Three dots below badge
+  // Three dots below
   setFill(doc, design.accentPrimary);
-  doc.circle(x - 3, y + radius + 3, 0.8, "F");
-  doc.circle(x, y + radius + 3, 0.8, "F");
-  doc.circle(x + 3, y + radius + 3, 0.8, "F");
+  doc.circle(cx - 3.5, cy + radius + 4, 0.9, "F");
+  doc.circle(cx, cy + radius + 4, 0.9, "F");
+  doc.circle(cx + 3.5, cy + radius + 4, 0.9, "F");
 }
 
-// Draw the official seal with ribbons (matching the HTML seal design)
-function drawOfficialSeal(doc: any, x: number, y: number, design: RankDesign) {
+// Official seal with ribbon tails
+function drawOfficialSeal(doc: any, cx: number, cy: number, design: RankDesign) {
   const GState = (doc as any).GState;
-  
-  // Outer oval (gold gradient feel)
+
+  // Shadow
+  doc.setGState(new GState({ opacity: 0.2 }));
+  doc.setFillColor(0, 0, 0);
+  doc.ellipse(cx + 1, cy + 2, 15, 11, "F");
+  doc.setGState(new GState({ opacity: 1 }));
+
+  // Outer gold ellipse
   setFill(doc, design.sealOuter);
-  doc.ellipse(x, y, 14, 10.5, "F");
-  
-  // Inner dark oval
+  doc.ellipse(cx, cy, 14.5, 11, "F");
+
+  // Inner dark ellipse
   setFill(doc, design.sealInner);
-  doc.ellipse(x, y, 11.5, 8.5, "F");
-  
-  // Inner border ring
-  setDraw(doc, design.accentPrimary);
+  doc.ellipse(cx, cy, 12, 9, "F");
+
+  // Inner border
+  setDraw(doc, design.sealText);
   doc.setGState(new GState({ opacity: 0.3 }));
   doc.setLineWidth(0.5);
-  doc.ellipse(x, y, 11.5, 8.5);
+  doc.ellipse(cx, cy, 12, 9);
   doc.setGState(new GState({ opacity: 1 }));
-  
+
   // Seal text
-  setTextCol(doc, design.accentPrimary);
+  setTextCol(doc, design.sealText);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("OFFICIAL", x, y - 1, { align: "center" });
-  doc.setFontSize(5);
+  doc.setFontSize(7.5);
+  doc.text("OFFICIAL", cx, cy - 1.5, { align: "center" });
+  doc.setFontSize(5.5);
   doc.setFont("helvetica", "normal");
-  doc.text("SEAL", x, y + 3, { align: "center" });
-  
-  // Ribbon tails below seal
-  setFill(doc, design.ribbonLeft);
-  // Left ribbon (skewed trapezoid)
-  const ry = y + 10;
-  doc.triangle(x - 8, ry, x - 3, ry, x - 10, ry + 14, "F");
-  
-  setFill(doc, design.ribbonRight);
-  // Right ribbon
-  doc.triangle(x + 3, ry, x + 8, ry, x + 10, ry + 14, "F");
+  setTextCol(doc, design.textBody);
+  doc.text("SEAL", cx, cy + 3, { align: "center" });
+
+  // Ribbon tails
+  const ry = cy + 11;
+  setFill(doc, design.ribbonA);
+  doc.triangle(cx - 8, ry, cx - 2, ry, cx - 11, ry + 15, "F");
+  setFill(doc, design.ribbonB);
+  doc.triangle(cx + 2, ry, cx + 8, ry, cx + 11, ry + 15, "F");
 }
 
-// Draw decorative divider line with center ornament
-function drawDivider(doc: any, y: number, accent: string) {
+// Gradient divider line
+function drawAccentDivider(doc: any, y: number, design: RankDesign) {
   const GState = (doc as any).GState;
-  setDraw(doc, accent);
-  doc.setGState(new GState({ opacity: 0.4 }));
+  setDraw(doc, design.accentPrimary);
   doc.setLineWidth(0.4);
-  doc.line(85, y, 212, y);
+
+  // Fade in from left, full in center, fade out right
+  const segments = 30;
+  const startX = 80;
+  const endX = 217;
+  const segW = (endX - startX) / segments;
+  for (let i = 0; i < segments; i++) {
+    const t = i / segments;
+    const opacity = Math.sin(t * Math.PI) * 0.5;
+    doc.setGState(new GState({ opacity: Math.max(opacity, 0.05) }));
+    doc.line(startX + i * segW, y, startX + (i + 1) * segW, y);
+  }
   doc.setGState(new GState({ opacity: 1 }));
+}
+
+// Ivory theme: elegant wave on left side
+function drawIvoryWave(doc: any, design: RankDesign) {
+  const GState = (doc as any).GState;
+  doc.setGState(new GState({ opacity: 0.08 }));
+  setFill(doc, design.accentPrimary);
+  // Simulate wave with overlapping circles
+  for (let y = 0; y < 210; y += 5) {
+    const x = 15 + Math.sin(y * 0.03) * 10;
+    doc.circle(x, y, 20, "F");
+  }
+  doc.setGState(new GState({ opacity: 1 }));
+}
+
+// Royal theme: ornate double border
+function drawRoyalBorders(doc: any, design: RankDesign) {
+  setDraw(doc, design.borderColor);
+  const GState = (doc as any).GState;
+
+  // Outer border
+  doc.setGState(new GState({ opacity: 0.3 }));
+  doc.setLineWidth(1.5);
+  doc.roundedRect(6, 6, 285, 198, 3, 3);
+
+  // Inner border
+  doc.setLineWidth(0.6);
+  doc.roundedRect(9, 9, 279, 192, 2, 2);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  // Corner flourishes for royal
+  doc.setLineWidth(1.2);
+  const cs = 18;
+  const ci = 6;
+  doc.line(ci, ci, ci + cs, ci);
+  doc.line(ci, ci, ci, ci + cs);
+  doc.line(297 - ci, ci, 297 - ci - cs, ci);
+  doc.line(297 - ci, ci, 297 - ci, ci + cs);
+  doc.line(ci, 210 - ci, ci + cs, 210 - ci);
+  doc.line(ci, 210 - ci, ci, 210 - ci - cs);
+  doc.line(297 - ci, 210 - ci, 297 - ci - cs, 210 - ci);
+  doc.line(297 - ci, 210 - ci, 297 - ci, 210 - ci - cs);
+}
+
+// Royal theme: heart/fleur divider
+function drawRoyalDivider(doc: any, y: number, design: RankDesign) {
+  const GState = (doc as any).GState;
+  const cx = 148.5;
+
+  // Left line
+  setDraw(doc, design.accentPrimary);
+  doc.setLineWidth(0.4);
+  doc.setGState(new GState({ opacity: 0.5 }));
+  doc.line(cx - 45, y, cx - 8, y);
+  // Right line
+  doc.line(cx + 8, y, cx + 45, y);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  // Center ornament: ❦
+  setTextCol(doc, design.accentPrimary);
+  doc.setFontSize(14);
+  doc.text("❦", cx, y + 3.5, { align: "center" });
 }
 
 export interface CertificateData {
@@ -355,106 +478,141 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
 
   const design = RANK_DESIGNS[data.rankName] || RANK_DESIGNS.Gold;
   const pageW = 297;
-  const centerX = pageW / 2;
+  const cx = pageW / 2;
 
-  // === 1. BACKGROUND ===
-  drawGradientRect(doc, 0, 0, pageW, 210, design.bgPrimary, design.bgSecondary);
+  // ======== LAYER 1: BACKGROUND ========
+  drawBackground(doc, design);
 
-  // === 2. AMBIENT GLOWS ===
+  // ======== LAYER 2: PAPER TEXTURE ========
+  drawPaperTexture(doc, design);
+
+  // ======== LAYER 3: AMBIENT GLOWS ========
   drawAmbientGlows(doc, design);
 
-  // === 3. BORDER LAYERS ===
-  drawBorderLayers(doc, design.borderLayers, design.accentPrimary);
-
-  // === 4. CORNER ORNAMENTS ===
-  if (design.cornerOrnaments) {
-    drawCornerOrnaments(doc, design.accentPrimary);
+  // ======== LAYER 4: THEME-SPECIFIC DECORATIONS ========
+  if (design.theme === "ivory") {
+    drawIvoryWave(doc, design);
+  }
+  if (design.theme === "royal") {
+    drawRoyalBorders(doc, design);
   }
 
-  // === 5. SIDE FLOURISHES ===
-  if (design.sideFlourishes) {
-    drawSideFlourishes(doc, design.accentPrimary);
+  // ======== LAYER 5: CORNER ORNAMENTS ========
+  drawCornerOrnaments(doc, design);
+
+  // ======== LAYER 6: SIDE FLOURISHES ========
+  drawSideFlourishes(doc, design);
+
+  // ======== LAYER 7: BORDER LAYERS ========
+  if (design.theme !== "royal") {
+    setDraw(doc, design.borderColor);
+    doc.setGState(new GState({ opacity: 0.4 }));
+    doc.setLineWidth(1.0);
+    doc.rect(10, 10, 277, 190);
+    doc.setGState(new GState({ opacity: 0.2 }));
+    doc.setLineWidth(0.4);
+    doc.rect(13, 13, 271, 184);
+    doc.setGState(new GState({ opacity: 1 }));
   }
 
-  // === 6. STAR BADGE (top center) ===
-  drawStarBadge(doc, centerX, 28, 10, design);
+  // ======== LAYER 8: PLATFORM BRANDING (top-left) ========
+  setTextCol(doc, design.textSubtitle);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text(PLATFORM_NAME, 22, 20);
 
-  // === 7. TITLE: "CERTIFICATE" ===
-  setTextCol(doc, design.textSecondary);
+  // ======== LAYER 9: STAR BADGE (top center) ========
+  drawStarBadge(doc, cx, 30, 11, design);
+
+  // ======== LAYER 10: TITLE "CERTIFICATE" ========
+  let titleY = 58;
+  setTextCol(doc, design.textTitle);
   doc.setFont("times", "bold");
-  doc.setFontSize(36);
-  doc.text("CERTIFICATE", centerX, 56, { align: "center" });
+  doc.setFontSize(38);
+  doc.setCharSpace(3);
+  doc.text("CERTIFICATE", cx, titleY, { align: "center" });
+  doc.setCharSpace(0);
 
-  // === 8. SUBTITLE: "Of Excellence" etc ===
-  setTextCol(doc, design.accentSecondary);
+  // ======== LAYER 11: SUBTITLE ========
+  setTextCol(doc, design.textSubtitle);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.setCharSpace(4);
-  doc.text(design.subtitleText.toUpperCase(), centerX, 64, { align: "center" });
+  doc.setCharSpace(5);
+  doc.text(design.subtitleText.toUpperCase(), cx, titleY + 9, { align: "center" });
   doc.setCharSpace(0);
 
-  // === 9. "This certifies that" ===
+  // ======== LAYER 12: "This certifies that" ========
   setTextCol(doc, design.textMuted);
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setCharSpace(3);
-  doc.text("THIS CERTIFIES THAT", centerX, 76, { align: "center" });
+  doc.text("THIS CERTIFIES THAT", cx, titleY + 22, { align: "center" });
   doc.setCharSpace(0);
 
-  // === 10. RECIPIENT NAME (script-style, large) ===
-  setTextCol(doc, design.textPrimary);
+  // ======== LAYER 13: RECIPIENT NAME (large script) ========
+  const nameY = titleY + 35;
+  setTextCol(doc, design.textBody);
   doc.setFont("times", "bolditalic");
-  doc.setFontSize(32);
-  doc.text(data.fullName, centerX, 90, { align: "center" });
+  doc.setFontSize(34);
+  doc.text(data.fullName, cx, nameY, { align: "center" });
 
-  // Name underline (matching HTML's border-b border-amber-500/30)
-  const nameWidth = doc.getTextWidth(data.fullName);
+  // Name underline with fade
+  const nameW = doc.getTextWidth(data.fullName);
   setDraw(doc, design.accentPrimary);
   doc.setGState(new GState({ opacity: 0.3 }));
   doc.setLineWidth(0.4);
-  doc.line(centerX - nameWidth / 2 - 8, 93, centerX + nameWidth / 2 + 8, 93);
+  doc.line(cx - nameW / 2 - 10, nameY + 3, cx + nameW / 2 + 10, nameY + 3);
   doc.setGState(new GState({ opacity: 1 }));
 
-  // === 11. "Has achieved the status of" ===
+  // ======== LAYER 14: "Has achieved the status of" ========
   setTextCol(doc, design.textMuted);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setCharSpace(3);
-  doc.text("HAS ACHIEVED THE STATUS OF", centerX, 102, { align: "center" });
+  doc.text("HAS ACHIEVED THE STATUS OF", cx, nameY + 14, { align: "center" });
   doc.setCharSpace(0);
 
-  // === 12. RANK TITLE with icon ===
-  setTextCol(doc, design.textPrimary);
+  // ======== LAYER 15: RANK TITLE ========
+  setTextCol(doc, design.textTitle);
   doc.setFont("times", "bold");
   doc.setFontSize(22);
-  doc.text(`${design.rankIcon}  ${data.rankName} Tier Affiliate  ${design.rankIcon}`, centerX, 113, { align: "center" });
+  const rankTitle = `${data.rankName} Tier Affiliate`;
+  doc.text(rankTitle, cx, nameY + 25, { align: "center" });
 
-  // === 13. BODY COPY (italic, with left border accent) ===
+  // ======== LAYER 16: BODY DESCRIPTION ========
+  if (design.theme === "royal") {
+    drawRoyalDivider(doc, nameY + 31, design);
+  } else {
+    drawAccentDivider(doc, nameY + 31, design);
+  }
+
+  // Left accent bar for body text
   setDraw(doc, design.accentPrimary);
   doc.setGState(new GState({ opacity: 0.3 }));
-  doc.setLineWidth(0.6);
-  doc.line(68, 120, 68, 138);
+  doc.setLineWidth(0.7);
+  const bodyStartY = nameY + 37;
+  doc.line(65, bodyStartY - 1, 65, bodyStartY + 16);
   doc.setGState(new GState({ opacity: 1 }));
 
   doc.setFont("times", "italic");
   doc.setFontSize(9);
   setTextCol(doc, design.textMuted);
-  const bodyText = `For achieving exceptional performance and verified achievement on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
-  const bodyLines = doc.splitTextToSize(bodyText, 155);
-  doc.text(bodyLines, 72, 125);
+  const bodyText = `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
+  const bodyLines = doc.splitTextToSize(bodyText, 165);
+  doc.text(bodyLines, 69, bodyStartY + 3);
 
-  // === 14. TOTAL VERIFIED EARNINGS ===
+  // ======== LAYER 17: VERIFIED EARNINGS ========
   if (data.totalCommission > 0) {
-    setTextCol(doc, design.textSecondary);
+    setTextCol(doc, design.textSubtitle);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`Total Verified Earnings: ${formatCurrency(data.totalCommission)}`, centerX, 146, { align: "center" });
+    doc.text(`Total Verified Earnings: ${formatCurrency(data.totalCommission)}`, cx, bodyStartY + 24, { align: "center" });
   }
 
-  // === 15. BOTTOM SECTION: Date / Seal / Signature ===
-  const bottomY = 170;
+  // ======== LAYER 18: BOTTOM SECTION ========
+  const bottomY = 174;
 
-  // --- Date (left side) ---
-  setTextCol(doc, design.textPrimary);
+  // --- Date (left) ---
+  setTextCol(doc, design.textBody);
   doc.setFont("times", "italic");
   doc.setFontSize(14);
   doc.text(formatDate(data.milestoneDate), 70, bottomY, { align: "center" });
@@ -463,31 +621,28 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   setDraw(doc, design.accentPrimary);
   doc.setGState(new GState({ opacity: 0.4 }));
   doc.setLineWidth(0.3);
-  doc.line(40, bottomY + 3, 100, bottomY + 3);
+  doc.line(38, bottomY + 3, 102, bottomY + 3);
   doc.setGState(new GState({ opacity: 1 }));
 
-  // Date label
   setTextCol(doc, design.textMuted);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  doc.setCharSpace(2);
+  doc.setFontSize(5.5);
+  doc.setCharSpace(2.5);
   doc.text("DATE", 70, bottomY + 8, { align: "center" });
   doc.setCharSpace(0);
 
   // --- Seal (center) ---
-  drawOfficialSeal(doc, centerX, bottomY - 2, design);
+  drawOfficialSeal(doc, cx, bottomY - 2, design);
 
-  // --- Signature (right side) ---
+  // --- Signature (right) ---
   if (data.adminSignatureUrl) {
     try {
-      doc.addImage(data.adminSignatureUrl, "PNG", 200, bottomY - 18, 50, 16);
-    } catch {
-      /* skip if image fails */
-    }
+      doc.addImage(data.adminSignatureUrl, "PNG", 198, bottomY - 20, 54, 17);
+    } catch { /* skip */ }
   }
 
   const sigName = data.ceoName || "Platform CEO";
-  setTextCol(doc, design.textPrimary);
+  setTextCol(doc, design.textBody);
   doc.setFont("times", "italic");
   doc.setFontSize(14);
   doc.text(sigName, 225, bottomY, { align: "center" });
@@ -496,60 +651,49 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   setDraw(doc, design.accentPrimary);
   doc.setGState(new GState({ opacity: 0.4 }));
   doc.setLineWidth(0.3);
-  doc.line(195, bottomY + 3, 255, bottomY + 3);
+  doc.line(193, bottomY + 3, 257, bottomY + 3);
   doc.setGState(new GState({ opacity: 1 }));
 
-  // Signature title
   setTextCol(doc, design.textMuted);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  doc.setCharSpace(2);
+  doc.setFontSize(5.5);
+  doc.setCharSpace(2.5);
   doc.text("CHIEF EXECUTIVE OFFICER", 225, bottomY + 8, { align: "center" });
   doc.setCharSpace(0);
 
-  // === 16. FOOTER: Certificate ID & Verification ===
+  // ======== LAYER 19: FOOTER ========
   doc.setFont("courier", "normal");
-  doc.setFontSize(6);
+  doc.setFontSize(5.5);
   setTextCol(doc, design.textMuted);
-  doc.setGState(new GState({ opacity: 0.5 }));
-  doc.setCharSpace(1);
-  doc.text(`CERTIFICATE ID: ${data.certificateHash}`, centerX, 196, { align: "center" });
+  doc.setGState(new GState({ opacity: 0.45 }));
+  doc.setCharSpace(1.5);
+  doc.text(`CERTIFICATE ID: ${data.certificateHash}`, cx, 197, { align: "center" });
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   doc.text(
     `ISSUE DATE: ${formatDate(data.issuedAt)}  •  VERIFY: ${origin}/verify-certificate/${data.certificateHash}`,
-    centerX,
-    200,
-    { align: "center" }
+    cx, 201, { align: "center" }
   );
   doc.setCharSpace(0);
   doc.setGState(new GState({ opacity: 1 }));
 
-  // === 17. PLATFORM BRANDING (top-left) ===
-  setTextCol(doc, design.textSecondary);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(PLATFORM_NAME, 25, 18);
-
-  // === 18. PROFILE PHOTO (top-right circle frame) ===
+  // ======== LAYER 20: PROFILE PHOTO (top-right) ========
   if (data.avatarUrl) {
     try {
-      // Draw circular frame first
+      // Circle frame
       setDraw(doc, design.accentPrimary);
       doc.setLineWidth(1.2);
-      doc.circle(268, 24, 12);
+      doc.circle(268, 26, 12);
 
-      // Add the image (square crop — jsPDF doesn't clip circles natively)
-      doc.addImage(data.avatarUrl, "PNG", 257, 13, 22, 22);
+      // Image (square → circle frame overlay)
+      doc.addImage(data.avatarUrl, "PNG", 257, 15, 22, 22);
 
-      // Overlay the circle frame on top
+      // Re-draw circle on top to mask
       setDraw(doc, design.accentPrimary);
       doc.setLineWidth(1.2);
-      doc.circle(268, 24, 12);
-    } catch {
-      /* skip if image fails */
-    }
+      doc.circle(268, 26, 12);
+    } catch { /* skip if image fails */ }
   }
 
-  // === SAVE ===
+  // ======== SAVE ========
   doc.save(`${PLATFORM_NAME}-${data.rankName}-Certificate.pdf`);
 }
