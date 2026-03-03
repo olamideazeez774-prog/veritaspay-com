@@ -16,6 +16,7 @@ import {
   LogOut,
   Shield,
   X,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
   { title: "Announcements", href: "/dashboard/announcements", icon: Menu, roles: ["vendor"] },
   { title: "Wallet", href: "/dashboard/wallet", icon: Wallet },
   { title: "Payouts", href: "/dashboard/payouts", icon: CreditCard },
+  { title: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

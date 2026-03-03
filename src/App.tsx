@@ -59,6 +59,7 @@ import VendorAnnouncements from "./pages/dashboard/VendorAnnouncements";
 import CertificatesPage from "./pages/dashboard/CertificatesPage";
 import AffiliateAnalytics from "./pages/dashboard/AffiliateAnalytics";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import InboxPage from "./pages/dashboard/InboxPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -229,6 +230,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/inbox"
+                element={
+                  <ProtectedRoute>
+                    <InboxPage />
                   </ProtectedRoute>
                 }
               />
