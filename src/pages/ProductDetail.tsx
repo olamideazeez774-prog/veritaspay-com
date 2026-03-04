@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ShareMenu } from "@/components/ui/share-menu";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
+import { ScarcityTimer } from "@/components/ScarcityTimer";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ProductDetail() {
   const { id, code } = useParams();
@@ -131,6 +133,25 @@ export default function ProductDetail() {
     );
   }
 
+  // Check for active coupons with expiry (scarcity timer)
+  const { data: activeCoupon } = useQuery({
+    queryKey: ["product-coupon", product?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vendor_coupons")
+        .select("*")
+        .eq("product_id", product!.id)
+        .eq("is_active", true)
+        .not("expires_at", "is", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!product?.id,
+  });
+
   const features = [
     { icon: Clock, label: `${product.refund_window_days}-day refund window` },
     { icon: Shield, label: "Secure checkout" },
@@ -186,6 +207,14 @@ export default function ProductDetail() {
                 <h1 className="font-serif text-3xl font-bold sm:text-4xl">{product.title}</h1>
                 <p className="mt-4 text-lg text-muted-foreground">{product.description}</p>
               </div>
+
+              {/* Scarcity Timer */}
+              {activeCoupon?.expires_at && (
+                <ScarcityTimer
+                  endDate={activeCoupon.expires_at}
+                  label={`${activeCoupon.discount_percent > 0 ? activeCoupon.discount_percent + '% off' : formatCurrency(activeCoupon.discount_amount) + ' off'} — ends in`}
+                />
+              )}
 
               {/* Price */}
               <div className="glass-card p-6 space-y-4">
