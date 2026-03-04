@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { QrCode, Link2, Copy, Tag, Megaphone, FileText, Calculator, TrendingUp, Lightbulb, Type } from "lucide-react";
+import { QrCode, Link2, Copy, Tag, Megaphone, FileText, Calculator, TrendingUp, Lightbulb, Type, Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useAffiliateLinks } from "@/hooks/useAffiliateLinks";
 import { useAffiliateCampaigns, useCreateCampaign } from "@/hooks/useAffiliateCampaigns";
 import { usePromoMaterials } from "@/hooks/usePromoMaterials";
 import { usePublishedAnnouncements } from "@/hooks/useAnnouncements";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,9 @@ import { toast } from "sonner";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CURRENCY } from "@/lib/constants";
+import { AICaptionGenerator, AIHeadlineTester, AIBestProductToday } from "@/components/AIToolsSection";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AffiliateToolkit() {
   const { user } = useAuth();
@@ -27,6 +31,21 @@ export default function AffiliateToolkit() {
   const { data: materials, isLoading: materialsLoading } = usePromoMaterials();
   const { data: announcements } = usePublishedAnnouncements();
   const createCampaign = useCreateCampaign();
+
+  // Get all approved products for AI Best Product Today
+  const { data: allProducts } = useQuery({
+    queryKey: ["all-active-products"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, title, price, commission_percent, description")
+        .eq("status", "active")
+        .eq("is_approved", true)
+        .eq("affiliate_enabled", true)
+        .limit(50);
+      return data || [];
+    },
+  });
 
   // UTM Builder state
   const [selectedLink, setSelectedLink] = useState("");
@@ -72,17 +91,25 @@ export default function AffiliateToolkit() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Affiliate Toolkit</h1>
-          <p className="text-muted-foreground text-sm">QR codes, UTM campaigns, profit tools, and promo materials</p>
+          <p className="text-muted-foreground text-sm">QR codes, UTM campaigns, AI tools, and promo materials</p>
         </div>
 
-        <Tabs defaultValue="qr">
+        <Tabs defaultValue="ai">
           <TabsList className="w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="ai" className="flex-1 sm:flex-none">AI Tools</TabsTrigger>
             <TabsTrigger value="qr" className="flex-1 sm:flex-none">QR Codes</TabsTrigger>
             <TabsTrigger value="utm" className="flex-1 sm:flex-none">UTM Builder</TabsTrigger>
-            <TabsTrigger value="tools" className="flex-1 sm:flex-none">Tools</TabsTrigger>
+            <TabsTrigger value="tools" className="flex-1 sm:flex-none">Calculators</TabsTrigger>
             <TabsTrigger value="materials" className="flex-1 sm:flex-none">Materials</TabsTrigger>
             <TabsTrigger value="news" className="flex-1 sm:flex-none">Updates</TabsTrigger>
           </TabsList>
+
+          {/* AI Tools */}
+          <TabsContent value="ai" className="space-y-4 mt-4">
+            <AICaptionGenerator />
+            <AIHeadlineTester />
+            <AIBestProductToday products={allProducts || []} />
+          </TabsContent>
 
           {/* QR Code Generator */}
           <TabsContent value="qr" className="space-y-4 mt-4">
@@ -171,9 +198,8 @@ export default function AffiliateToolkit() {
             )}
           </TabsContent>
 
-          {/* Affiliate Tools */}
+          {/* Calculators */}
           <TabsContent value="tools" className="space-y-4 mt-4">
-            {/* Profit Estimator */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" />Profit Estimator</CardTitle>
@@ -215,7 +241,6 @@ export default function AffiliateToolkit() {
               </CardContent>
             </Card>
 
-            {/* ROI Calculator */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />Quick Tips</CardTitle>
@@ -226,7 +251,7 @@ export default function AffiliateToolkit() {
                   {[
                     { icon: Lightbulb, title: "Promote High-Commission Products", desc: "Focus on products with 30%+ commission rates to maximize earnings per sale." },
                     { icon: TrendingUp, title: "Leverage UTM Tracking", desc: "Use UTM parameters to identify which channels convert best and double down." },
-                    { icon: Type, title: "Write Compelling Captions", desc: "Use product benefits, urgency, and social proof in your promotional content." },
+                    { icon: Type, title: "Write Compelling Captions", desc: "Use the AI Caption Generator to create platform-optimized promotional content." },
                     { icon: QrCode, title: "Use QR Codes Offline", desc: "Print QR codes on business cards, flyers, or packaging to drive offline traffic." },
                   ].map((tip, i) => (
                     <div key={i} className="p-4 rounded-lg bg-muted/50 border space-y-2">

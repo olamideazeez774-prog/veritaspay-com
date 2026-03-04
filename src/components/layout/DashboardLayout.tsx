@@ -29,12 +29,14 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SignOutDialog } from "@/components/SignOutDialog";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useAllFeatureFlags } from "@/hooks/useFeatureFlag";
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: ("admin" | "vendor" | "affiliate")[];
+  featureFlag?: string;
 }
 
 const navItems: NavItem[] = [
@@ -43,7 +45,7 @@ const navItems: NavItem[] = [
   { title: "Browse Products", href: "/dashboard/browse", icon: Package, roles: ["affiliate"] },
   { title: "My Links", href: "/dashboard/links", icon: Link2, roles: ["affiliate"] },
   { title: "Analytics", href: "/dashboard/stats", icon: BarChart3, roles: ["affiliate"] },
-  { title: "Intelligence", href: "/dashboard/analytics", icon: BarChart3, roles: ["affiliate"] },
+  { title: "Intelligence", href: "/dashboard/analytics", icon: BarChart3, roles: ["affiliate"], featureFlag: "ai_modules" },
   { title: "Referrals", href: "/dashboard/referrals", icon: Users, roles: ["affiliate"] },
   { title: "Toolkit", href: "/dashboard/toolkit", icon: Link2, roles: ["affiliate"] },
   { title: "Certificates", href: "/dashboard/certificates", icon: Shield },
@@ -87,6 +89,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, roles, isAdmin, isVendor, isAffiliate, signOut, isLoading } = useAuth();
+  const { flags } = useAllFeatureFlags();
 
   useEffect(() => {
     setMobileOpen(false);
@@ -118,6 +121,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const filteredNavItems = navItems.filter((item) => {
+    // Check feature flag
+    if (item.featureFlag && flags[item.featureFlag]?.enabled === false) return false;
     if (!item.roles) return true;
     return item.roles.some((role) => {
       if (role === "admin") return isAdmin;

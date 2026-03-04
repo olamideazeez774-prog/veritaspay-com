@@ -53,6 +53,18 @@ serve(async (req) => {
         systemPrompt = "You are an AI copilot for a digital marketplace admin. Analyze platform-wide data and provide strategic recommendations. Be specific and actionable. Format your response with clear sections.";
         userPrompt = `Here is the current platform data:\n${JSON.stringify(data)}\n\nProvide:\n1. Top 3 risks or issues requiring attention\n2. Top 3 growth opportunities\n3. Specific recommended actions (mark each as safe_auto or requires_review)\n4. Revenue optimization suggestions`;
         break;
+      case "caption_generator":
+        systemPrompt = "You are a social media marketing expert for affiliate marketers. Create compelling, conversion-focused captions.";
+        userPrompt = `Create 3 social media captions for promoting this product on ${data.platform || "Instagram"}:\n\nProduct: ${data.product_name}\nDescription: ${data.description || "N/A"}\n\nFor each caption include: the caption text, relevant hashtags, and a call-to-action. Make them authentic, engaging, and optimized for ${data.platform || "Instagram"}.`;
+        break;
+      case "headline_tester":
+        systemPrompt = "You are a conversion rate optimization expert. Score and rank headline variants based on psychological principles of persuasion, clarity, urgency, and emotional appeal.";
+        userPrompt = `Score and rank these headline variants from best to worst:\n\n${(data.headlines || []).map((h: string, i: number) => `${i + 1}. "${h}"`).join("\n")}\n\nFor each headline provide:\n- Score (0-100)\n- Strengths\n- Weaknesses\n- Suggested improvement\n\nThen declare the winner and explain why.`;
+        break;
+      case "best_product_today":
+        systemPrompt = "You are an affiliate marketing strategist. Analyze available products and recommend the best one to promote right now based on commission potential, market appeal, and timing.";
+        userPrompt = `Analyze these products and recommend the best one to promote today:\n\n${JSON.stringify(data.products)}\n\nConsider: commission percentage, price point appeal, market demand, and promotional angles. Recommend the top pick with specific promotion strategies.`;
+        break;
       default:
         return new Response(JSON.stringify({ error: "Unknown insight type" }), {
           status: 400,
