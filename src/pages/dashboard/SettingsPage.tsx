@@ -352,18 +352,58 @@ export default function SettingsPage() {
                   </p>
                   <Button onClick={handleApplyVerification} disabled={applyingVerification} className="min-h-[44px]">
                     <BadgeCheck className="h-4 w-4 mr-2" />
-                    Apply for Verification
+                    Apply for Verification (Free)
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Verification badges are available to Gold rank and above affiliates. Keep earning to unlock!
+                    Get verified to build trust with vendors and buyers. Available through two paths:
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Current: {totalEarned > 0 ? `₦${totalEarned.toLocaleString()}` : "No earnings yet"}
-                    {goldRank && ` · Need: ₦${goldRank.min_earnings.toLocaleString()}`}
-                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border p-3 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Earn It</p>
+                      <p className="text-sm">Reach Gold rank to qualify for free verification.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Progress: {totalEarned > 0 ? `₦${totalEarned.toLocaleString()}` : "₦0"}
+                        {goldRank && ` / ₦${goldRank.min_earnings.toLocaleString()}`}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wide">Pay for It</p>
+                      <p className="text-sm">Purchase a verification badge for a one-time fee.</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full min-h-[44px]"
+                        onClick={async () => {
+                          if (!user) return;
+                          setApplyingVerification(true);
+                          try {
+                            const { error } = await supabase.from("verification_requests").insert({
+                              user_id: user.id,
+                              path: "paid",
+                              status: "pending",
+                            });
+                            if (error) {
+                              if (error.code === "23505") toast.info("Verification request already submitted");
+                              else throw error;
+                            } else {
+                              toast.success("Paid verification request submitted! You'll be notified once reviewed.");
+                            }
+                          } catch {
+                            toast.error("Failed to submit verification request");
+                          } finally {
+                            setApplyingVerification(false);
+                          }
+                        }}
+                        disabled={applyingVerification}
+                      >
+                        <BadgeCheck className="h-4 w-4 mr-2" />
+                        Request Paid Verification
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </motion.div>

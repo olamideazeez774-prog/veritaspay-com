@@ -17,6 +17,8 @@ import {
   Shield,
   X,
   Inbox,
+  Newspaper,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +44,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Products", href: "/dashboard/products", icon: Package, roles: ["vendor", "admin"] },
+  { title: "Vendor Toolkit", href: "/dashboard/vendor-toolkit", icon: Wrench, roles: ["vendor"] },
   { title: "Browse Products", href: "/dashboard/browse", icon: Package, roles: ["affiliate"] },
   { title: "My Links", href: "/dashboard/links", icon: Link2, roles: ["affiliate"] },
   { title: "Analytics", href: "/dashboard/stats", icon: BarChart3, roles: ["affiliate"] },
@@ -53,6 +56,7 @@ const navItems: NavItem[] = [
   { title: "Announcements", href: "/dashboard/announcements", icon: Menu, roles: ["vendor"] },
   { title: "Wallet", href: "/dashboard/wallet", icon: Wallet },
   { title: "Payouts", href: "/dashboard/payouts", icon: CreditCard },
+  { title: "Daily Digest", href: "/dashboard/digest", icon: Newspaper },
   { title: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

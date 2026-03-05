@@ -676,21 +676,35 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   doc.setCharSpace(0);
   doc.setGState(new GState({ opacity: 1 }));
 
-  // ======== LAYER 20: PROFILE PHOTO (top-right) ========
+  // ======== LAYER 20: PROFILE PHOTO (top-right, circular clip) ========
   if (data.avatarUrl) {
     try {
-      // Circle frame
+      const photoCx = 268;
+      const photoCy = 26;
+      const photoR = 11;
+
+      // Save graphics state, create circular clipping path
+      (doc as any).saveGraphicsState();
+      // Create circular clip by drawing circle path
+      const ctx = (doc as any).context2d || null;
+      // Use internal API for clip: draw circle path then clip
+      doc.circle(photoCx, photoCy, photoR, null as any);
+      (doc as any).clip();
+      // Draw image inside clipped region
+      doc.addImage(data.avatarUrl, "JPEG", photoCx - photoR, photoCy - photoR, photoR * 2, photoR * 2);
+      (doc as any).restoreGraphicsState();
+
+      // Draw circle border on top
       setDraw(doc, design.accentPrimary);
       doc.setLineWidth(1.2);
-      doc.circle(268, 26, 12);
+      doc.circle(photoCx, photoCy, photoR);
 
-      // Image (square → circle frame overlay)
-      doc.addImage(data.avatarUrl, "PNG", 257, 15, 22, 22);
-
-      // Re-draw circle on top to mask
-      setDraw(doc, design.accentPrimary);
-      doc.setLineWidth(1.2);
-      doc.circle(268, 26, 12);
+      // Outer glow ring
+      doc.setGState(new GState({ opacity: 0.15 }));
+      setDraw(doc, design.accentGlow);
+      doc.setLineWidth(0.6);
+      doc.circle(photoCx, photoCy, photoR + 2);
+      doc.setGState(new GState({ opacity: 1 }));
     } catch { /* skip if image fails */ }
   }
 
