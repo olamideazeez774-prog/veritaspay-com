@@ -60,6 +60,8 @@ import CertificatesPage from "./pages/dashboard/CertificatesPage";
 import AffiliateAnalytics from "./pages/dashboard/AffiliateAnalytics";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import InboxPage from "./pages/dashboard/InboxPage";
+import DailyDigestPage from "./pages/dashboard/DailyDigestPage";
+import VendorToolkit from "./pages/dashboard/VendorToolkit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -238,6 +240,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <InboxPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/digest"
+                element={
+                  <ProtectedRoute>
+                    <DailyDigestPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/vendor-toolkit"
+                element={
+                  <ProtectedRoute requiredRoles={["vendor"]}>
+                    <VendorToolkit />
                   </ProtectedRoute>
                 }
               />

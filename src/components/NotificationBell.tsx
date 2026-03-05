@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,8 +29,21 @@ export function NotificationBell() {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 30_000,
   });
+
+  // Realtime subscription for live notification updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('notifications-bell')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["notifications"] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length || 0;
 
