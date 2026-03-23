@@ -20,8 +20,37 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 export default function Dashboard() {
   const { user, roles, isVendor, isAffiliate } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { data: vendorStats, isLoading: vendorLoading } = useVendorStats(isVendor ? user?.id : undefined);
   const { data: affiliateStats, isLoading: affiliateLoading } = useAffiliateStats(isAffiliate ? user?.id : undefined);
+
+  // Check if user needs onboarding
+  const { data: onboardingProgress } = useQuery({
+    queryKey: ["onboarding-progress", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("onboarding_progress")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user && (isVendor || isAffiliate),
+  });
+
+  // Show onboarding for new users who haven't completed it
+  const needsOnboarding = (isVendor || isAffiliate) && !onboardingProgress?.completed && onboardingProgress === null;
+
+  // Auto-show onboarding on first visit
+  const { data: _trigger } = useQuery({
+    queryKey: ["onboarding-trigger", user?.id, needsOnboarding],
+    queryFn: () => {
+      if (needsOnboarding) setShowOnboarding(true);
+      return true;
+    },
+    enabled: needsOnboarding === true,
+    staleTime: Infinity,
+  });
 
   // Fetch latest daily digest
   const { data: latestDigest } = useQuery({
