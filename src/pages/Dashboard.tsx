@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorStats, useAffiliateStats } from "@/hooks/useStats";
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { RoleSelector } from "@/components/dashboard/RoleSelector";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 export default function Dashboard() {
   const { user, roles, isVendor, isAffiliate } = useAuth();
