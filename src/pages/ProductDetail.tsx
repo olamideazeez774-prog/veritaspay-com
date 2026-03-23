@@ -35,13 +35,31 @@ export default function ProductDetail() {
   const { data: product, isLoading, error } = useProduct(productId || "");
   const createAffiliateLink = useCreateAffiliateLink();
 
+  // Check for active coupons with expiry (scarcity timer) - MUST be before any early return
+  const { data: activeCoupon } = useQuery({
+    queryKey: ["product-coupon", product?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vendor_coupons")
+        .select("*")
+        .eq("product_id", product!.id)
+        .eq("is_active", true)
+        .not("expires_at", "is", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!product?.id,
+  });
+
   // If we have a code, look up the product and track click using edge function
   useEffect(() => {
     if (code && !id) {
       const lookupAndTrack = async () => {
         setIsTrackingClick(true);
         try {
-          // Call the edge function to track the click and get product ID
           const { data, error } = await supabase.functions.invoke("track-click", {
             body: {
               code,
@@ -52,7 +70,6 @@ export default function ProductDetail() {
 
           if (error) {
             console.error("Error tracking click:", error);
-            // Fallback: try to look up the product directly
             const { data: linkData } = await supabase
               .from("affiliate_links")
               .select("product_id")
@@ -67,7 +84,6 @@ export default function ProductDetail() {
             setProductId(data.productId);
             setAffiliateCode(code);
             
-            // Store affiliate code in localStorage for attribution
             localStorage.setItem("affiliate_code", code);
             localStorage.setItem("affiliate_code_timestamp", Date.now().toString());
           }
@@ -132,25 +148,6 @@ export default function ProductDetail() {
       </div>
     );
   }
-
-  // Check for active coupons with expiry (scarcity timer)
-  const { data: activeCoupon } = useQuery({
-    queryKey: ["product-coupon", product?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("vendor_coupons")
-        .select("*")
-        .eq("product_id", product!.id)
-        .eq("is_active", true)
-        .not("expires_at", "is", null)
-        .gt("expires_at", new Date().toISOString())
-        .order("expires_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!product?.id,
-  });
 
   const features = [
     { icon: Clock, label: `${product.refund_window_days}-day refund window` },

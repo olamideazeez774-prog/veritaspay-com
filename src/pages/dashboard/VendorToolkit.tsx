@@ -227,10 +227,10 @@ export default function VendorToolkit() {
                   </div>
                   <div className="space-y-2">
                     <Label>Product (optional)</Label>
-                    <Select value={couponForm.product_id} onValueChange={(v) => setCouponForm(f => ({ ...f, product_id: v }))}>
+                    <Select value={couponForm.product_id || "all"} onValueChange={(v) => setCouponForm(f => ({ ...f, product_id: v === "all" ? "" : v }))}>
                       <SelectTrigger><SelectValue placeholder="All products" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All products</SelectItem>
+                        <SelectItem value="all">All products</SelectItem>
                         {products?.map(p => (
                           <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
                         ))}

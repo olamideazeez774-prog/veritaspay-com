@@ -20,6 +20,9 @@ export interface Profile {
   referral_code: string | null;
   referred_by: string | null;
   is_verified: boolean;
+  is_banned: boolean;
+  suspended_until: string | null;
+  admin_notes: string | null;
   vendor_tier: string;
   created_at: string;
   updated_at: string;

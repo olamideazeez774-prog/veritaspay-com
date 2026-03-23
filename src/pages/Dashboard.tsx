@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorStats, useAffiliateStats } from "@/hooks/useStats";
@@ -15,11 +16,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { RoleSelector } from "@/components/dashboard/RoleSelector";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 export default function Dashboard() {
   const { user, roles, isVendor, isAffiliate } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { data: vendorStats, isLoading: vendorLoading } = useVendorStats(isVendor ? user?.id : undefined);
   const { data: affiliateStats, isLoading: affiliateLoading } = useAffiliateStats(isAffiliate ? user?.id : undefined);
+
+  // Check if user needs onboarding
+  const { data: onboardingProgress } = useQuery({
+    queryKey: ["onboarding-progress", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("onboarding_progress")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user && (isVendor || isAffiliate),
+  });
+
+  // Show onboarding for new users who haven't completed it
+  const needsOnboarding = (isVendor || isAffiliate) && !onboardingProgress?.completed && onboardingProgress === null;
+
+  // Auto-show onboarding on first visit
+  const { data: _trigger } = useQuery({
+    queryKey: ["onboarding-trigger", user?.id, needsOnboarding],
+    queryFn: () => {
+      if (needsOnboarding) setShowOnboarding(true);
+      return true;
+    },
+    enabled: needsOnboarding === true,
+    staleTime: Infinity,
+  });
 
   // Fetch latest daily digest
   const { data: latestDigest } = useQuery({
@@ -41,6 +72,14 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      {/* Onboarding Flow */}
+      {showOnboarding && (
+        <OnboardingFlow
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
+
       <div className="space-y-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
