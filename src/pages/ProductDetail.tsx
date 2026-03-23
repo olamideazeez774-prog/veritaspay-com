@@ -97,6 +97,58 @@ export default function ProductDetail() {
     }
   }, [code, id]);
 
+  const handleGenerateLink = () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (!roles.includes("affiliate")) {
+      toast.error("You need to be an affiliate to generate links.");
+      return;
+    }
+    if (productId && user) {
+      createAffiliateLink.mutate({ affiliateId: user.id, productId });
+    }
+  };
+
+  const shareUrl = affiliateCode
+    ? `${window.location.origin}/ref/${affiliateCode}`
+    : window.location.href;
+
+  if (isLoading || isTrackingClick) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <AnimatedLoading size="lg" text="Loading product..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Package className="mx-auto h-16 w-16 text-muted-foreground/40" />
+            <h2 className="mt-4 text-xl font-semibold">Product not found</h2>
+            <p className="mt-2 text-muted-foreground">
+              The product you're looking for doesn't exist or has been removed.
+            </p>
+            <Link to="/marketplace">
+              <Button className="mt-6">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Marketplace
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const features = [
     { icon: Clock, label: `${product.refund_window_days}-day refund window` },
     { icon: Shield, label: "Secure checkout" },
