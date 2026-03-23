@@ -35,105 +35,7 @@ export default function ProductDetail() {
   const { data: product, isLoading, error } = useProduct(productId || "");
   const createAffiliateLink = useCreateAffiliateLink();
 
-  // If we have a code, look up the product and track click using edge function
-  useEffect(() => {
-    if (code && !id) {
-      const lookupAndTrack = async () => {
-        setIsTrackingClick(true);
-        try {
-          // Call the edge function to track the click and get product ID
-          const { data, error } = await supabase.functions.invoke("track-click", {
-            body: {
-              code,
-              referrer: document.referrer || null,
-              userAgent: navigator.userAgent,
-            },
-          });
-
-          if (error) {
-            console.error("Error tracking click:", error);
-            // Fallback: try to look up the product directly
-            const { data: linkData } = await supabase
-              .from("affiliate_links")
-              .select("product_id")
-              .eq("unique_code", code)
-              .maybeSingle();
-
-            if (linkData) {
-              setProductId(linkData.product_id);
-              setAffiliateCode(code);
-            }
-          } else if (data?.productId) {
-            setProductId(data.productId);
-            setAffiliateCode(code);
-            
-            // Store affiliate code in localStorage for attribution
-            localStorage.setItem("affiliate_code", code);
-            localStorage.setItem("affiliate_code_timestamp", Date.now().toString());
-          }
-        } catch (err) {
-          console.error("Error in click tracking:", err);
-        } finally {
-          setIsTrackingClick(false);
-        }
-      };
-      lookupAndTrack();
-    }
-  }, [code, id]);
-
-  const handleGenerateLink = () => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    if (!roles.includes("affiliate")) {
-      toast.error("You need to be an affiliate to generate links.");
-      return;
-    }
-    if (productId && user) {
-      createAffiliateLink.mutate({ affiliateId: user.id, productId });
-    }
-  };
-
-  const shareUrl = affiliateCode
-    ? `${window.location.origin}/ref/${affiliateCode}`
-    : window.location.href;
-
-  if (isLoading || isTrackingClick) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <AnimatedLoading size="lg" text="Loading product..." />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Package className="mx-auto h-16 w-16 text-muted-foreground/40" />
-            <h2 className="mt-4 text-xl font-semibold">Product not found</h2>
-            <p className="mt-2 text-muted-foreground">
-              The product you're looking for doesn't exist or has been removed.
-            </p>
-            <Link to="/marketplace">
-              <Button className="mt-6">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Marketplace
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Check for active coupons with expiry (scarcity timer)
+  // Check for active coupons with expiry (scarcity timer) - MUST be before any early return
   const { data: activeCoupon } = useQuery({
     queryKey: ["product-coupon", product?.id],
     queryFn: async () => {
@@ -151,6 +53,49 @@ export default function ProductDetail() {
     },
     enabled: !!product?.id,
   });
+
+  // If we have a code, look up the product and track click using edge function
+  useEffect(() => {
+    if (code && !id) {
+      const lookupAndTrack = async () => {
+        setIsTrackingClick(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("track-click", {
+            body: {
+              code,
+              referrer: document.referrer || null,
+              userAgent: navigator.userAgent,
+            },
+          });
+
+          if (error) {
+            console.error("Error tracking click:", error);
+            const { data: linkData } = await supabase
+              .from("affiliate_links")
+              .select("product_id")
+              .eq("unique_code", code)
+              .maybeSingle();
+
+            if (linkData) {
+              setProductId(linkData.product_id);
+              setAffiliateCode(code);
+            }
+          } else if (data?.productId) {
+            setProductId(data.productId);
+            setAffiliateCode(code);
+            
+            localStorage.setItem("affiliate_code", code);
+            localStorage.setItem("affiliate_code_timestamp", Date.now().toString());
+          }
+        } catch (err) {
+          console.error("Error in click tracking:", err);
+        } finally {
+          setIsTrackingClick(false);
+        }
+      };
+      lookupAndTrack();
+    }
+  }, [code, id]);
 
   const features = [
     { icon: Clock, label: `${product.refund_window_days}-day refund window` },
