@@ -40,11 +40,11 @@ export default function Checkout() {
     try {
       const { data, error } = await supabase.functions.invoke("process-sale", {
         body: {
-          product_id: productId,
-          buyer_email: formData.email,
-          buyer_name: formData.name,
-          affiliate_code: affiliateCode || undefined,
-          payment_reference: `VP-${Date.now().toString(36).toUpperCase()}`,
+          productId: productId,
+          buyerEmail: formData.email,
+          buyerName: formData.name,
+          affiliateCode: affiliateCode || undefined,
+          paymentReference: `VP-${Date.now().toString(36).toUpperCase()}`,
         },
       });
 
