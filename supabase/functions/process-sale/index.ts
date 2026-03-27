@@ -13,6 +13,7 @@ interface ProcessSaleRequest {
   affiliateCode?: string;
   paymentReference: string;
   paymentGateway?: string;
+  couponCode?: string;
 }
 
 Deno.serve(async (req) => {
@@ -26,7 +27,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const {
-      productId, buyerEmail, buyerName, affiliateCode, paymentReference, paymentGateway = "paystack",
+      productId, buyerEmail, buyerName, affiliateCode, paymentReference,
+      paymentGateway = "paystack", couponCode,
     }: ProcessSaleRequest = await req.json();
 
     if (!productId || !buyerEmail || !paymentReference) {
@@ -43,7 +45,36 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Look up affiliate if code provided
+    // ======== COUPON VALIDATION ========
+    let discountAmount = 0;
+    let appliedCouponId: string | null = null;
+
+    if (couponCode) {
+      const { data: coupon } = await supabase
+        .from("vendor_coupons")
+        .select("*")
+        .eq("code", couponCode.toUpperCase().trim())
+        .eq("is_active", true)
+        .eq("vendor_id", product.vendor_id)
+        .maybeSingle();
+
+      if (coupon) {
+        const isValidProduct = !coupon.product_id || coupon.product_id === productId;
+        const isNotExpired = !coupon.expires_at || new Date(coupon.expires_at) > new Date();
+        const hasUsesLeft = !coupon.max_uses || coupon.current_uses < coupon.max_uses;
+
+        if (isValidProduct && isNotExpired && hasUsesLeft) {
+          if (coupon.discount_percent > 0) {
+            discountAmount = Math.round(product.price * (coupon.discount_percent / 100));
+          } else if (coupon.discount_amount > 0) {
+            discountAmount = Math.min(coupon.discount_amount, product.price);
+          }
+          appliedCouponId = coupon.id;
+        }
+      }
+    }
+
+    // ======== AFFILIATE LOOKUP ========
     let affiliateId: string | null = null;
     let affiliateLinkId: string | null = null;
 
@@ -53,7 +84,6 @@ Deno.serve(async (req) => {
         .eq("unique_code", affiliateCode.toUpperCase()).eq("product_id", productId).single();
 
       if (affiliateLink) {
-        // Self-referral blocking: affiliate cannot earn commission on their own purchase
         if (affiliateLink.affiliate_id === product.vendor_id) {
           console.warn("Self-referral blocked: affiliate is the vendor");
         } else {
@@ -76,25 +106,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Weekly threshold commission logic
+    // ======== COMMISSION LOGIC ========
     let commissionPercent = product.commission_percent;
 
     if (affiliateId) {
-      // Check if affiliate has a weekly threshold rule active
       const { data: thresholdRules } = await supabase
-        .from("commission_rules")
-        .select("*")
-        .eq("rule_type", "weekly_threshold")
-        .eq("is_active", true)
-        .order("priority", { ascending: false })
-        .limit(1);
+        .from("commission_rules").select("*")
+        .eq("rule_type", "weekly_threshold").eq("is_active", true)
+        .order("priority", { ascending: false }).limit(1);
 
       if (thresholdRules?.length) {
         const rule = thresholdRules[0];
         const minSales = rule.min_sales || 15;
         const overridePercent = rule.commission_override || 40;
-
-        // Count this week's sales for the affiliate
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         weekStart.setHours(0, 0, 0, 0);
@@ -103,7 +127,6 @@ Deno.serve(async (req) => {
           .from("sales").select("id", { count: "exact", head: true })
           .eq("affiliate_id", affiliateId).gte("created_at", weekStart.toISOString());
 
-        // Check last week too for grace period
         const lastWeekStart = new Date(weekStart);
         lastWeekStart.setDate(lastWeekStart.getDate() - 7);
         const { count: lastWeekSales } = await supabase
@@ -112,37 +135,27 @@ Deno.serve(async (req) => {
           .gte("created_at", lastWeekStart.toISOString())
           .lt("created_at", weekStart.toISOString());
 
-        const meetsThisWeek = (thisWeekSales || 0) >= minSales;
-        const metLastWeek = (lastWeekSales || 0) >= minSales;
-
-        // Forward-only: if they met threshold this week or last week (grace), upgrade
-        if (meetsThisWeek || metLastWeek) {
+        if ((thisWeekSales || 0) >= minSales || (lastWeekSales || 0) >= minSales) {
           commissionPercent = Math.max(commissionPercent, overridePercent);
         }
       }
 
-      // Also check per-affiliate overrides
       const { data: affiliateRules } = await supabase
-        .from("commission_rules")
-        .select("*")
-        .eq("rule_type", "per_affiliate")
-        .eq("affiliate_id", affiliateId)
-        .eq("is_active", true)
-        .order("priority", { ascending: false })
-        .limit(1);
+        .from("commission_rules").select("*")
+        .eq("rule_type", "per_affiliate").eq("affiliate_id", affiliateId).eq("is_active", true)
+        .order("priority", { ascending: false }).limit(1);
 
       if (affiliateRules?.length && affiliateRules[0].commission_override) {
         commissionPercent = Math.max(commissionPercent, affiliateRules[0].commission_override);
       }
     }
 
-    // Check if vendor is admin (fee exempt)
+    // ======== CALCULATE AMOUNTS ========
     const { data: vendorAdminRole } = await supabase
       .from("user_roles").select("role").eq("user_id", product.vendor_id).eq("role", "admin").maybeSingle();
     const isVendorAdmin = !!vendorAdminRole;
 
-    // Calculate amounts
-    const totalAmount = product.price;
+    const totalAmount = Math.max(0, product.price - discountAmount);
     const platformFeePercent = isVendorAdmin ? 0 : product.platform_fee_percent;
     const secondTierCommissionPercent = product.second_tier_commission_percent || 5;
 
@@ -155,7 +168,7 @@ Deno.serve(async (req) => {
 
     const vendorEarnings = afterPlatformFee - affiliateCommission;
 
-    // Check for second-tier commission
+    // Second-tier commission
     let secondTierAffiliateId: string | null = null;
     let secondTierCommission = 0;
 
@@ -165,7 +178,6 @@ Deno.serve(async (req) => {
     if (vendorReferral) {
       const { data: referrerRole } = await supabase
         .from("user_roles").select("role").eq("user_id", vendorReferral.referrer_id).eq("role", "affiliate").maybeSingle();
-
       if (referrerRole) {
         secondTierAffiliateId = vendorReferral.referrer_id;
         secondTierCommission = Math.round((platformFee * secondTierCommissionPercent) / 100);
@@ -175,7 +187,7 @@ Deno.serve(async (req) => {
     const refundEligibleUntil = new Date();
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
 
-    // Create the sale record
+    // ======== CREATE SALE ========
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -196,10 +208,20 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Increment conversion count
     if (affiliateLinkId) {
       await supabase.rpc("increment_conversion_count", { link_id: affiliateLinkId });
     }
 
+    // Increment coupon usage
+    if (appliedCouponId) {
+      await supabase
+        .from("vendor_coupons")
+        .update({ current_uses: (await supabase.from("vendor_coupons").select("current_uses").eq("id", appliedCouponId).single()).data?.current_uses + 1 || 1 })
+        .eq("id", appliedCouponId);
+    }
+
+    // ======== WALLET UPDATES ========
     const updateWallet = async (userId: string, amount: number, type: string, description: string) => {
       const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
       if (wallet) {
@@ -220,10 +242,38 @@ Deno.serve(async (req) => {
       await updateWallet(secondTierAffiliateId, secondTierCommission, "sale_commission", `Second-tier commission from ${product.title}`);
     }
 
+    // ======== SEND RECEIPT EMAIL ========
+    try {
+      await supabase.functions.invoke("send-email", {
+        body: {
+          to: buyerEmail,
+          subject: `Receipt: ${product.title} — ${PLATFORM_NAME}`,
+          html: `<h2>Thank you for your purchase!</h2>
+<p>Hi ${buyerName || "there"},</p>
+<p>Your purchase of <strong>${product.title}</strong> has been confirmed.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0">
+<tr><td style="padding:8px;border-bottom:1px solid #eee">Product</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>${product.title}</strong></td></tr>
+${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee">Discount</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;color:green">-₦${discountAmount.toLocaleString()}</td></tr>` : ""}
+<tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Total Paid</strong></td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>₦${totalAmount.toLocaleString()}</strong></td></tr>
+<tr><td style="padding:8px">Reference</td><td style="padding:8px;text-align:right;font-family:monospace">${paymentReference}</td></tr>
+</table>
+<p style="color:#666;font-size:12px">This is an automated receipt from VeritasPay.</p>`,
+        },
+      });
+    } catch (emailErr) {
+      console.error("Email send failed (non-blocking):", emailErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true, saleId: sale.id, message: "Sale processed successfully",
-        breakdown: { total_amount: totalAmount, platform_fee: platformFee, affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission, vendor_earnings: vendorEarnings, commission_applied: commissionPercent },
+        breakdown: {
+          original_price: product.price, discount: discountAmount,
+          total_amount: totalAmount, platform_fee: platformFee,
+          affiliate_commission: affiliateCommission,
+          second_tier_commission: secondTierCommission,
+          vendor_earnings: vendorEarnings, commission_applied: commissionPercent,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
