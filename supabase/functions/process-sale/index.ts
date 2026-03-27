@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
       await supabase.functions.invoke("send-email", {
         body: {
           to: buyerEmail,
-          subject: `Receipt: ${product.title} — ${PLATFORM_NAME}`,
+          subject: `Receipt: ${product.title} — VeritasPay`,
           html: `<h2>Thank you for your purchase!</h2>
 <p>Hi ${buyerName || "there"},</p>
 <p>Your purchase of <strong>${product.title}</strong> has been confirmed.</p>
