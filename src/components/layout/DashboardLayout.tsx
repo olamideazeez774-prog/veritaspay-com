@@ -289,7 +289,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm lg:hidden" />
             <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar lg:hidden">
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar pb-20 lg:hidden">
               <button onClick={() => setMobileOpen(false)} className="absolute right-4 top-4 text-sidebar-foreground">
                 <X className="h-5 w-5" />
               </button>
