@@ -1,0 +1,19 @@
+project_id = "fizaqrxyrxfjjfszhhfz"
+
+[functions.process-sale]
+verify_jwt = false
+
+[functions.track-click]
+verify_jwt = false
+
+[functions.ai-insights]
+verify_jwt = false
+
+[functions.generate-daily-digest]
+verify_jwt = false
+
+[functions.initialize-payment]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
