@@ -226,7 +226,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </ScrollArea>
 
         {/* User Section */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className={cn("border-t border-sidebar-border p-4", isMobile && "pb-20")}>
           <Link to="/dashboard/settings"
             className={cn("flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent", !sidebarOpen && "justify-center")}>
             <Avatar className="h-9 w-9">
