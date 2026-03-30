@@ -69,11 +69,10 @@ export function BottomNavBar({ isVisible = true }: BottomNavBarProps) {
   }).slice(0, 5);
 
   // Only show on mobile, hide when sidebar is open
+  if (!isVisible) return null;
+
   return (
-    <nav className={cn(
-      "fixed bottom-0 inset-x-0 z-50 lg:hidden border-t border-border bg-background/95 backdrop-blur-md safe-area-bottom transition-transform duration-300",
-      !isVisible && "translate-y-full"
-    )}>
+    <nav className="fixed bottom-0 inset-x-0 z-50 lg:hidden border-t border-border bg-background/95 backdrop-blur-md safe-area-bottom">
       <div className="flex items-center justify-around h-16">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.href;
