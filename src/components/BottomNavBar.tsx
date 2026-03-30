@@ -42,7 +42,11 @@ export const BOTTOM_NAV_HREFS_VENDOR = vendorBottomNav.map(i => i.href);
 export const BOTTOM_NAV_HREFS_AFFILIATE = affiliateBottomNav.map(i => i.href);
 export const BOTTOM_NAV_HREFS_DEFAULT = defaultBottomNav.map(i => i.href);
 
-export function BottomNavBar() {
+interface BottomNavBarProps {
+  isVisible?: boolean;
+}
+
+export function BottomNavBar({ isVisible = true }: BottomNavBarProps) {
   const location = useLocation();
   const { isVendor, isAffiliate, isAdmin } = useAuth();
   const { flags } = useAllFeatureFlags();
@@ -64,9 +68,12 @@ export function BottomNavBar() {
     });
   }).slice(0, 5);
 
-  // Only show on mobile
+  // Only show on mobile, hide when sidebar is open
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 lg:hidden border-t border-border bg-background/95 backdrop-blur-md safe-area-bottom">
+    <nav className={cn(
+      "fixed bottom-0 inset-x-0 z-50 lg:hidden border-t border-border bg-background/95 backdrop-blur-md safe-area-bottom transition-transform duration-300",
+      !isVisible && "translate-y-full"
+    )}>
       <div className="flex items-center justify-around h-16">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.href;

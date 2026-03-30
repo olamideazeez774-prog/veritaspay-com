@@ -260,7 +260,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <motion.aside initial={false} animate={{ width: sidebarOpen ? 260 : 72 }}
         className="fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <SidebarContent />
-        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} title="Toggle sidebar"
           className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md hover:bg-sidebar-accent">
           <ChevronLeft className={cn("h-4 w-4 transition-transform", !sidebarOpen && "rotate-180")} />
         </button>
@@ -269,7 +269,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile Header */}
       <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:hidden">
         <div className="flex items-center gap-4">
-          <button onClick={() => setMobileOpen(true)} className="text-foreground">
+          <button onClick={() => setMobileOpen(true)} title="Open menu" className="text-foreground">
             <Menu className="h-6 w-6" />
           </button>
           <span className="font-serif text-lg font-semibold">{PLATFORM_NAME}</span>
@@ -290,7 +290,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar pb-20 lg:hidden">
-              <button onClick={() => setMobileOpen(false)} className="absolute right-4 top-4 text-sidebar-foreground">
+              <button onClick={() => setMobileOpen(false)} title="Close menu" className="absolute right-4 top-4 text-sidebar-foreground">
                 <X className="h-5 w-5" />
               </button>
               <SidebarContent isMobile />
@@ -307,8 +307,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="container-wide py-6 lg:py-8">{children}</div>
       </main>
 
-      {/* Bottom Navigation Bar (mobile only) */}
-      <BottomNavBar />
+      {/* Bottom Navigation Bar (mobile only) - hidden when sidebar is open */}
+      <BottomNavBar isVisible={!mobileOpen} />
 
       {/* Sign Out Dialog */}
       <SignOutDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}
