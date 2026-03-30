@@ -13,12 +13,18 @@ interface AuthContextType {
   isVendor: boolean;
   isAffiliate: boolean;
   isPremium: boolean;
+<<<<<<< HEAD
   isEmailVerified: boolean;
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; data: any }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+<<<<<<< HEAD
   resendVerificationEmail: () => Promise<{ error: Error | null }>;
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -121,12 +127,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if user is banned or suspended
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
+<<<<<<< HEAD
         // Check email verification
         if (!authUser.email_confirmed_at) {
           await supabase.auth.signOut();
           return { error: new Error("Please verify your email before signing in. Check your inbox for the verification link.") };
         }
 
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
         const { data: prof } = await supabase
           .from("profiles")
           .select("is_banned, suspended_until")
@@ -157,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
   };
 
+<<<<<<< HEAD
   const resendVerificationEmail = async () => {
     if (!user?.email) {
       return { error: new Error("No user email found") };
@@ -170,6 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = roles.includes("admin");
   const isEmailVerified = !!user?.email_confirmed_at;
+=======
+  const isAdmin = roles.includes("admin");
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
   const value: AuthContextType = {
     user,
@@ -181,12 +194,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isVendor: roles.includes("vendor"),
     isAffiliate: roles.includes("affiliate"),
     isPremium: isAdmin || profile?.vendor_tier === "premium",
+<<<<<<< HEAD
     isEmailVerified,
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
     signUp,
     signIn,
     signOut,
     refreshProfile,
+<<<<<<< HEAD
     resendVerificationEmail,
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

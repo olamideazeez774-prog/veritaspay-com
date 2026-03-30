@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
+<<<<<<< HEAD
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Mail, ArrowRight, ExternalLink } from "lucide-react";
+=======
+import { Link } from "react-router-dom";
+import { CheckCircle, Download, Mail, ArrowRight } from "lucide-react";
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
 import { PLATFORM_NAME } from "@/lib/constants";
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 
 export default function CheckoutSuccess() {
@@ -21,6 +27,10 @@ export default function CheckoutSuccess() {
     }
   }, []);
 
+=======
+
+export default function CheckoutSuccess() {
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -58,6 +68,7 @@ export default function CheckoutSuccess() {
           {/* Info Cards */}
           <motion.div variants={staggerItem} className="mt-8 space-y-4">
             <div className="glass-card p-4 flex items-center gap-4 text-left">
+<<<<<<< HEAD
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
                 <Package className="h-5 w-5 text-success" />
               </div>
@@ -70,13 +81,31 @@ export default function CheckoutSuccess() {
             </div>
 
             <div className="glass-card p-4 flex items-center gap-4 text-left">
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h3 className="font-medium">Check Your Email</h3>
                 <p className="text-sm text-muted-foreground">
+<<<<<<< HEAD
                   We've sent your receipt with permanent access link to your email.
+=======
+                  We've sent your receipt and download instructions to your email.
+                </p>
+              </div>
+            </div>
+
+            <div className="glass-card p-4 flex items-center gap-4 text-left">
+              <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                <Download className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h3 className="font-medium">Instant Access</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your digital product is ready to download right away.
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
                 </p>
               </div>
             </div>
@@ -84,6 +113,7 @@ export default function CheckoutSuccess() {
 
           {/* Actions */}
           <motion.div variants={staggerItem} className="mt-8 flex flex-col gap-3">
+<<<<<<< HEAD
             <Link to="/delivery">
               <Button size="lg" className="w-full">
                 <ExternalLink className="mr-2 h-4 w-4" />
@@ -92,6 +122,10 @@ export default function CheckoutSuccess() {
             </Link>
             <Link to="/marketplace">
               <Button variant="outline" size="lg" className="w-full">
+=======
+            <Link to="/marketplace">
+              <Button size="lg" className="w-full">
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
                 Continue Shopping
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

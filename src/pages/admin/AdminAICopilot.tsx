@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+<<<<<<< HEAD
 import { Bot, Sparkles, Shield, AlertTriangle, TrendingUp, RefreshCw, History, Undo2, DollarSign, Power, Zap, Calendar, Bell, Settings } from "lucide-react";
+=======
+import { Bot, Sparkles, Shield, AlertTriangle, TrendingUp, RefreshCw, History, Undo2, DollarSign, Power, Zap } from "lucide-react";
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAIInsight } from "@/hooks/useAIInsights";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,16 +20,23 @@ import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatDateTime, formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { AIContentCalendar } from "@/components/AIContentCalendar";
 import { AISmartAlerts } from "@/components/AISmartAlerts";
 import { AIOptimizationSettingsPanel } from "@/components/AIOptimizationSettings";
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
 const AUTO_INTERVAL_MS = 60_000;
 
 export default function AdminAICopilot() {
   const { user } = useAuth();
   const qc = useQueryClient();
+<<<<<<< HEAD
   const [mode, setMode] = useState<"advisory" | "auto" | "autonomous">("advisory");
+=======
+  const [mode, setMode] = useState<"advisory" | "auto">("advisory");
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
   const [advisoryResult, setAdvisoryResult] = useState<string | null>(null);
   const [budgetCap, setBudgetCap] = useState(50000);
   const [marginFloor, setMarginFloor] = useState(5);
@@ -125,6 +136,7 @@ export default function AdminAICopilot() {
   }, []);
 
   const autoAdjustRankings = useCallback(async () => {
+<<<<<<< HEAD
     // Get products with their actual sales performance
     const { data: productsWithSales } = await supabase
       .from("products")
@@ -167,6 +179,26 @@ export default function AdminAICopilot() {
     
     if (adjusted > 0) {
       await logDecision("ranking_adjustment", `Adjusted ranking scores for ${adjusted} products`, "Auto-adjustment based on 30-day sales performance", true, { adjusted_count: adjusted });
+=======
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, ranking_score, is_approved, status")
+      .eq("is_approved", true)
+      .eq("status", "active")
+      .limit(50);
+    if (!products?.length) return 0;
+    let adjusted = 0;
+    for (const product of products) {
+      const currentScore = product.ranking_score || 0;
+      const newScore = Math.max(0, currentScore + Math.floor(Math.random() * 5) - 2);
+      if (newScore !== currentScore) {
+        await supabase.from("products").update({ ranking_score: newScore }).eq("id", product.id);
+        adjusted++;
+      }
+    }
+    if (adjusted > 0) {
+      await logDecision("ranking_adjustment", `Adjusted ranking scores for ${adjusted} products`, "Auto-adjustment based on performance data", true, { adjusted_count: adjusted });
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
     }
     return adjusted;
   }, []);
@@ -282,11 +314,18 @@ export default function AdminAICopilot() {
           </ul>
         </div>
 
+<<<<<<< HEAD
         <Tabs value={mode} onValueChange={(v) => setMode(v as "advisory" | "auto" | "autonomous")}>
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="advisory" className="flex-1 sm:flex-none"><Sparkles className="h-4 w-4 mr-1" />Advisory</TabsTrigger>
             <TabsTrigger value="auto" className="flex-1 sm:flex-none"><Bot className="h-4 w-4 mr-1" />Auto Actions</TabsTrigger>
             <TabsTrigger value="autonomous" className="flex-1 sm:flex-none"><Calendar className="h-4 w-4 mr-1" />Autonomous</TabsTrigger>
+=======
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "advisory" | "auto")}>
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="advisory" className="flex-1 sm:flex-none"><Sparkles className="h-4 w-4 mr-1" />Advisory</TabsTrigger>
+            <TabsTrigger value="auto" className="flex-1 sm:flex-none"><Bot className="h-4 w-4 mr-1" />Auto Actions</TabsTrigger>
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
           </TabsList>
 
           <TabsContent value="advisory" className="space-y-4 mt-4">
@@ -362,6 +401,7 @@ export default function AdminAICopilot() {
               All auto actions are logged below with full rollback capability. Budget cap: {formatCurrency(budgetCap)}, Margin floor: {marginFloor}%.
             </div>
           </TabsContent>
+<<<<<<< HEAD
 
           <TabsContent value="autonomous" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-2">
@@ -370,6 +410,8 @@ export default function AdminAICopilot() {
             </div>
             <AIOptimizationSettingsPanel />
           </TabsContent>
+=======
+>>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
         </Tabs>
 
         {/* Decision Log */}
