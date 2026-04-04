@@ -156,6 +156,62 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_content_calendar: {
+        Row: {
+          affiliate_link_id: string | null
+          ai_generated: boolean
+          content: string | null
+          content_type: string
+          created_at: string
+          id: string
+          performance_metrics: Json | null
+          platform: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_link_id?: string | null
+          ai_generated?: boolean
+          content?: string | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          performance_metrics?: Json | null
+          platform?: string | null
+          scheduled_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affiliate_link_id?: string | null
+          ai_generated?: boolean
+          content?: string | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          performance_metrics?: Json | null
+          platform?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_content_calendar_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_decisions: {
         Row: {
           action_taken: string
@@ -191,6 +247,123 @@ export type Database = {
           was_auto?: boolean
         }
         Relationships: []
+      }
+      ai_optimization_settings: {
+        Row: {
+          alert_min_severity: string
+          auto_adjust_prices: boolean
+          auto_generate_captions: boolean
+          auto_optimize_commissions: boolean
+          auto_schedule_posts: boolean
+          content_frequency: string
+          created_at: string
+          id: string
+          preferred_platforms: string[]
+          preferred_posting_times: string[]
+          smart_alerts_enabled: boolean
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_min_severity?: string
+          auto_adjust_prices?: boolean
+          auto_generate_captions?: boolean
+          auto_optimize_commissions?: boolean
+          auto_schedule_posts?: boolean
+          content_frequency?: string
+          created_at?: string
+          id?: string
+          preferred_platforms?: string[]
+          preferred_posting_times?: string[]
+          smart_alerts_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_min_severity?: string
+          auto_adjust_prices?: boolean
+          auto_generate_captions?: boolean
+          auto_optimize_commissions?: boolean
+          auto_schedule_posts?: boolean
+          content_frequency?: string
+          created_at?: string
+          id?: string
+          preferred_platforms?: string[]
+          preferred_posting_times?: string[]
+          smart_alerts_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_smart_alerts: {
+        Row: {
+          action_text: string | null
+          action_url: string | null
+          ai_analysis: Json | null
+          alert_type: string
+          created_at: string
+          description: string
+          dismissed_at: string | null
+          id: string
+          is_read: boolean
+          related_link_id: string | null
+          related_product_id: string | null
+          severity: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          action_text?: string | null
+          action_url?: string | null
+          ai_analysis?: Json | null
+          alert_type?: string
+          created_at?: string
+          description: string
+          dismissed_at?: string | null
+          id?: string
+          is_read?: boolean
+          related_link_id?: string | null
+          related_product_id?: string | null
+          severity?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          action_text?: string | null
+          action_url?: string | null
+          ai_analysis?: Json | null
+          alert_type?: string
+          created_at?: string
+          description?: string
+          dismissed_at?: string | null
+          id?: string
+          is_read?: boolean
+          related_link_id?: string | null
+          related_product_id?: string | null
+          severity?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_smart_alerts_related_link_id_fkey"
+            columns: ["related_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_smart_alerts_related_product_id_fkey"
+            columns: ["related_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       certificates: {
         Row: {
@@ -1257,9 +1430,11 @@ export type Database = {
         Args: { _amount: number; _wallet_id: string }
         Returns: undefined
       }
+      dismiss_ai_alert: { Args: { alert_id: string }; Returns: undefined }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_profile_referral_code: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_unread_alert_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1277,6 +1452,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_valid_click_insert: { Args: never; Returns: boolean }
+      mark_ai_alert_read: { Args: { alert_id: string }; Returns: undefined }
       write_system_log: {
         Args: {
           _actor_id?: string
