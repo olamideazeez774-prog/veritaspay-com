@@ -21,7 +21,7 @@ import {
   MIN_COMMISSION_PERCENT,
   MAX_COMMISSION_PERCENT,
 } from "@/lib/constants";
-import { ProductStatus } from "@/types/database";
+import { ProductStatus, Product } from "@/types/database";
 import { toast } from "sonner";
 
 export default function ProductForm() {
