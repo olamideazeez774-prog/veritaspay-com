@@ -37,7 +37,7 @@ export default function VendorAnnouncements() {
       title: form.title,
       content: form.content,
       announcement_type: form.announcement_type,
-    } as any, { onSuccess: () => { setShowCreate(false); setForm({ title: "", content: "", announcement_type: "general" }); } });
+    } as Partial<Announcement>, { onSuccess: () => { setShowCreate(false); setForm({ title: "", content: "", announcement_type: "general" }); } });
   };
 
   return (

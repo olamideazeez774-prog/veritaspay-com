@@ -24,7 +24,7 @@ export default function InstallPage() {
 
     // Check if iOS
     const ua = navigator.userAgent;
-    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
+    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: boolean }).MSStream);
 
     const handler = (e: Event) => {
       e.preventDefault();

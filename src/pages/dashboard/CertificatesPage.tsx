@@ -51,7 +51,7 @@ export default function CertificatesPage() {
       const { data, error } = await supabase
         .from("affiliate_ranks")
         .select("*")
-        .order("sort_order", { ascending: true });
+        .order("min_earnings", { ascending: true });
       if (error) throw error;
       return data as AffiliateRank[];
     },
@@ -143,7 +143,7 @@ export default function CertificatesPage() {
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
-      metadata: metadata as any,
+      metadata: metadata as Record<string, unknown>,
     });
 
     if (error) {
@@ -157,7 +157,7 @@ export default function CertificatesPage() {
 
   const handleDownloadCert = async (cert: Certificate) => {
     try {
-      const meta = cert.metadata as Record<string, any> | null;
+      const meta = cert.metadata as Record<string, unknown> | null;
       await generatePremiumCertificatePDF({
         rankName: cert.rank_name,
         fullName: meta?.full_name || profile?.full_name || "User",

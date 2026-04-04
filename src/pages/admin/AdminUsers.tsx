@@ -62,8 +62,8 @@ export default function AdminUsers() {
         full_name: profile.full_name,
         vendor_tier: profile.vendor_tier || "normal",
         is_verified: profile.is_verified || false,
-        is_banned: (profile as any).is_banned || false,
-        suspended_until: (profile as any).suspended_until || null,
+        is_banned: profile.is_banned || false,
+        suspended_until: profile.suspended_until || null,
         created_at: profile.created_at,
         roles: roles.filter((r) => r.user_id === profile.id).map((r) => r.role),
       })) as UserWithRoles[];
@@ -90,7 +90,7 @@ export default function AdminUsers() {
 
   const updateVendorTier = useMutation({
     mutationFn: async ({ userId, tier }: { userId: string; tier: string }) => {
-      const { error } = await supabase.from("profiles").update({ vendor_tier: tier } as any).eq("id", userId);
+      const { error } = await supabase.from("profiles").update({ vendor_tier: tier }).eq("id", userId);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Vendor tier updated"); },
@@ -99,7 +99,7 @@ export default function AdminUsers() {
 
   const toggleVerified = useMutation({
     mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
-      const { error } = await supabase.from("profiles").update({ is_verified: verified } as any).eq("id", userId);
+      const { error } = await supabase.from("profiles").update({ is_verified: verified }).eq("id", userId);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Verification updated"); },
@@ -108,7 +108,7 @@ export default function AdminUsers() {
 
   const toggleBan = useMutation({
     mutationFn: async ({ userId, ban }: { userId: string; ban: boolean }) => {
-      const { error } = await supabase.from("profiles").update({ is_banned: ban } as any).eq("id", userId);
+      const { error } = await supabase.from("profiles").update({ is_banned: ban }).eq("id", userId);
       if (error) throw error;
       await supabase.rpc("write_system_log", {
         _event_type: ban ? "user_banned" : "user_unbanned",
@@ -126,7 +126,7 @@ export default function AdminUsers() {
   const suspendUser = useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const suspendUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await supabase.from("profiles").update({ suspended_until: suspendUntil } as any).eq("id", userId);
+      const { error } = await supabase.from("profiles").update({ suspended_until: suspendUntil }).eq("id", userId);
       if (error) throw error;
       await supabase.rpc("write_system_log", {
         _event_type: "user_suspended",

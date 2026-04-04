@@ -36,7 +36,7 @@ export default function Dashboard() {
       return data;
     },
     enabled: !!user && (isVendor || isAffiliate),
-  });
+  } as UseQueryOptions<OnboardingProgress | null>);
 
   // Show onboarding for new users who haven't completed it
   const needsOnboarding = (isVendor || isAffiliate) && !onboardingProgress?.completed && onboardingProgress === null;
@@ -50,7 +50,7 @@ export default function Dashboard() {
     },
     enabled: needsOnboarding === true,
     staleTime: Infinity,
-  });
+  } as UseQueryOptions<boolean>);
 
   // Fetch latest daily digest
   const { data: latestDigest } = useQuery({
@@ -102,7 +102,7 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {typeof latestDigest.content === "string"
                     ? latestDigest.content
-                    : (latestDigest.content as any)?.summary || JSON.stringify(latestDigest.content)}
+                    : (latestDigest.content as Record<string, unknown>)?.summary || JSON.stringify(latestDigest.content)}
                 </div>
               </CardContent>
             </Card>

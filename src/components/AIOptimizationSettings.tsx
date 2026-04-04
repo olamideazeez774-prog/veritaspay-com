@@ -128,7 +128,7 @@ export function AIOptimizationSettingsPanel() {
                   key={severity}
                   variant={settings?.alert_min_severity === severity ? "default" : "outline"}
                   size="sm"
-                  onClick={() => updateSettings.mutate({ alert_min_severity: severity as any })}
+                  onClick={() => updateSettings.mutate({ alert_min_severity: severity })}
                 >
                   {severity}
                 </Button>
@@ -186,7 +186,7 @@ export function AIOptimizationSettingsPanel() {
                   key={freq}
                   variant={settings?.content_frequency === freq ? "default" : "outline"}
                   size="sm"
-                  onClick={() => updateSettings.mutate({ content_frequency: freq as any })}
+                  onClick={() => updateSettings.mutate({ content_frequency: freq })}
                 >
                   {freq}
                 </Button>

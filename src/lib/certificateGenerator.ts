@@ -585,27 +585,35 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
     drawAccentDivider(doc, nameY + 31, design);
   }
 
-  // Left accent bar for body text
-  setDraw(doc, design.accentPrimary);
-  doc.setGState(new GState({ opacity: 0.3 }));
-  doc.setLineWidth(0.7);
-  const bodyStartY = nameY + 37;
-  doc.line(65, bodyStartY - 1, 65, bodyStartY + 16);
-  doc.setGState(new GState({ opacity: 1 }));
+  // Remove the left accent bar to allow centered text
+  // Left accent bar for body text (optional - commented out for cleaner look)
+  // setDraw(doc, design.accentPrimary);
+  // doc.setGState(new GState({ opacity: 0.3 }));
+  // doc.setLineWidth(0.7);
+  // const bodyStartY = nameY + 37;
+  // doc.line(65, bodyStartY - 1, 65, bodyStartY + 16);
+  // doc.setGState(new GState({ opacity: 1 }));
 
   doc.setFont("times", "italic");
   doc.setFontSize(9);
   setTextCol(doc, design.textMuted);
   const bodyText = `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
-  const bodyLines = doc.splitTextToSize(bodyText, 165);
-  doc.text(bodyLines, 69, bodyStartY + 3);
+  const bodyLines = doc.splitTextToSize(bodyText, 200);
+  const bodyStartY = nameY + 37;
+  doc.text(bodyLines as string[], cx, bodyStartY + 3, { align: "center" });
 
   // ======== LAYER 17: VERIFIED EARNINGS ========
   if (data.totalCommission > 0) {
     setTextCol(doc, design.textSubtitle);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`Total Verified Earnings: ${formatCurrency(data.totalCommission)}`, cx, bodyStartY + 24, { align: "center" });
+    const earningsText = `Total Verified Earnings: ${formatCurrency(data.totalCommission)}`;
+    const earningsWidth = doc.getTextWidth(earningsText);
+    const maxWidth = 250;
+    if (earningsWidth > maxWidth) {
+      doc.setFontSize(9);
+    }
+    doc.text(earningsText, cx, bodyStartY + 26, { align: "center" });
   }
 
   // ======== LAYER 18: BOTTOM SECTION ========
@@ -669,10 +677,9 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   doc.setCharSpace(1.5);
   doc.text(`CERTIFICATE ID: ${data.certificateHash}`, cx, 197, { align: "center" });
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  doc.text(
-    `ISSUE DATE: ${formatDate(data.issuedAt)}  •  VERIFY: ${origin}/verify-certificate/${data.certificateHash}`,
-    cx, 201, { align: "center" }
-  );
+  const verifyText = `ISSUE DATE: ${formatDate(data.issuedAt)}  •  VERIFY: ${origin}/verify-certificate/${data.certificateHash}`;
+  const verifyLines = doc.splitTextToSize(verifyText, 270);
+  doc.text(verifyLines, cx, 201, { align: "center", maxWidth: 270 });
   doc.setCharSpace(0);
   doc.setGState(new GState({ opacity: 1 }));
 

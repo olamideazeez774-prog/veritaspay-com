@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AdminVerificationRequests from "./pages/admin/AdminVerificationRequests";
 import NotFound from "./pages/NotFound";
 import Marketplace from "./pages/Marketplace";
 import About from "./pages/About";
@@ -410,37 +411,11 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-
-              {/* Legacy admin routes redirect - keep for backwards compatibility */}
               <Route
-                path="/admin"
+                path="/vp-admin-x7k9/verification-requests"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/products"
-                element={
-                  <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminProducts />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminUsers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/payouts"
-                element={
-                  <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminPayouts />
+                    <AdminVerificationRequests />
                   </ProtectedRoute>
                 }
               />

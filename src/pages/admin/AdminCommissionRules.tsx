@@ -43,7 +43,7 @@ export default function AdminCommissionRules() {
       starts_at: form.starts_at || null,
       ends_at: form.ends_at || null,
       priority: Number(form.priority || 0),
-    } as any, { onSuccess: () => { setShowCreate(false); setForm({ name: "", rule_type: "tiered", commission_override: "", boost_percent: "", bonus_amount: "", min_sales: "0", starts_at: "", ends_at: "", priority: "0" }); } });
+    } as Partial<CommissionRule>, { onSuccess: () => { setShowCreate(false); setForm({ name: "", rule_type: "tiered", commission_override: "", boost_percent: "", bonus_amount: "", min_sales: "0", starts_at: "", ends_at: "", priority: "0" }); } });
   };
 
   return (
@@ -91,15 +91,15 @@ export default function AdminCommissionRules() {
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       {rule.commission_override != null && <span>Override: {rule.commission_override}%</span>}
-                      {(rule.boost_percent as number) > 0 && <span>Boost: +{rule.boost_percent}%</span>}
-                      {(rule.bonus_amount as number) > 0 && <span>Bonus: ₦{rule.bonus_amount}</span>}
-                      {(rule.min_sales as number) > 0 && <span>After {rule.min_sales} sales</span>}
+                      {(rule.boost_percent ?? 0) > 0 && <span>Boost: +{rule.boost_percent}%</span>}
+                      {(rule.bonus_amount ?? 0) > 0 && <span>Bonus: ₦{rule.bonus_amount}</span>}
+                      {(rule.min_sales ?? 0) > 0 && <span>After {rule.min_sales} sales</span>}
                       {rule.starts_at && <span>From {formatDate(rule.starts_at)}</span>}
                       {rule.ends_at && <span>Until {formatDate(rule.ends_at)}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Switch checked={rule.is_active} onCheckedChange={(checked) => updateRule.mutate({ id: rule.id, is_active: checked } as any)} />
+                    <Switch checked={rule.is_active} onCheckedChange={(checked) => updateRule.mutate({ id: rule.id, is_active: checked })} />
                     <Button variant="ghost" size="icon" className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => deleteRule.mutate(rule.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>

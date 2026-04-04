@@ -112,7 +112,7 @@ export default function AdminFeatureFlags() {
     });
 
     await supabase.from("platform_settings").upsert(
-      { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
+      { key: "feature_flags", value: flagsObj as Record<string, unknown>, updated_by: user?.id },
       { onConflict: "key" }
     );
 
@@ -160,7 +160,7 @@ export default function AdminFeatureFlags() {
     });
 
     await supabase.from("platform_settings").upsert(
-      { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
+      { key: "feature_flags", value: flagsObj as Record<string, unknown>, updated_by: user?.id },
       { onConflict: "key" }
     );
 

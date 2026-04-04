@@ -69,7 +69,7 @@ export default function AdminRevenueControls() {
       if (data) {
         data.forEach((d) => {
           if (d.value && typeof d.value === "object") {
-            setSettings((prev) => ({ ...prev, ...(d.value as any) }));
+            setSettings((prev) => ({ ...prev, ...(d.value as Record<string, unknown>) }));
           }
         });
       }
@@ -90,10 +90,10 @@ export default function AdminRevenueControls() {
       } = settings;
 
       await Promise.all([
-        supabase.from("platform_settings").upsert({ key: "revenue_controls", value: revenueSettings as any, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization } as any, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee } as any, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled } as any, updated_by: user?.id }, { onConflict: "key" }),
+        supabase.from("platform_settings").upsert({ key: "revenue_controls", value: revenueSettings as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
+        supabase.from("platform_settings").upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
+        supabase.from("platform_settings").upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
+        supabase.from("platform_settings").upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
       ]);
 
       await supabase.rpc("write_system_log", {
@@ -117,7 +117,7 @@ export default function AdminRevenueControls() {
   const NumberField = ({ label, fieldKey }: { label: string; fieldKey: keyof PlatformSettings }) => (
     <div className="space-y-2">
       <Label className="text-sm">{label}</Label>
-      <Input type="number" value={(settings as any)[fieldKey]} onChange={(e) => setSettings({ ...settings, [fieldKey]: Number(e.target.value) })} />
+      <Input type="number" value={settings[fieldKey]} onChange={(e) => setSettings({ ...settings, [fieldKey]: Number(e.target.value) })} />
     </div>
   );
 
@@ -127,7 +127,7 @@ export default function AdminRevenueControls() {
         <p className="font-medium text-sm">{label}</p>
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
-      <Switch checked={(settings as any)[fieldKey]} onCheckedChange={(v) => setSettings({ ...settings, [fieldKey]: v })} />
+      <Switch checked={settings[fieldKey] as boolean} onCheckedChange={(v) => setSettings({ ...settings, [fieldKey]: v })} />
     </div>
   );
 

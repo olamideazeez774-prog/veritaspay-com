@@ -35,7 +35,7 @@ export default function AdminPromoMaterials() {
       material_type: form.material_type,
       media_url: form.media_url || null,
       created_by: user?.id,
-    } as any, { onSuccess: () => { setShowCreate(false); setForm({ title: "", content: "", material_type: "copy", media_url: "" }); } });
+    } as PromoMaterial, { onSuccess: () => { setShowCreate(false); setForm({ title: "", content: "", material_type: "copy", media_url: "" }); } });
   };
 
   return (

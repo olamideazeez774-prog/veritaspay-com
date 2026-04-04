@@ -18,7 +18,7 @@ export function AICaptionGenerator() {
   const generate = () => {
     if (!productName) { toast.error("Enter a product name"); return; }
     ai.mutate(
-      { type: "caption_generator" as any, data: { product_name: productName, description: productDesc, platform } },
+      { type: "caption_generator", data: { product_name: productName, description: productDesc, platform } },
       { onSuccess: (r) => setResult(r) }
     );
   };
@@ -37,7 +37,7 @@ export function AICaptionGenerator() {
           </div>
           <div className="space-y-2">
             <Label>Platform</Label>
-            <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" title="Select social media platform">
               <option value="instagram">Instagram</option>
               <option value="twitter">Twitter/X</option>
               <option value="facebook">Facebook</option>
@@ -55,7 +55,7 @@ export function AICaptionGenerator() {
           Generate Captions
         </Button>
         {result && (
-          <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
+          <div className="p-4 rounded-lg bg-muted/50 border space-y-2" role="region" aria-label="AI Generated Captions">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">AI Generated Captions</span>
               <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(result); toast.success("Copied!"); }}>
@@ -79,7 +79,7 @@ export function AIHeadlineTester() {
     const lines = headlines.split("\n").filter(Boolean);
     if (lines.length < 2) { toast.error("Enter at least 2 headlines to compare"); return; }
     ai.mutate(
-      { type: "headline_tester" as any, data: { headlines: lines } },
+      { type: "headline_tester", data: { headlines: lines } },
       { onSuccess: (r) => setResult(r) }
     );
   };
@@ -117,7 +117,7 @@ export function AIBestProductToday({ products }: { products: any[] }) {
   const analyze = () => {
     if (!products?.length) { toast.error("No products available"); return; }
     ai.mutate(
-      { type: "best_product_today" as any, data: { products: products.slice(0, 20).map(p => ({ title: p.title, price: p.price, commission_percent: p.commission_percent, description: p.description?.slice(0, 100) })) } },
+      { type: "best_product_today", data: { products: products.slice(0, 20).map(p => ({ title: p.title, price: p.price, commission_percent: p.commission_percent, description: p.description?.slice(0, 100) })) } },
       { onSuccess: (r) => setResult(r) }
     );
   };

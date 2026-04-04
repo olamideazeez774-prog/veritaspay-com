@@ -66,7 +66,7 @@ export default function AdminFraudDashboard() {
     const ids = [...bulkSelected];
     if (!ids.length) return;
     for (const id of ids) {
-      await updateEvent.mutateAsync({ id, status, commission_held: status === "confirmed" } as any);
+      await updateEvent.mutateAsync({ id, status, commission_held: status === "confirmed" });
     }
     setBulkSelected(new Set());
     toast.success(`${ids.length} events ${status}`);
@@ -178,10 +178,10 @@ export default function AdminFraudDashboard() {
               </div>
             )}
             <DialogFooter className="gap-2">
-              <Button variant="outline" size="sm" onClick={() => { updateEvent.mutate({ id: selected!.id, status: "dismissed", admin_notes: notes } as any); setSelected(null); }}>
+              <Button variant="outline" size="sm" onClick={() => { updateEvent.mutate({ id: selected!.id, status: "dismissed", admin_notes: notes }); setSelected(null); }}>
                 <CheckCircle className="h-4 w-4 mr-1" />Dismiss
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => { updateEvent.mutate({ id: selected!.id, status: "confirmed", admin_notes: notes, commission_held: true } as any); setSelected(null); }}>
+              <Button variant="destructive" size="sm" onClick={() => { updateEvent.mutate({ id: selected!.id, status: "confirmed", admin_notes: notes, commission_held: true }); setSelected(null); }}>
                 <Ban className="h-4 w-4 mr-1" />Confirm Fraud
               </Button>
             </DialogFooter>

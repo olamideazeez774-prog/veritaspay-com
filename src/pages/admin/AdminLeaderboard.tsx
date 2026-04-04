@@ -30,7 +30,7 @@ export default function AdminLeaderboard() {
           <p className="text-muted-foreground text-sm">Top performing affiliates by commission earned</p>
         </div>
 
-        <Tabs value={period} onValueChange={v => setPeriod(v as any)}>
+        <Tabs value={period} onValueChange={(v: "today" | "week" | "month" | "all") => setPeriod(v)}>
           <TabsList>
             <TabsTrigger value="today">Today</TabsTrigger>
             <TabsTrigger value="week">This Week</TabsTrigger>

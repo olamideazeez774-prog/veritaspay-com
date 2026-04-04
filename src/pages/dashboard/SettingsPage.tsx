@@ -233,7 +233,7 @@ export default function SettingsPage() {
     const dataUrl = canvas.toDataURL("image/png");
     try {
       await supabase.from("platform_settings").upsert(
-        { key: "admin_signature", value: { url: dataUrl } as any, updated_by: user?.id },
+        { key: "admin_signature", value: { url: dataUrl } as Record<string, unknown>, updated_by: user?.id },
         { onConflict: "key" }
       );
       setSavedSignature(dataUrl);
@@ -279,6 +279,8 @@ export default function SettingsPage() {
                     accept="image/jpeg,image/png"
                     className="hidden"
                     onChange={handleAvatarUpload}
+                    title="Upload profile picture"
+                    aria-label="Upload profile picture"
                   />
                   <Button
                     type="button"
@@ -425,7 +427,7 @@ export default function SettingsPage() {
                   <img src={savedSignature} alt="Admin signature" className="h-16 object-contain" />
                 </div>
               )}
-              <div className="border rounded-lg overflow-hidden mb-3 touch-none" style={{ backgroundColor: theme === "dark" ? "#1e293b" : "#f8fafc" }}>
+              <div className="border rounded-lg overflow-hidden mb-3 touch-none bg-slate-50 dark:bg-slate-900">
                 <canvas
                   ref={canvasRef}
                   width={400}

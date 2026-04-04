@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, Link2, BarChart3, Wallet, CreditCard,
   Settings, Users, ShoppingCart, ChevronLeft, Menu, LogOut, Shield,
-  X, Inbox, Newspaper, Wrench,
+  X, Inbox, Newspaper, Wrench, BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +54,7 @@ const adminNavItems: NavItem[] = [
   { title: "Logbook", href: "/vp-admin-x7k9/logbook", icon: LayoutDashboard },
   { title: "Commission Rules", href: "/vp-admin-x7k9/commissions", icon: Settings },
   { title: "Fraud Monitor", href: "/vp-admin-x7k9/fraud", icon: Shield },
+  { title: "Verification Requests", href: "/vp-admin-x7k9/verification-requests", icon: BadgeCheck },
   { title: "AI Copilot", href: "/vp-admin-x7k9/ai-copilot", icon: BarChart3, featureFlag: "ai_modules" },
   { title: "Experiments", href: "/vp-admin-x7k9/experiments", icon: Settings, featureFlag: "experiments" },
   { title: "Leaderboard", href: "/vp-admin-x7k9/leaderboard", icon: BarChart3, featureFlag: "leaderboard" },
