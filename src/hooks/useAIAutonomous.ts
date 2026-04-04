@@ -191,7 +191,7 @@ export function useCreateContentItem() {
     mutationFn: async (item: Omit<AIContentCalendarItem, "id">) => {
       const { data, error } = await supabase
         .from("ai_content_calendar")
-        .insert(item)
+        .insert([item as any])
         .select()
         .single();
 

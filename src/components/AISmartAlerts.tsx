@@ -10,6 +10,7 @@ import {
   useAISmartAlerts,
   useMarkAlertRead,
   useDismissAlert,
+  useUnreadAlertCount,
   AISmartAlert,
 } from "@/hooks/useAIAutonomous";
 

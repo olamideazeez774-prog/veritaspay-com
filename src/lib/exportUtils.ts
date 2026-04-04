@@ -19,14 +19,9 @@ export function exportLogsToCSV(logs: SystemLog[], filename: string) {
 }
 
 export function exportLogsToPDF(logs: SystemLog[], title: string, summary?: Record<string, string>) {
-  // Generate a print-friendly HTML document
   const html = `
 <!DOCTYPE html>
-<<<<<<< HEAD
 <html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-=======
-<html><head><meta charset="utf-8"><title>${title}</title>
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 <style>
   body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; color: #333; }
   h1 { font-size: 18px; margin-bottom: 4px; }
@@ -42,7 +37,6 @@ export function exportLogsToPDF(logs: SystemLog[], title: string, summary?: Reco
   .amount { text-align: right; font-weight: 600; }
   @media print { body { margin: 10px; } }
 </style></head><body>
-<<<<<<< HEAD
 <h1>${escapeHtml(title)}</h1>
 <div class="subtitle">Generated: ${escapeHtml(formatDateTime(new Date()))}</div>
 ${summary ? `<div class="summary">${Object.entries(summary).map(([k, v]) => `<div class="summary-card"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div></div>`).join("")}</div>` : ""}
@@ -55,55 +49,27 @@ ${summary ? `<div class="summary">${Object.entries(summary).map(([k, v]) => `<di
 <td>${escapeHtml(log.actor_email || "-")}</td>
 <td class="amount">${log.amount != null ? escapeHtml(formatCurrency(log.amount)) : "-"}</td>
 <td>${escapeHtml(log.status || "-")}</td>
-=======
-<h1>${title}</h1>
-<div class="subtitle">Generated: ${formatDateTime(new Date())}</div>
-${summary ? `<div class="summary">${Object.entries(summary).map(([k, v]) => `<div class="summary-card"><div class="label">${k}</div><div class="value">${v}</div></div>`).join("")}</div>` : ""}
-<table>
-<thead><tr><th>Time</th><th>Event</th><th>Description</th><th>Actor</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead>
-<tbody>${logs.map(log => `<tr>
-<td>${formatDateTime(log.created_at)}</td>
-<td>${log.event_type.replace(/_/g, " ")}</td>
-<td>${log.description}</td>
-<td>${log.actor_email || "-"}</td>
-<td class="amount">${log.amount != null ? formatCurrency(log.amount) : "-"}</td>
-<td>${log.status || "-"}</td>
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 </tr>`).join("")}</tbody>
 </table>
 </body></html>`;
 
-<<<<<<< HEAD
-  // Use Blob URL instead of document.write for security
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
   if (win) {
     setTimeout(() => {
       win.print();
-      // Clean up the blob URL after printing
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }, 500);
   }
 }
 
-// Helper function to escape HTML and prevent XSS
 function escapeHtml(text: string): string {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-=======
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
-  }
-}
-
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 function downloadFile(content: string, filename: string, type: string) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
