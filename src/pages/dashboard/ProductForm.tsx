@@ -34,7 +34,7 @@ export default function ProductForm() {
 
   const isEditing = !!id;
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [pendingProductData, setPendingProductData] = useState<Partial<Product> | null>(null);
+  const [pendingProductData, setPendingProductData] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     title: "",
