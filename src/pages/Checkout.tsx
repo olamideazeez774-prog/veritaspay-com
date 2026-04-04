@@ -118,7 +118,6 @@ export default function Checkout() {
       toast.error("Please fill in all fields");
       return;
     }
-<<<<<<< HEAD
     if (!product) {
       toast.error("Product not found");
       return;
@@ -164,31 +163,7 @@ export default function Checkout() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Payment initialization failed";
       toast.error(message);
-=======
-
-    setIsProcessing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("process-sale", {
-        body: {
-          productId,
-          buyerEmail: formData.email,
-          buyerName: formData.name,
-          affiliateCode: affiliateCode || undefined,
-          paymentReference: `VP-${Date.now().toString(36).toUpperCase()}`,
-          couponCode: couponApplied?.code || undefined,
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast.success("Payment processed successfully!");
-      navigate("/checkout/success");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Payment failed";
-      toast.error(message);
     } finally {
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
       setIsProcessing(false);
     }
   };

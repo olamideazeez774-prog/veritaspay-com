@@ -17,3 +17,21 @@ verify_jwt = false
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.paystack-callback]
+verify_jwt = false
+
+[functions.get-delivery]
+verify_jwt = false
+
+[functions.clear-earnings]
+verify_jwt = false
+
+[functions.process-refund]
+verify_jwt = false
+
+[functions.fraud-detection]
+verify_jwt = false
+
+[functions.ai-autonomous-scheduler]
+verify_jwt = false

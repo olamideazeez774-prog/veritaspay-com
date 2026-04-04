@@ -20,13 +20,9 @@ import About from "./pages/About";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
-<<<<<<< HEAD
 import PaymentCallback from "./pages/PaymentCallback";
 import Install from "./pages/Install";
 import DeliveryPage from "./pages/DeliveryPage";
-=======
-import Install from "./pages/Install";
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
 // Dashboard pages
 import Dashboard from "./pages/Dashboard";
@@ -68,10 +64,7 @@ import VerifyCertificate from "./pages/VerifyCertificate";
 import InboxPage from "./pages/dashboard/InboxPage";
 import DailyDigestPage from "./pages/dashboard/DailyDigestPage";
 import VendorToolkit from "./pages/dashboard/VendorToolkit";
-<<<<<<< HEAD
 import AIAssistantPage from "./pages/dashboard/AIAssistantPage";
-=======
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,15 +98,10 @@ const App = () => (
               <Route path="/ref/:code" element={<ProductDetail />} />
               <Route path="/checkout/:productId" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
-<<<<<<< HEAD
               <Route path="/payment/callback" element={<PaymentCallback />} />
               <Route path="/install" element={<Install />} />
               <Route path="/verify-certificate/:hash" element={<VerifyCertificate />} />
               <Route path="/delivery" element={<DeliveryPage />} />
-=======
-              <Route path="/install" element={<Install />} />
-              <Route path="/verify-certificate/:hash" element={<VerifyCertificate />} />
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
               {/* Protected Dashboard Routes */}
               <Route
@@ -276,7 +264,6 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-<<<<<<< HEAD
               <Route
                 path="/dashboard/ai-assistant"
                 element={
@@ -285,8 +272,6 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-=======
->>>>>>> f489145b3129b44a12bc2175e550b4f4cac8faff
 
               {/* Admin Routes */}
               <Route
