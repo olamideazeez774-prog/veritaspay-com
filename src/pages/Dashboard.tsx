@@ -50,7 +50,7 @@ export default function Dashboard() {
     },
     enabled: needsOnboarding === true,
     staleTime: Infinity,
-  } as UseQueryOptions<boolean>);
+  });
 
   // Fetch latest daily digest
   const { data: latestDigest } = useQuery({
