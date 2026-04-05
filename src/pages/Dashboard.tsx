@@ -36,7 +36,7 @@ export default function Dashboard() {
       return data;
     },
     enabled: !!user && (isVendor || isAffiliate),
-  } as UseQueryOptions<OnboardingProgress | null>);
+  });
 
   // Show onboarding for new users who haven't completed it
   const needsOnboarding = (isVendor || isAffiliate) && !onboardingProgress?.completed && onboardingProgress === null;
