@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 

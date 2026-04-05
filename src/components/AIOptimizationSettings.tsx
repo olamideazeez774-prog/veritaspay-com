@@ -186,7 +186,7 @@ export function AIOptimizationSettingsPanel() {
                   key={freq}
                   variant={settings?.content_frequency === freq ? "default" : "outline"}
                   size="sm"
-                  onClick={() => updateSettings.mutate({ content_frequency: freq })}
+                  onClick={() => updateSettings.mutate({ content_frequency: freq as "daily" | "weekly" | "monthly" })}
                 >
                   {freq}
                 </Button>

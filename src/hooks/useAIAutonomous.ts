@@ -189,9 +189,11 @@ export function useCreateContentItem() {
 
   return useMutation({
     mutationFn: async (item: Omit<AIContentCalendarItem, "id">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("ai_content_calendar")
-        .insert(item)
+        .insert({ ...item, user_id: user.id } as any)
         .select()
         .single();
 
