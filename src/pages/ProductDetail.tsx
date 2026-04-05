@@ -183,6 +183,7 @@ export default function ProductDetail() {
                   <img
                     src={product.cover_image_url}
                     alt={product.title}
+                    loading="eager"
                     className="h-full w-full object-cover"
                   />
                 ) : (

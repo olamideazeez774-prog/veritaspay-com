@@ -198,6 +198,7 @@ export default function DeliveryPage() {
                     <img
                       src={product.coverImageUrl}
                       alt={product.title}
+                      loading="lazy"
                       className="h-full w-full object-cover"
                     />
                   ) : (

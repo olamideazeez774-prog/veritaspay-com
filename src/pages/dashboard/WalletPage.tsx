@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, CheckCircle } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -13,8 +14,12 @@ import { AnimatedLoading } from "@/components/ui/animated-loading";
 
 export default function WalletPage() {
   const { user, profile } = useAuth();
+  const [page, setPage] = useState(1);
   const { data: wallet, isLoading: walletLoading } = useWallet(user?.id);
-  const { data: transactions, isLoading: transLoading } = useTransactions(wallet?.id);
+  const { data: transactionsData, isLoading: transLoading } = useTransactions(wallet?.id, page, 50);
+  
+  const transactions = transactionsData?.transactions || [];
+  const totalTransactions = transactionsData?.total || 0;
 
   const isLoading = walletLoading || transLoading;
 
@@ -167,50 +172,61 @@ export default function WalletPage() {
             <h2 className="font-serif text-xl font-semibold">Transaction History</h2>
           </div>
 
-          {!transactions?.length ? (
+          {!transactions.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <Wallet className="mx-auto mb-3 h-12 w-12 opacity-40" />
               <p>No transactions yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {transactions.map((tx) => {
-                const earningState = getEarningStateLabel(tx.earning_state);
-                const isPositive = ["sale_commission", "sale_vendor"].includes(tx.type);
+            <>
+              <div className="divide-y divide-border">
+                {transactions.map((tx) => {
+                  const earningState = getEarningStateLabel(tx.earning_state);
+                  const isPositive = ["sale_commission", "sale_vendor"].includes(tx.type);
 
-                return (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between gap-4 p-4 hover:bg-muted/50"
+                  return (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between gap-4 p-4 hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                          {getTransactionIcon(tx.type)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm">{tx.description}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(tx.created_at)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          variant={earningState.variant as "default" | "secondary" | "destructive" | "outline"}
+                          className="mb-1"
+                        >
+                          {earningState.label}
+                        </Badge>
+                        <div className="font-semibold text-sm">
+                          {isPositive ? "+" : "-"}
+                          {formatCurrency(Math.abs(tx.amount))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {transactions.length < totalTransactions && (
+                <div className="p-4 border-t border-border">
+                  <Button
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={transLoading}
+                    variant="outline"
+                    className="w-full"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                        {getTransactionIcon(tx.type)}
-                      </div>
-                      <div>
-                        <p className="font-medium">{getTransactionLabel(tx.type)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {tx.description || formatDate(tx.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {earningState && (
-                        <Badge variant={earningState.variant}>{earningState.label}</Badge>
-                      )}
-                      <span
-                        className={`font-semibold ${
-                          isPositive ? "text-success" : "text-destructive"
-                        }`}
-                      >
-                        {isPositive ? "+" : "-"}
-                        {formatCurrency(Math.abs(tx.amount))}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    {transLoading ? "Loading..." : `Load More (${totalTransactions - transactions.length} remaining)`}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       </div>

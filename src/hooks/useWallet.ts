@@ -22,20 +22,24 @@ export function useWallet(userId?: string) {
   });
 }
 
-export function useTransactions(walletId?: string) {
+export function useTransactions(walletId?: string, page: number = 1, pageSize: number = 50) {
   return useQuery({
-    queryKey: ["transactions", walletId],
+    queryKey: ["transactions", walletId, page, pageSize],
     queryFn: async () => {
-      if (!walletId) return [];
+      if (!walletId) return { transactions: [], total: 0 };
       
-      const { data, error } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error, count } = await supabase
         .from("transactions")
-        .select("*")
+        .select("*", { count: "exact" })
         .eq("wallet_id", walletId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       
       if (error) throw error;
-      return data as Transaction[];
+      return { transactions: data as Transaction[], total: count || 0 };
     },
     enabled: !!walletId,
   });

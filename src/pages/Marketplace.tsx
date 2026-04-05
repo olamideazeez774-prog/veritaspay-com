@@ -159,6 +159,7 @@ export default function Marketplace() {
                             <img
                               src={product.cover_image_url}
                               alt={product.title}
+                              loading="lazy"
                               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                             />
                           ) : (
