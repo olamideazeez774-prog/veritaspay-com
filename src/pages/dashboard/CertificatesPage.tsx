@@ -139,11 +139,11 @@ export default function CertificatesPage() {
       avatar_url: profile?.avatar_url,
     };
 
-    const { error } = await supabase.from("certificates").insert({
+    const { error } = await (supabase.from("certificates") as any).insert({
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
-      metadata: metadata as Record<string, unknown>,
+      metadata: metadata,
     });
 
     if (error) {
