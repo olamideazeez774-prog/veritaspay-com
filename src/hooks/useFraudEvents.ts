@@ -38,7 +38,7 @@ export function useUpdateFraudEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<FraudEvent> & { id: string }) => {
-      const { error } = await supabase.from("fraud_events").update(updates).eq("id", id);
+      const { error } = await supabase.from("fraud_events").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["fraud-events"] }); toast.success("Fraud event updated"); },
