@@ -3,76 +3,84 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { AnimatedLoading } from "@/components/ui/animated-loading";
 
-// Public pages
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AdminVerificationRequests from "./pages/admin/AdminVerificationRequests";
-import NotFound from "./pages/NotFound";
-import Marketplace from "./pages/Marketplace";
-import About from "./pages/About";
-import ProductDetail from "./pages/ProductDetail";
-import Checkout from "./pages/Checkout";
-import CheckoutSuccess from "./pages/CheckoutSuccess";
-import PaymentCallback from "./pages/PaymentCallback";
-import Install from "./pages/Install";
-import DeliveryPage from "./pages/DeliveryPage";
+// Public pages - lazy loaded for code splitting
+const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
+const Login = lazy(() => import("./pages/Login").then(m => ({ default: m.default })));
+const Register = lazy(() => import("./pages/Register").then(m => ({ default: m.default })));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.default })));
+const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.default })));
+const AdminVerificationRequests = lazy(() => import("./pages/admin/AdminVerificationRequests").then(m => ({ default: m.default })));
+const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
+const Marketplace = lazy(() => import("./pages/Marketplace").then(m => ({ default: m.default })));
+const About = lazy(() => import("./pages/About").then(m => ({ default: m.default })));
+const ProductDetail = lazy(() => import("./pages/ProductDetail").then(m => ({ default: m.default })));
+const Checkout = lazy(() => import("./pages/Checkout").then(m => ({ default: m.default })));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess").then(m => ({ default: m.default })));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback").then(m => ({ default: m.default })));
+const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.default })));
+const DeliveryPage = lazy(() => import("./pages/DeliveryPage").then(m => ({ default: m.default })));
 
-// Dashboard pages
-import Dashboard from "./pages/Dashboard";
-import VendorProducts from "./pages/dashboard/VendorProducts";
-import ProductForm from "./pages/dashboard/ProductForm";
-import VendorSales from "./pages/dashboard/VendorSales";
-import AffiliateLinks from "./pages/dashboard/AffiliateLinks";
-import AffiliateBrowse from "./pages/dashboard/AffiliateBrowse";
-import AffiliateStats from "./pages/dashboard/AffiliateStats";
-import AffiliateReferrals from "./pages/dashboard/AffiliateReferrals";
-import WalletPage from "./pages/dashboard/WalletPage";
-import PayoutsPage from "./pages/dashboard/PayoutsPage";
-import SettingsPage from "./pages/dashboard/SettingsPage";
+// Dashboard pages - lazy loaded
+const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.default })));
+const VendorProducts = lazy(() => import("./pages/dashboard/VendorProducts").then(m => ({ default: m.default })));
+const ProductForm = lazy(() => import("./pages/dashboard/ProductForm").then(m => ({ default: m.default })));
+const VendorSales = lazy(() => import("./pages/dashboard/VendorSales").then(m => ({ default: m.default })));
+const AffiliateLinks = lazy(() => import("./pages/dashboard/AffiliateLinks").then(m => ({ default: m.default })));
+const AffiliateBrowse = lazy(() => import("./pages/dashboard/AffiliateBrowse").then(m => ({ default: m.default })));
+const AffiliateStats = lazy(() => import("./pages/dashboard/AffiliateStats").then(m => ({ default: m.default })));
+const AffiliateReferrals = lazy(() => import("./pages/dashboard/AffiliateReferrals").then(m => ({ default: m.default })));
+const WalletPage = lazy(() => import("./pages/dashboard/WalletPage").then(m => ({ default: m.default })));
+const PayoutsPage = lazy(() => import("./pages/dashboard/PayoutsPage").then(m => ({ default: m.default })));
+const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage").then(m => ({ default: m.default })));
 
-// Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminPayouts from "./pages/admin/AdminPayouts";
-import AdminListingPayments from "./pages/admin/AdminListingPayments";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminLogbook from "./pages/admin/AdminLogbook";
-import AdminCommissionRules from "./pages/admin/AdminCommissionRules";
-import AdminFraudDashboard from "./pages/admin/AdminFraudDashboard";
-import AdminLeaderboard from "./pages/admin/AdminLeaderboard";
-import AdminRankings from "./pages/admin/AdminRankings";
-import AdminMessaging from "./pages/admin/AdminMessaging";
-import AdminPromoMaterials from "./pages/admin/AdminPromoMaterials";
-import AdminRevenueControls from "./pages/admin/AdminRevenueControls";
-import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
-import AdminAICopilot from "./pages/admin/AdminAICopilot";
-import AdminExperiments from "./pages/admin/AdminExperiments";
-// Extra dashboard pages
-import AffiliateToolkit from "./pages/dashboard/AffiliateToolkit";
-import VendorAnnouncements from "./pages/dashboard/VendorAnnouncements";
-import CertificatesPage from "./pages/dashboard/CertificatesPage";
-import AffiliateAnalytics from "./pages/dashboard/AffiliateAnalytics";
-import VerifyCertificate from "./pages/VerifyCertificate";
-import InboxPage from "./pages/dashboard/InboxPage";
-import DailyDigestPage from "./pages/dashboard/DailyDigestPage";
-import VendorToolkit from "./pages/dashboard/VendorToolkit";
-import AIAssistantPage from "./pages/dashboard/AIAssistantPage";
+// Admin pages - lazy loaded
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then(m => ({ default: m.default })));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts").then(m => ({ default: m.default })));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers").then(m => ({ default: m.default })));
+const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts").then(m => ({ default: m.default })));
+const AdminListingPayments = lazy(() => import("./pages/admin/AdminListingPayments").then(m => ({ default: m.default })));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics").then(m => ({ default: m.default })));
+const AdminLogbook = lazy(() => import("./pages/admin/AdminLogbook").then(m => ({ default: m.default })));
+const AdminCommissionRules = lazy(() => import("./pages/admin/AdminCommissionRules").then(m => ({ default: m.default })));
+const AdminFraudDashboard = lazy(() => import("./pages/admin/AdminFraudDashboard").then(m => ({ default: m.default })));
+const AdminLeaderboard = lazy(() => import("./pages/admin/AdminLeaderboard").then(m => ({ default: m.default })));
+const AdminRankings = lazy(() => import("./pages/admin/AdminRankings").then(m => ({ default: m.default })));
+const AdminMessaging = lazy(() => import("./pages/admin/AdminMessaging").then(m => ({ default: m.default })));
+const AdminPromoMaterials = lazy(() => import("./pages/admin/AdminPromoMaterials").then(m => ({ default: m.default })));
+const AdminRevenueControls = lazy(() => import("./pages/admin/AdminRevenueControls").then(m => ({ default: m.default })));
+const AdminFeatureFlags = lazy(() => import("./pages/admin/AdminFeatureFlags").then(m => ({ default: m.default })));
+const AdminAICopilot = lazy(() => import("./pages/admin/AdminAICopilot").then(m => ({ default: m.default })));
+const AdminExperiments = lazy(() => import("./pages/admin/AdminExperiments").then(m => ({ default: m.default })));
+
+// Extra dashboard pages - lazy loaded
+const AffiliateToolkit = lazy(() => import("./pages/dashboard/AffiliateToolkit").then(m => ({ default: m.default })));
+const VendorAnnouncements = lazy(() => import("./pages/dashboard/VendorAnnouncements").then(m => ({ default: m.default })));
+const CertificatesPage = lazy(() => import("./pages/dashboard/CertificatesPage").then(m => ({ default: m.default })));
+const AffiliateAnalytics = lazy(() => import("./pages/dashboard/AffiliateAnalytics").then(m => ({ default: m.default })));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate").then(m => ({ default: m.default })));
+const InboxPage = lazy(() => import("./pages/dashboard/InboxPage").then(m => ({ default: m.default })));
+const DailyDigestPage = lazy(() => import("./pages/dashboard/DailyDigestPage").then(m => ({ default: m.default })));
+const VendorToolkit = lazy(() => import("./pages/dashboard/VendorToolkit").then(m => ({ default: m.default })));
+const AIAssistantPage = lazy(() => import("./pages/dashboard/AIAssistantPage").then(m => ({ default: m.default })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
+      gcTime: 1000 * 60 * 30, // 30 minutes
       refetchOnWindowFocus: false,
+      retry: 1,
+      refetchOnMount: false,
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });
@@ -86,7 +94,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
-            <Routes>
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>}>
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -423,6 +432,7 @@ const App = () => (
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>

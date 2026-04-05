@@ -38,19 +38,23 @@ export function useProduct(productId: string) {
   });
 }
 
-export function useMarketplaceProducts() {
+export function useMarketplaceProducts(page: number = 1, pageSize: number = 50) {
   return useQuery({
-    queryKey: ["marketplace-products"],
+    queryKey: ["marketplace-products", page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error, count } = await supabase
         .from("products")
-        .select("*")
+        .select("*", { count: "exact" })
         .eq("status", "active")
         .eq("is_approved", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       
       if (error) throw error;
-      return data as Product[];
+      return { products: data as Product[], total: count || 0 };
     },
   });
 }

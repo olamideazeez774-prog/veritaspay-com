@@ -20,13 +20,17 @@ import {
 } from "@/components/ui/select";
 
 export default function Marketplace() {
-  const { data: products, isLoading } = useMarketplaceProducts();
+  const [page, setPage] = useState(1);
+  const { data: productsData, isLoading } = useMarketplaceProducts(page, 50);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const products = productsData?.products || [];
+  const totalProducts = productsData?.total || 0;
+
   const filteredProducts = products
-    ?.filter(
+    .filter(
       (product) =>
         product.title.toLowerCase().includes(search.toLowerCase()) ||
         product.description?.toLowerCase().includes(search.toLowerCase())
@@ -136,58 +140,72 @@ export default function Marketplace() {
                 }
               />
             ) : (
-              <motion.div
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-                className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                {filteredProducts.map((product) => (
-                  <motion.div key={product.id} variants={staggerItem}>
-                    <Link
-                      to={`/product/${product.id}`}
-                      className="group block glass-card overflow-hidden hover-lift"
-                    >
-                      {/* Cover Image */}
-                      <div className="aspect-video overflow-hidden bg-muted">
-                        {product.cover_image_url ? (
-                          <img
-                            src={product.cover_image_url}
-                            alt={product.title}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                            <Package className="h-12 w-12 text-muted-foreground/40" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-5">
-                        <h3 className="font-serif text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                          {product.title}
-                        </h3>
-                        <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                          {product.description || "No description available"}
-                        </p>
-
-                        <div className="mt-4 flex items-center justify-between">
-                          <span className="text-xl font-bold text-primary">
-                            {formatCurrency(product.price)}
-                          </span>
-                          {product.affiliate_enabled && (
-                            <Badge variant="secondary" className="gap-1">
-                              <TrendingUp className="h-3 w-3" />
-                              {product.commission_percent}%
-                            </Badge>
+              <>
+                <motion.div
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                  className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {filteredProducts.map((product) => (
+                    <motion.div key={product.id} variants={staggerItem}>
+                      <Link
+                        to={`/product/${product.id}`}
+                        className="group block glass-card overflow-hidden hover-lift"
+                      >
+                        {/* Cover Image */}
+                        <div className="aspect-video overflow-hidden bg-muted">
+                          {product.cover_image_url ? (
+                            <img
+                              src={product.cover_image_url}
+                              alt={product.title}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+                              <Package className="h-12 w-12 text-muted-foreground/40" />
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
+
+                        {/* Content */}
+                        <div className="p-5">
+                          <h3 className="font-serif text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                            {product.title}
+                          </h3>
+                          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                            {product.description || "No description available"}
+                          </p>
+
+                          <div className="mt-4 flex items-center justify-between">
+                            <span className="text-xl font-bold text-primary">
+                              {formatCurrency(product.price)}
+                            </span>
+                            {product.affiliate_enabled && (
+                              <Badge variant="secondary" className="gap-1">
+                                <TrendingUp className="h-3 w-3" />
+                                {product.commission_percent}%
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+                
+                {products.length < totalProducts && (
+                  <div className="flex justify-center mt-8">
+                    <Button
+                      onClick={() => setPage(p => p + 1)}
+                      disabled={isLoading}
+                      variant="outline"
+                    >
+                      {isLoading ? "Loading..." : `Load More (${totalProducts - products.length} remaining)`}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
