@@ -15,7 +15,7 @@ export function useVendorSales(vendorId?: string) {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as (Sale & { products: any })[];
+      return data as (Sale & { products: Record<string, unknown> })[];
     },
     enabled: !!vendorId,
   });
@@ -34,7 +34,7 @@ export function useAffiliateSales(affiliateId?: string) {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as (Sale & { products: any })[];
+      return data as (Sale & { products: Record<string, unknown> })[];
     },
     enabled: !!affiliateId,
   });
@@ -50,7 +50,7 @@ export function useAllSales() {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as (Sale & { products: any })[];
+      return data as (Sale & { products: Record<string, unknown> })[];
     },
   });
 }

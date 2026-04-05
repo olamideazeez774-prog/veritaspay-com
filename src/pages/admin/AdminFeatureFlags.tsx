@@ -61,7 +61,7 @@ export default function AdminFeatureFlags() {
       .maybeSingle();
 
     if (data?.value && typeof data.value === "object") {
-      const saved = data.value as Record<string, any>;
+      const saved = data.value as Record<string, { enabled?: boolean; changedBy?: string; changedAt?: string; reason?: string; previousValue?: boolean }>;
       setFlags((prev) =>
         prev.map((f) => ({
           ...f,
@@ -100,7 +100,7 @@ export default function AdminFeatureFlags() {
     setFlags(updatedFlags);
     setReasonDialog(null);
 
-    const flagsObj: Record<string, any> = {};
+    const flagsObj: Record<string, { enabled: boolean; changedBy?: string; changedAt?: string; reason?: string; previousValue?: boolean }> = {};
     updatedFlags.forEach((f) => {
       flagsObj[f.key] = {
         enabled: f.enabled,
@@ -111,8 +111,8 @@ export default function AdminFeatureFlags() {
       };
     });
 
-    await (supabase.from("platform_settings") as any).upsert(
-      { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
+    await (supabase.from("platform_settings") as unknown as { upsert: (data: Record<string, unknown>, opts: { onConflict: string }) => Promise<unknown> }).upsert(
+      { key: "feature_flags", value: flagsObj, updated_by: user?.id },
       { onConflict: "key" }
     );
 
@@ -148,7 +148,7 @@ export default function AdminFeatureFlags() {
     );
     setFlags(updatedFlags);
 
-    const flagsObj: Record<string, any> = {};
+    const flagsObj: Record<string, { enabled: boolean; changedBy?: string; changedAt?: string; reason?: string; previousValue?: boolean }> = {};
     updatedFlags.forEach((f) => {
       flagsObj[f.key] = {
         enabled: f.enabled,
@@ -159,8 +159,8 @@ export default function AdminFeatureFlags() {
       };
     });
 
-    await (supabase.from("platform_settings") as any).upsert(
-      { key: "feature_flags", value: flagsObj as any, updated_by: user?.id },
+    await (supabase.from("platform_settings") as unknown as { upsert: (data: Record<string, unknown>, opts: { onConflict: string }) => Promise<unknown> }).upsert(
+      { key: "feature_flags", value: flagsObj as Record<string, unknown>, updated_by: user?.id },
       { onConflict: "key" }
     );
 

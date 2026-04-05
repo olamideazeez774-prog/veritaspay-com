@@ -102,7 +102,7 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {typeof latestDigest.content === "string"
                     ? latestDigest.content
-                    : (latestDigest.content as any)?.summary || JSON.stringify(latestDigest.content)}
+                    : (latestDigest.content as Record<string, string>)?.summary || JSON.stringify(latestDigest.content)}
                 </div>
               </CardContent>
             </Card>

@@ -51,8 +51,9 @@ export function RoleSelector() {
 
       toast.success("Roles assigned successfully!");
       await refreshProfile();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message);
     } finally {
       setIsSubmitting(false);
     }

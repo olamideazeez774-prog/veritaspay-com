@@ -232,7 +232,7 @@ export default function SettingsPage() {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
     try {
-      await (supabase.from("platform_settings") as any).upsert(
+      await (supabase.from("platform_settings") as unknown as { upsert: (data: Record<string, unknown>, opts: { onConflict: string }) => Promise<unknown> }).upsert(
         { key: "admin_signature", value: { url: dataUrl }, updated_by: user?.id },
         { onConflict: "key" }
       );

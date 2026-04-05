@@ -16,7 +16,7 @@ export function useAffiliateLinks(affiliateId?: string) {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as (AffiliateLink & { products: any })[];
+      return data as (AffiliateLink & { products: Record<string, unknown> })[];
     },
     enabled: !!affiliateId,
   });

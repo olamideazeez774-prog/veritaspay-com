@@ -148,7 +148,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
       current_step: currentStep,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" }).then(() => {});
-  }, [currentStep, user]);
+  }, [currentStep, user, isVendor]);
 
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
@@ -272,6 +272,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
               <button
                 key={i}
                 onClick={() => { setDirection(i > currentStep ? 1 : -1); setCurrentStep(i); }}
+                title={`Go to step ${i + 1}`}
                 className={cn(
                   "h-2 rounded-full transition-all",
                   i === currentStep ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"

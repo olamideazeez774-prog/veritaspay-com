@@ -62,7 +62,7 @@ export default function AffiliateToolkit() {
   const estRevenue = estSales * estAvgPrice;
   const estProfit = estRevenue * (estCommission / 100);
 
-  const selectedLinkData = links?.find((l: any) => l.id === selectedLink);
+  const selectedLinkData = links?.find((l: { id: string; products?: { title: string } | null; unique_code: string }) => l.id === selectedLink);
   const baseUrl = selectedLinkData ? `${window.location.origin}/ref/${selectedLinkData.unique_code}` : "";
   const utmUrl = baseUrl ? `${baseUrl}${utm.source ? `?utm_source=${utm.source}&utm_medium=${utm.medium}&utm_campaign=${utm.campaign}${utm.content ? `&utm_content=${utm.content}` : ""}` : ""}` : "";
 
@@ -76,7 +76,7 @@ export default function AffiliateToolkit() {
       utm_medium: utm.medium,
       utm_campaign: utm.campaign,
       utm_content: utm.content || null,
-    } as any, { onSuccess: () => setUtm({ source: "", medium: "", campaign: "", content: "" }) });
+    }, { onSuccess: () => setUtm({ source: "", medium: "", campaign: "", content: "" }) });
   };
 
   const copyToClipboard = (text: string) => {

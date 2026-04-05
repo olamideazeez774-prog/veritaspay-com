@@ -38,7 +38,7 @@ export default function VerifyCertificate() {
     enabled: !!hash,
   });
 
-  const metadata = cert?.metadata as Record<string, any> | null;
+  const metadata = cert?.metadata as Record<string, unknown> | null;
   const affiliateName = cert?.profile?.full_name || metadata?.full_name || "Unknown";
   const avatarUrl = cert?.profile?.avatar_url || metadata?.avatar_url;
   const rankIcon = RANK_ICONS[cert?.rank_name || ""] || "🏅";

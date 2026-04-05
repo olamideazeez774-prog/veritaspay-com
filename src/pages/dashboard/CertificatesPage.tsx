@@ -30,7 +30,7 @@ interface Certificate {
   rank_name: string;
   certificate_hash: string;
   issued_at: string;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 const RANK_ICONS: Record<string, string> = {
@@ -130,7 +130,7 @@ export default function CertificatesPage() {
     }
     const hash = `VP-${rankName.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
 
-    const metadata: Record<string, any> = {
+    const metadata: Record<string, unknown> = {
       full_name: profile?.full_name,
       email: profile?.email,
       total_commission: totalEarned,
@@ -139,7 +139,7 @@ export default function CertificatesPage() {
       avatar_url: profile?.avatar_url,
     };
 
-    const { error } = await (supabase.from("certificates") as any).insert({
+    const { error } = await supabase.from("certificates").insert({
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
@@ -157,7 +157,7 @@ export default function CertificatesPage() {
 
   const handleDownloadCert = async (cert: Certificate) => {
     try {
-      const meta = cert.metadata as any;
+      const meta = cert.metadata as Record<string, unknown> | null;
       await generatePremiumCertificatePDF({
         rankName: cert.rank_name,
         fullName: (meta?.full_name as string) || profile?.full_name || "User",
@@ -210,7 +210,7 @@ export default function CertificatesPage() {
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="h-16 w-16 rounded-full flex items-center justify-center text-3xl"
+              <div className="h-16 w-16 rounded-full flex items-center justify-center text-3xl shrink-0"
                 style={{ backgroundColor: currentRank?.badge_color || "#666" }}>
                 {RANK_ICONS[currentRank?.rank_name || ""] || "?"}
               </div>
@@ -245,8 +245,8 @@ export default function CertificatesPage() {
               <motion.div key={rank.id} variants={staggerItem}>
                 <Card className={achieved ? "border-primary/30" : "opacity-70"}>
                   <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="h-12 w-12 rounded-full flex items-center justify-center text-2xl shrink-0"
-                      style={{ backgroundColor: achieved ? rank.badge_color : "#444" }}>
+                    <div className="h-12 w-12 rounded-full flex items-center justify-center text-2xl shrink-0 bg-[var(--badge-color)]"
+                      style={{ ["--badge-color" as string]: achieved ? rank.badge_color : "#444" }}>
                       {icon}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -259,7 +259,7 @@ export default function CertificatesPage() {
                       </p>
                       {!achieved && (
                         <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                          <div className="h-full rounded-full bg-primary transition-all w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
                         </div>
                       )}
                     </div>

@@ -110,7 +110,7 @@ export function AIHeadlineTester() {
   );
 }
 
-export function AIBestProductToday({ products }: { products: any[] }) {
+export function AIBestProductToday({ products }: { products: Array<{ title: string; price: number; commission_percent: number; description?: string | null }> }) {
   const [result, setResult] = useState("");
   const ai = useAIInsight();
 

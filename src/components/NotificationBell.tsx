@@ -43,7 +43,7 @@ export function NotificationBell() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user, qc]);
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length || 0;
 

@@ -56,7 +56,7 @@ export function PaymentModal({
       return (data?.value as Record<string, string>) || {
         bankName: "Wema Bank",
         accountNumber: "0123456789",
-        accountName: "VeritasPay Ltd",
+        accountName: "PayThos Ltd",
       };
     },
   });

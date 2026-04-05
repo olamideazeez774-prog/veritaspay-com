@@ -21,7 +21,7 @@ interface DigestContent {
   total_revenue?: number;
   top_product?: string;
   summary?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function DailyDigestPage() {

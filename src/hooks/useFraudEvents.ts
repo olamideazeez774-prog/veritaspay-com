@@ -12,7 +12,7 @@ export interface FraudEvent {
   description: string;
   ip_address: string | null;
   device_fingerprint: string | null;
-  metadata: Record<string, unknown>;
+  metadata: import("@/integrations/supabase/types").Json;
   status: string;
   admin_notes: string | null;
   commission_held: boolean;
@@ -38,7 +38,7 @@ export function useUpdateFraudEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<FraudEvent> & { id: string }) => {
-      const { error } = await supabase.from("fraud_events").update(updates as any).eq("id", id);
+      const { error } = await supabase.from("fraud_events").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["fraud-events"] }); toast.success("Fraud event updated"); },

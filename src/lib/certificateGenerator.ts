@@ -1,6 +1,35 @@
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 
+// Extended jsPDF interface for internal APIs - using unknown for internal types
+interface JSPDFExtended {
+  setFillColor: (r: number, g: number, b: number) => void;
+  setDrawColor: (r: number, g: number, b: number) => void;
+  setTextColor: (r: number, g: number, b: number) => void;
+  setLineWidth: (width: number) => void;
+  setFont: (name: string, style?: string) => void;
+  setFontSize: (size: number) => void;
+  setCharSpace: (space: number) => void;
+  setGState: (gState: unknown) => void;
+  rect: (x: number, y: number, w: number, h: number, style?: string | null) => void;
+  circle: (x: number, y: number, r: number, style?: string | null) => void;
+  ellipse: (x: number, y: number, rx: number, ry: number, style?: string | null) => void;
+  line: (x1: number, y1: number, x2: number, y2: number) => void;
+  text: (text: string | string[], x: number, y: number, options?: { align?: string; maxWidth?: number }) => void;
+  getTextWidth: (text: string) => number;
+  splitTextToSize: (text: string, maxWidth: number) => string[];
+  addImage: (imageData: string, format: string, x: number, y: number, w: number, h: number) => void;
+  triangle: (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, style: string) => void;
+  roundedRect: (x: number, y: number, w: number, h: number, rx: number, ry: number) => void;
+  save: (filename: string) => void;
+  // Internal APIs - GState is a constructor function in jsPDF
+  GState: new (opts: { opacity: number }) => { opacity: number };
+  saveGraphicsState: () => void;
+  restoreGraphicsState: () => void;
+  clip: () => void;
+  context2d: unknown | null;
+}
+
 interface RankDesign {
   theme: "midnight" | "ivory" | "royal";
   bgGradientFrom: string;
@@ -166,23 +195,23 @@ function hexToRgb(hex: string): [number, number, number] {
   return [r, g, b];
 }
 
-function setFill(doc: any, hex: string) {
+function setFill(doc: JSPDFExtended, hex: string) {
   const [r, g, b] = hexToRgb(hex);
   doc.setFillColor(r, g, b);
 }
 
-function setDraw(doc: any, hex: string) {
+function setDraw(doc: JSPDFExtended, hex: string) {
   const [r, g, b] = hexToRgb(hex);
   doc.setDrawColor(r, g, b);
 }
 
-function setTextCol(doc: any, hex: string) {
+function setTextCol(doc: JSPDFExtended, hex: string) {
   const [r, g, b] = hexToRgb(hex);
   doc.setTextColor(r, g, b);
 }
 
 // Smooth gradient background with multiple steps
-function drawBackground(doc: any, design: RankDesign) {
+function drawBackground(doc: JSPDFExtended, design: RankDesign) {
   const [r1, g1, b1] = hexToRgb(design.bgGradientFrom);
   const [r2, g2, b2] = hexToRgb(design.bgGradientTo);
   const steps = 60;
@@ -201,8 +230,8 @@ function drawBackground(doc: any, design: RankDesign) {
 }
 
 // Ambient radial glow spots
-function drawAmbientGlows(doc: any, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawAmbientGlows(doc: JSPDFExtended, design: RankDesign) {
+  const GState = doc.GState;
   // Top-right warm glow
   doc.setGState(new GState({ opacity: 0.06 }));
   setFill(doc, design.accentPrimary);
@@ -216,8 +245,8 @@ function drawAmbientGlows(doc: any, design: RankDesign) {
 }
 
 // Paper texture simulation with tiny dots
-function drawPaperTexture(doc: any, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawPaperTexture(doc: JSPDFExtended, design: RankDesign) {
+  const GState = doc.GState;
   doc.setGState(new GState({ opacity: 0.02 }));
   const color = design.theme === "ivory" ? "#000000" : "#ffffff";
   setFill(doc, color);
@@ -231,7 +260,7 @@ function drawPaperTexture(doc: any, design: RankDesign) {
 }
 
 // Corner ornaments matching the reference: L-shaped brackets with inner accent
-function drawCornerOrnaments(doc: any, design: RankDesign) {
+function drawCornerOrnaments(doc: JSPDFExtended, design: RankDesign) {
   setDraw(doc, design.cornerColor);
   const inset = 12;
   const size = 25;
@@ -266,8 +295,8 @@ function drawCornerOrnaments(doc: any, design: RankDesign) {
 }
 
 // Side flourish vertical lines
-function drawSideFlourishes(doc: any, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawSideFlourishes(doc: JSPDFExtended, design: RankDesign) {
+  const GState = doc.GState;
   setDraw(doc, design.flourishColor);
   doc.setLineWidth(0.3);
 
@@ -293,8 +322,8 @@ function drawSideFlourishes(doc: any, design: RankDesign) {
 }
 
 // Premium star badge with shine effect
-function drawStarBadge(doc: any, cx: number, cy: number, radius: number, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawStarBadge(doc: JSPDFExtended, cx: number, cy: number, radius: number, design: RankDesign) {
+  const GState = doc.GState;
 
   // Shadow
   doc.setGState(new GState({ opacity: 0.15 }));
@@ -335,8 +364,8 @@ function drawStarBadge(doc: any, cx: number, cy: number, radius: number, design:
 }
 
 // Official seal with ribbon tails
-function drawOfficialSeal(doc: any, cx: number, cy: number, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawOfficialSeal(doc: JSPDFExtended, cx: number, cy: number, design: RankDesign) {
+  const GState = doc.GState;
 
   // Shadow
   doc.setGState(new GState({ opacity: 0.2 }));
@@ -378,8 +407,8 @@ function drawOfficialSeal(doc: any, cx: number, cy: number, design: RankDesign) 
 }
 
 // Gradient divider line
-function drawAccentDivider(doc: any, y: number, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawAccentDivider(doc: JSPDFExtended, y: number, design: RankDesign) {
+  const GState = doc.GState;
   setDraw(doc, design.accentPrimary);
   doc.setLineWidth(0.4);
 
@@ -398,8 +427,8 @@ function drawAccentDivider(doc: any, y: number, design: RankDesign) {
 }
 
 // Ivory theme: elegant wave on left side
-function drawIvoryWave(doc: any, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawIvoryWave(doc: JSPDFExtended, design: RankDesign) {
+  const GState = doc.GState;
   doc.setGState(new GState({ opacity: 0.08 }));
   setFill(doc, design.accentPrimary);
   // Simulate wave with overlapping circles
@@ -411,9 +440,9 @@ function drawIvoryWave(doc: any, design: RankDesign) {
 }
 
 // Royal theme: ornate double border
-function drawRoyalBorders(doc: any, design: RankDesign) {
+function drawRoyalBorders(doc: JSPDFExtended, design: RankDesign) {
   setDraw(doc, design.borderColor);
-  const GState = (doc as any).GState;
+  const GState = doc.GState;
 
   // Outer border
   doc.setGState(new GState({ opacity: 0.3 }));
@@ -440,8 +469,8 @@ function drawRoyalBorders(doc: any, design: RankDesign) {
 }
 
 // Royal theme: heart/fleur divider
-function drawRoyalDivider(doc: any, y: number, design: RankDesign) {
-  const GState = (doc as any).GState;
+function drawRoyalDivider(doc: JSPDFExtended, y: number, design: RankDesign) {
+  const GState = doc.GState;
   const cx = 148.5;
 
   // Left line
@@ -473,8 +502,8 @@ export interface CertificateData {
 
 export async function generatePremiumCertificatePDF(data: CertificateData): Promise<void> {
   const { default: jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const GState = (doc as any).GState;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" }) as unknown as JSPDFExtended;
+  const GState = doc.GState;
 
   const design = RANK_DESIGNS[data.rankName] || RANK_DESIGNS.Gold;
   const pageW = 297;
@@ -525,7 +554,7 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   drawStarBadge(doc, cx, 30, 11, design);
 
   // ======== LAYER 10: TITLE "CERTIFICATE" ========
-  let titleY = 58;
+  const titleY = 58;
   setTextCol(doc, design.textTitle);
   doc.setFont("times", "bold");
   doc.setFontSize(38);
@@ -600,7 +629,7 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   const bodyText = `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
   const bodyLines = doc.splitTextToSize(bodyText, 200);
   const bodyStartY = nameY + 37;
-  doc.text(bodyLines as string[], cx, bodyStartY + 3, { align: "center" });
+  doc.text(bodyLines, cx, bodyStartY + 3, { align: "center" });
 
   // ======== LAYER 17: VERIFIED EARNINGS ========
   if (data.totalCommission > 0) {
@@ -691,15 +720,15 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
       const photoR = 11;
 
       // Save graphics state, create circular clipping path
-      (doc as any).saveGraphicsState();
+      doc.saveGraphicsState();
       // Create circular clip by drawing circle path
-      const ctx = (doc as any).context2d || null;
+      const ctx = doc.context2d;
       // Use internal API for clip: draw circle path then clip
-      doc.circle(photoCx, photoCy, photoR, null as any);
-      (doc as any).clip();
+      doc.circle(photoCx, photoCy, photoR, null);
+      doc.clip();
       // Draw image inside clipped region
       doc.addImage(data.avatarUrl, "JPEG", photoCx - photoR, photoCy - photoR, photoR * 2, photoR * 2);
-      (doc as any).restoreGraphicsState();
+      doc.restoreGraphicsState();
 
       // Draw circle border on top
       setDraw(doc, design.accentPrimary);

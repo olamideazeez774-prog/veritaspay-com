@@ -13,7 +13,7 @@ export interface SystemLog {
   amount: number | null;
   status: string | null;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;

@@ -193,7 +193,7 @@ export function useCreateContentItem() {
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("ai_content_calendar")
-        .insert({ ...item, user_id: user.id } as any)
+        .insert({ ...item, user_id: user.id })
         .select()
         .single();
 

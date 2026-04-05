@@ -223,8 +223,8 @@ export default function ProductDetail() {
 
                 {/* Features */}
                 <div className="space-y-2">
-                  {features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {features.map((feature) => (
+                    <div key={feature.label} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <feature.icon className="h-4 w-4 text-success" />
                       {feature.label}
                     </div>

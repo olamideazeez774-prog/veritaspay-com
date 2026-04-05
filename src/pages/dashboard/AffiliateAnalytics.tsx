@@ -52,7 +52,7 @@ export default function AffiliateAnalytics() {
 
   // Product performance breakdown
   const productStats = links?.map((link) => {
-    const product = link.products as any;
+    const product = link.products as { title: string | null } | null;
     const productSales = sales?.filter((s) => s.product_id === link.product_id) || [];
     const productCommission = productSales.reduce((s, sale) => s + sale.affiliate_commission, 0);
     const productEpc = link.clicks_count > 0 ? productCommission / link.clicks_count : 0;

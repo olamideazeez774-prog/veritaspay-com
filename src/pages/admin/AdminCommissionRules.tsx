@@ -43,7 +43,7 @@ export default function AdminCommissionRules() {
       starts_at: form.starts_at || null,
       ends_at: form.ends_at || null,
       priority: Number(form.priority || 0),
-    } as any, { onSuccess: () => { setShowCreate(false); setForm({ name: "", rule_type: "tiered", commission_override: "", boost_percent: "", bonus_amount: "", min_sales: "0", starts_at: "", ends_at: "", priority: "0" }); } });
+    }, { onSuccess: () => { setShowCreate(false); setForm({ name: "", rule_type: "tiered", commission_override: "", boost_percent: "", bonus_amount: "", min_sales: "0", starts_at: "", ends_at: "", priority: "0" }); } });
   };
 
   return (

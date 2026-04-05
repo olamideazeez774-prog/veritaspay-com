@@ -37,7 +37,7 @@ export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (campaign: Partial<AffiliateCampaign>) => {
-      const { data, error } = await supabase.from("affiliate_campaigns").insert(campaign as any).select().single();
+      const { data, error } = await supabase.from("affiliate_campaigns").insert(campaign as unknown as Record<string, unknown>).select().single();
       if (error) throw error;
       return data;
     },

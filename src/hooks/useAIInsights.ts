@@ -6,7 +6,7 @@ export type InsightType = "fraud_scoring" | "affiliate_coaching" | "product_matc
 
 export function useAIInsight() {
   return useMutation({
-    mutationFn: async ({ type, data }: { type: InsightType; data: any }) => {
+    mutationFn: async ({ type, data }: { type: InsightType; data: Record<string, unknown> }) => {
       const { data: result, error } = await supabase.functions.invoke("ai-insights", {
         body: { type, data },
       });

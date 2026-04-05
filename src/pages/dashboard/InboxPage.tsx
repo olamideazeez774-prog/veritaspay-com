@@ -36,15 +36,15 @@ export default function InboxPage() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('inbox-messages')
+      .channel("user-messages")
       .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'user_messages', filter: `to_user_id=eq.${user.id}` },
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_messages", filter: `to_user_id=eq.${user.id}` },
         () => queryClient.invalidateQueries({ queryKey: ["user-messages"] })
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user, queryClient]);
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
