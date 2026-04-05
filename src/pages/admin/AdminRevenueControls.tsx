@@ -90,10 +90,10 @@ export default function AdminRevenueControls() {
       } = settings;
 
       await Promise.all([
-        supabase.from("platform_settings").upsert({ key: "revenue_controls", value: revenueSettings as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
-        supabase.from("platform_settings").upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled } as Record<string, unknown>, updated_by: user?.id }, { onConflict: "key" }),
+        (supabase.from("platform_settings") as any).upsert({ key: "revenue_controls", value: revenueSettings, updated_by: user?.id }, { onConflict: "key" }),
+        (supabase.from("platform_settings") as any).upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization }, updated_by: user?.id }, { onConflict: "key" }),
+        (supabase.from("platform_settings") as any).upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee }, updated_by: user?.id }, { onConflict: "key" }),
+        (supabase.from("platform_settings") as any).upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled }, updated_by: user?.id }, { onConflict: "key" }),
       ]);
 
       await supabase.rpc("write_system_log", {
