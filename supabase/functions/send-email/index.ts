@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: from || "VeritasPay <noreply@veritaspay.com>",
+        from: from || "PayThos <noreply@paythos.com>",
         to: [to],
         subject,
         html,

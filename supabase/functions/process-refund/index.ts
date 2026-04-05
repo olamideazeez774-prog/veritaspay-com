@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
 </table>
 <p>The refund will be processed to your original payment method within 5-10 business days.</p>
 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-<p style="color:#666;font-size:12px;margin-top:24px">This is an automated message from VeritasPay.</p>`,
+<p style="color:#666;font-size:12px;margin-top:24px">This is an automated message from PayThos.</p>`,
         },
       });
     } catch (emailErr) {

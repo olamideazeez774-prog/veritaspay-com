@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "VeritasPay - Affiliate Commerce Platform",
-        short_name: "VeritasPay",
+        name: "PayThos - Affiliate Commerce Platform",
+        short_name: "PayThos",
         description: "The Premium Affiliate Commerce Platform",
         theme_color: "#0f172a",
         background_color: "#0f172a",

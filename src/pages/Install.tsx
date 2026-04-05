@@ -125,7 +125,7 @@ export default function InstallPage() {
             ) : deferredPrompt ? (
               <Button onClick={handleInstall} className="w-full" size="lg">
                 <Download className="mr-2 h-5 w-5" />
-                Install VeritasPay
+                Install PayThos
               </Button>
             ) : (
               <div className="text-center text-sm text-muted-foreground p-4 rounded-lg bg-muted/50">

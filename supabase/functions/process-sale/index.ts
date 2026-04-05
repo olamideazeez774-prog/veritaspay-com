@@ -289,7 +289,7 @@ ${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee"
   Save this link to access your purchase anytime: <a href="${deliveryUrl}">${deliveryUrl}</a>
 </p>
 
-<p style="color:#666;font-size:12px;margin-top:24px">This is an automated receipt from VeritasPay.</p>`,
+<p style="color:#666;font-size:12px;margin-top:24px">This is an automated receipt from PayThos.</p>`,
         },
       });
     } catch (emailErr) {
