@@ -139,11 +139,11 @@ export default function CertificatesPage() {
       avatar_url: profile?.avatar_url,
     };
 
-    const { error } = await supabase.from("certificates").insert({
+    const { error } = await (supabase.from("certificates") as any).insert({
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
-      metadata: metadata as Record<string, unknown>,
+      metadata: metadata,
     });
 
     if (error) {
@@ -157,15 +157,15 @@ export default function CertificatesPage() {
 
   const handleDownloadCert = async (cert: Certificate) => {
     try {
-      const meta = cert.metadata as Record<string, unknown> | null;
+      const meta = cert.metadata as any;
       await generatePremiumCertificatePDF({
         rankName: cert.rank_name,
-        fullName: meta?.full_name || profile?.full_name || "User",
+        fullName: (meta?.full_name as string) || profile?.full_name || "User",
         certificateHash: cert.certificate_hash,
         issuedAt: cert.issued_at,
-        totalCommission: meta?.total_commission || 0,
-        milestoneDate: meta?.milestone_date || cert.issued_at,
-        avatarUrl: meta?.avatar_url || profile?.avatar_url,
+        totalCommission: (meta?.total_commission as number) || 0,
+        milestoneDate: (meta?.milestone_date as string) || cert.issued_at,
+        avatarUrl: (meta?.avatar_url as string) || profile?.avatar_url,
         adminSignatureUrl: adminSignature,
         ceoName: ceoName || PLATFORM_NAME,
       });

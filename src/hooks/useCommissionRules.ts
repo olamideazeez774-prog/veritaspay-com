@@ -39,7 +39,7 @@ export function useCreateCommissionRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rule: Partial<CommissionRule>) => {
-      const { data, error } = await supabase.from("commission_rules").insert(rule).select().single();
+      const { data, error } = await supabase.from("commission_rules").insert(rule as any).select().single();
       if (error) throw error;
       return data;
     },
@@ -52,7 +52,7 @@ export function useUpdateCommissionRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CommissionRule> & { id: string }) => {
-      const { error } = await supabase.from("commission_rules").update(updates).eq("id", id);
+      const { error } = await supabase.from("commission_rules").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["commission-rules"] }); toast.success("Rule updated"); },
