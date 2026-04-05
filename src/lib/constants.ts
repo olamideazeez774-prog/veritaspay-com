@@ -1,6 +1,6 @@
 // Platform configuration constants
 
-export const PLATFORM_NAME = "VeritasPay";
+export const PLATFORM_NAME = "PayThos";
 export const PLATFORM_TAGLINE = "The Premium Affiliate Commerce Platform";
 
 export const DEFAULT_PLATFORM_FEE_PERCENT = 10;
