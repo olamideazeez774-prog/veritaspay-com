@@ -58,7 +58,7 @@ export default function AdminVerificationRequests() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as VerificationRequest[];
+      return data as unknown as VerificationRequest[];
     },
   });
 

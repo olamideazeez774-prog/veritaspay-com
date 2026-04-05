@@ -76,7 +76,7 @@ export default function AffiliateToolkit() {
       utm_medium: utm.medium,
       utm_campaign: utm.campaign,
       utm_content: utm.content || null,
-    } as Partial<AffiliateCampaign>, { onSuccess: () => setUtm({ source: "", medium: "", campaign: "", content: "" }) });
+    } as any, { onSuccess: () => setUtm({ source: "", medium: "", campaign: "", content: "" }) });
   };
 
   const copyToClipboard = (text: string) => {

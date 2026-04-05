@@ -117,7 +117,7 @@ export default function AdminRevenueControls() {
   const NumberField = ({ label, fieldKey }: { label: string; fieldKey: keyof PlatformSettings }) => (
     <div className="space-y-2">
       <Label className="text-sm">{label}</Label>
-      <Input type="number" value={settings[fieldKey]} onChange={(e) => setSettings({ ...settings, [fieldKey]: Number(e.target.value) })} />
+      <Input type="number" value={String(settings[fieldKey])} onChange={(e) => setSettings({ ...settings, [fieldKey]: Number(e.target.value) })} />
     </div>
   );
 

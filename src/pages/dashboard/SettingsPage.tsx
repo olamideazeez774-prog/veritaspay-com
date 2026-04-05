@@ -232,8 +232,8 @@ export default function SettingsPage() {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
     try {
-      await supabase.from("platform_settings").upsert(
-        { key: "admin_signature", value: { url: dataUrl } as Record<string, unknown>, updated_by: user?.id },
+      await (supabase.from("platform_settings") as any).upsert(
+        { key: "admin_signature", value: { url: dataUrl }, updated_by: user?.id },
         { onConflict: "key" }
       );
       setSavedSignature(dataUrl);
