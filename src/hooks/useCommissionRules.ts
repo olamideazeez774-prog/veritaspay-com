@@ -39,7 +39,7 @@ export function useCreateCommissionRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rule: Partial<CommissionRule>) => {
-      const { data, error } = await supabase.from("commission_rules").insert(rule).select().single();
+      const { data, error } = await supabase.from("commission_rules").insert(rule as any).select().single();
       if (error) throw error;
       return data;
     },
