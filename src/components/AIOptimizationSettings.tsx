@@ -128,7 +128,7 @@ export function AIOptimizationSettingsPanel() {
                   key={severity}
                   variant={settings?.alert_min_severity === severity ? "default" : "outline"}
                   size="sm"
-                  onClick={() => updateSettings.mutate({ alert_min_severity: severity })}
+                  onClick={() => updateSettings.mutate({ alert_min_severity: severity as "low" | "medium" | "high" })}
                 >
                   {severity}
                 </Button>
