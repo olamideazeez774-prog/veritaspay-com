@@ -126,7 +126,7 @@ export default function AffiliateStats() {
           <div className="border-b border-border p-4">
             <h2 className="font-serif text-xl font-semibold">Recent Conversions</h2>
           </div>
-          {!sales?.length ? (
+          {!(sales && 'sales' in sales ? sales.sales : sales)?.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <BarChart3 className="mx-auto mb-3 h-12 w-12 opacity-40" />
               <p>No conversions yet. Keep promoting!</p>
