@@ -115,7 +115,7 @@ export default function VendorSales() {
             <h2 className="font-serif text-xl font-semibold">Recent Sales</h2>
           </div>
 
-          {!(sales && 'sales' in sales ? sales.sales : sales)?.length ? (
+          {!sales?.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <ShoppingCart className="mx-auto mb-3 h-12 w-12 opacity-40" />
               <p>No sales yet. Share your products to start selling!</p>
