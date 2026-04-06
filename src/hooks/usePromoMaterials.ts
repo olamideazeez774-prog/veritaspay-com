@@ -43,7 +43,7 @@ export function useCreatePromoMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (material: Partial<PromoMaterial>) => {
-      const { data, error } = await supabase.from("promo_materials").insert(material as unknown as import("@/integrations/supabase/types").JsonObject).select().single();
+      const { data, error } = await supabase.from("promo_materials").insert(material as any).select().single();
       if (error) throw error;
       return data;
     },

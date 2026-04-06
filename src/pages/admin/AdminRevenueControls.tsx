@@ -90,16 +90,16 @@ export default function AdminRevenueControls() {
       await Promise.all([
         supabase
           .from("platform_settings")
-          .upsert({ key: "revenue_controls", value: revenueSettings as unknown as import("@/integrations/supabase/types").JsonObject, updated_by: user?.id }, { onConflict: "key" }),
+          .upsert({ key: "revenue_controls", value: revenueSettings as any, updated_by: user?.id }, { onConflict: "key" }),
         supabase
           .from("platform_settings")
-          .upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization } as unknown as import("@/integrations/supabase/types").JsonObject, updated_by: user?.id }, { onConflict: "key" }),
+          .upsert({ key: "ai_modules", value: { ai_fraud_detection, ai_affiliate_coaching, ai_product_matching, ai_commission_optimization } as any, updated_by: user?.id }, { onConflict: "key" }),
         supabase
           .from("platform_settings")
-          .upsert({ key: "micro_fees", value: { processing_buffer_fee, withdrawal_fee_percent, withdrawal_flat_fee, verification_badge_fee } as unknown as import("@/integrations/supabase/types").JsonObject, updated_by: user?.id }, { onConflict: "key" }),
+          .upsert({ key: "micro_fees", value: { processing_buffer_fee: settings.processing_buffer_fee, withdrawal_fee_percent: settings.withdrawal_fee_percent, withdrawal_flat_fee: settings.withdrawal_flat_fee, verification_badge_fee: settings.verification_badge_fee } as any, updated_by: user?.id }, { onConflict: "key" }),
         supabase
           .from("platform_settings")
-          .upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction, premium_vendor_monthly_cost, transparent_ledger_enabled } as unknown as import("@/integrations/supabase/types").JsonObject, updated_by: user?.id }, { onConflict: "key" }),
+          .upsert({ key: "vendor_tiers", value: { premium_vendor_fee_reduction: settings.premium_vendor_fee_reduction, premium_vendor_monthly_cost: settings.premium_vendor_monthly_cost, transparent_ledger_enabled } as any, updated_by: user?.id }, { onConflict: "key" }),
       ]);
 
       await supabase.rpc("write_system_log", {

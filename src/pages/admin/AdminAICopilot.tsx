@@ -116,9 +116,9 @@ export default function AdminAICopilot() {
     let held = 0;
     for (const event of flagged) {
       const { error: updateErr } = await supabase
-        .from("sales")
+        .from("fraud_events")
         .update({ commission_held: true })
-        .eq("id", event.related_id);
+        .eq("id", event.id);
       if (!updateErr) {
         await supabase.from("fraud_events").update({ commission_held: true }).eq("id", event.id);
         held++;

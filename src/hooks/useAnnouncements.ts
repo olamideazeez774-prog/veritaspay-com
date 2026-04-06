@@ -54,7 +54,7 @@ export function useCreateAnnouncement() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (ann: Partial<VendorAnnouncement>) => {
-      const { data, error } = await supabase.from("vendor_announcements").insert(ann as unknown as import("@/integrations/supabase/types").JsonObject).select().single();
+      const { data, error } = await supabase.from("vendor_announcements").insert(ann as any).select().single();
       if (error) throw error;
       return data;
     },
