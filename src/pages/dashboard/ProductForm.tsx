@@ -106,10 +106,9 @@ export default function ProductForm() {
     if (!pendingProductData) return;
 
     try {
-      // Create product with draft status (will be activated after admin approval)
       await createProduct.mutateAsync({
-        ...pendingProductData,
-        status: "draft", // Will be activated after admin verifies payment
+        ...pendingProductData as any,
+        status: "draft",
       });
       navigate("/dashboard/products");
     } catch (error) {

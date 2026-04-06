@@ -135,7 +135,7 @@ export default function VendorSales() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.map((sale) => (
+                  {(sales && 'sales' in sales ? sales.sales : (sales as any))?.map((sale: any) => (
                     <TableRow key={sale.id}>
                       <TableCell className="font-medium">{sale.products?.title}</TableCell>
                       <TableCell>{sale.buyer_email}</TableCell>

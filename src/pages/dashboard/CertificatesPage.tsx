@@ -143,8 +143,8 @@ export default function CertificatesPage() {
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
-      metadata: metadata,
-    });
+      metadata: metadata as any,
+    } as any);
 
     if (error) {
       if (error.code === "23505") toast.info("Certificate already claimed!");
