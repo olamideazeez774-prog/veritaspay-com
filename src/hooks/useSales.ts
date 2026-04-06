@@ -54,9 +54,8 @@ export function useAllSales() {
         .from("sales")
         .select("*, products(*)")
         .order("created_at", { ascending: false });
-      
       if (error) throw error;
-      return data as (Sale & { products: Record<string, unknown> })[];
+      return (data || []) as SaleWithProduct[];
     },
   });
 }
