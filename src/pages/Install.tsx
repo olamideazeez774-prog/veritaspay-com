@@ -103,7 +103,7 @@ export default function InstallPage() {
                 <CheckCircle className="h-6 w-6 text-success" />
                 <div>
                   <p className="font-semibold text-success">App Installed!</p>
-                  <p className="text-sm text-muted-foreground">You can now use PayThos from your home screen</p>
+                  <p className="text-sm text-muted-foreground">You can now use Avenyx from your home screen</p>
                 </div>
               </div>
             ) : isIOS ? (
