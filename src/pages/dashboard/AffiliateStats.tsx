@@ -133,7 +133,7 @@ export default function AffiliateStats() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {sales.slice(0, 10).map((sale) => (
+              {sales?.slice(0, 10).map((sale) => (
                 <div
                   key={sale.id}
                   className="flex items-center justify-between gap-4 p-4 hover:bg-muted/50"

@@ -33,7 +33,8 @@ export default function AffiliateBrowse() {
   // Get list of product IDs user already has links for
   const existingProductIds = new Set(existingLinks?.map((link) => link.product_id) || []);
 
-  const filteredProducts = products
+  const allProducts = products && 'products' in products ? products.products : (products as any);
+  const filteredProducts = allProducts
     ?.filter(
       (product) =>
         product.affiliate_enabled &&

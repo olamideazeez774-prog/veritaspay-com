@@ -38,9 +38,9 @@ export default function VerifyCertificate() {
     enabled: !!hash,
   });
 
-  const metadata = cert?.metadata as Record<string, unknown> | null;
-  const affiliateName = cert?.profile?.full_name || metadata?.full_name || "Unknown";
-  const avatarUrl = cert?.profile?.avatar_url || metadata?.avatar_url;
+  const metadata = cert?.metadata as Record<string, any> | null;
+  const affiliateName = cert?.profile?.full_name || (metadata?.full_name as string) || "Unknown";
+  const avatarUrl = cert?.profile?.avatar_url || (metadata?.avatar_url as string);
   const rankIcon = RANK_ICONS[cert?.rank_name || ""] || "🏅";
 
   return (
@@ -73,8 +73,8 @@ export default function VerifyCertificate() {
                 )}
                 <p className="text-lg font-semibold text-foreground">{affiliateName}</p>
                 <p>Rank: <Badge className="ml-1">{rankIcon} {cert.rank_name}</Badge></p>
-                {metadata?.total_commission && (
-                  <p>Total Verified Earnings: <span className="font-semibold text-foreground">{formatCurrency(metadata.total_commission)}</span></p>
+                {metadata?.total_commission != null && (
+                  <p>Total Verified Earnings: <span className="font-semibold text-foreground">{formatCurrency(Number(metadata.total_commission))}</span></p>
                 )}
                 <p className="font-mono text-xs">{cert.certificate_hash}</p>
                 <p>Issued: {formatDate(cert.issued_at)}</p>

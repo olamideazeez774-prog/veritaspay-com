@@ -77,7 +77,7 @@ export default function InstallPage() {
         <Card className="overflow-hidden">
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-              <img src="/pwa-192x192.png" alt="PayThos" className="h-16 w-16 rounded-2xl shadow-lg" />
+              <img src="/pwa-192x192.png" alt="Avenyx" className="h-16 w-16 rounded-2xl shadow-lg" />
               <div>
                 <h2 className="text-xl font-bold">{PLATFORM_NAME}</h2>
                 <p className="text-sm text-muted-foreground">Affiliate Commerce Platform</p>
@@ -103,7 +103,7 @@ export default function InstallPage() {
                 <CheckCircle className="h-6 w-6 text-success" />
                 <div>
                   <p className="font-semibold text-success">App Installed!</p>
-                  <p className="text-sm text-muted-foreground">You can now use PayThos from your home screen</p>
+                  <p className="text-sm text-muted-foreground">You can now use Avenyx from your home screen</p>
                 </div>
               </div>
             ) : isIOS ? (
@@ -130,7 +130,7 @@ export default function InstallPage() {
             ) : deferredPrompt ? (
               <Button onClick={handleInstall} className="w-full" size="lg">
                 <Download className="mr-2 h-5 w-5" />
-                Install PayThos
+                Install Avenyx
               </Button>
             ) : (
               <div className="text-center text-sm text-muted-foreground p-4 rounded-lg bg-muted/50">

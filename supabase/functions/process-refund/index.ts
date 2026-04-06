@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       await supabase.functions.invoke("send-email", {
         body: {
           to: sale.buyer_email,
-          subject: `Refund Processed: ${sale.products?.title || "Your Purchase"} — PayThos`,
+          subject: `Refund Processed: ${sale.products?.title || "Your Purchase"} — Avenyx`,
           html: `<h2>Refund Confirmation</h2>
 <p>Hi there,</p>
 <p>Your refund for <strong>${sale.products?.title || "your purchase"}</strong> has been processed.</p>
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
 </table>
 <p>The refund will be processed to your original payment method within 5-10 business days.</p>
 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-<p style="color:#666;font-size:12px;margin-top:24px">This is an automated message from PayThos.</p>`,
+<p style="color:#666;font-size:12px;margin-top:24px">This is an automated message from Avenyx.</p>`,
         },
       });
     } catch (emailErr) {

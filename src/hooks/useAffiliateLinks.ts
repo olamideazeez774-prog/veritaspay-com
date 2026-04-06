@@ -3,20 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { AffiliateLink } from "@/types/database";
 import { toast } from "sonner";
 
+interface AffiliateLinkWithProduct extends AffiliateLink {
+  products: { id: string; title: string; price: number; commission_percent: number; cover_image_url: string | null; external_url: string | null } | null;
+}
+
 export function useAffiliateLinks(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-links", affiliateId],
     queryFn: async () => {
       if (!affiliateId) return [];
-      
       const { data, error } = await supabase
         .from("affiliate_links")
         .select("*, products(*)")
         .eq("affiliate_id", affiliateId)
         .order("created_at", { ascending: false });
-      
       if (error) throw error;
-      return data as (AffiliateLink & { products: Record<string, unknown> })[];
+      return (data || []) as AffiliateLinkWithProduct[];
     },
     enabled: !!affiliateId,
   });

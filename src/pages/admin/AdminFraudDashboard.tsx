@@ -40,7 +40,7 @@ export default function AdminFraudDashboard() {
     if (!selected) return;
     setAiResult("Analyzing...");
     aiInsight.mutate(
-      { type: "fraud_scoring", data: selected },
+      { type: "fraud_scoring", data: selected as any },
       { onSuccess: (result) => setAiResult(result), onError: () => setAiResult("Analysis failed.") }
     );
   };
