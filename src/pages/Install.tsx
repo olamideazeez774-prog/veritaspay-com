@@ -77,7 +77,7 @@ export default function InstallPage() {
         <Card className="overflow-hidden">
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-              <img src="/pwa-192x192.png" alt="PayThos" className="h-16 w-16 rounded-2xl shadow-lg" />
+              <img src="/pwa-192x192.png" alt="Avenyx" className="h-16 w-16 rounded-2xl shadow-lg" />
               <div>
                 <h2 className="text-xl font-bold">{PLATFORM_NAME}</h2>
                 <p className="text-sm text-muted-foreground">Affiliate Commerce Platform</p>
