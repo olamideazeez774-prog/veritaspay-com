@@ -38,9 +38,9 @@ export default function VerifyCertificate() {
     enabled: !!hash,
   });
 
-  const metadata = cert?.metadata as Record<string, unknown> | null;
-  const affiliateName = cert?.profile?.full_name || metadata?.full_name || "Unknown";
-  const avatarUrl = cert?.profile?.avatar_url || metadata?.avatar_url;
+  const metadata = cert?.metadata as Record<string, any> | null;
+  const affiliateName = cert?.profile?.full_name || (metadata?.full_name as string) || "Unknown";
+  const avatarUrl = cert?.profile?.avatar_url || (metadata?.avatar_url as string);
   const rankIcon = RANK_ICONS[cert?.rank_name || ""] || "🏅";
 
   return (
