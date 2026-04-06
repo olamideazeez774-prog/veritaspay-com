@@ -36,8 +36,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "PayThos - Affiliate Commerce Platform",
-        short_name: "PayThos",
+        name: "Avenyx - Affiliate Commerce Platform",
+        short_name: "Avenyx",
         description: "The Premium Affiliate Commerce Platform",
         theme_color: "#0f172a",
         background_color: "#0f172a",
