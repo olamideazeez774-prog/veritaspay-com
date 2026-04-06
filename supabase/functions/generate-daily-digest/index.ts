@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [
-                { role: "system", content: "You are a concise performance coach for an affiliate marketing platform called PayThos. Be encouraging and actionable." },
+                { role: "system", content: "You are a concise performance coach for an affiliate marketing platform called Avenyx. Be encouraging and actionable." },
                 { role: "user", content: prompt },
               ],
             }),
