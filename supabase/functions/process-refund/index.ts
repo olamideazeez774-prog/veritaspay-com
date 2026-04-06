@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       await supabase.functions.invoke("send-email", {
         body: {
           to: sale.buyer_email,
-          subject: `Refund Processed: ${sale.products?.title || "Your Purchase"} — PayThos`,
+          subject: `Refund Processed: ${sale.products?.title || "Your Purchase"} — Avenyx`,
           html: `<h2>Refund Confirmation</h2>
 <p>Hi there,</p>
 <p>Your refund for <strong>${sale.products?.title || "your purchase"}</strong> has been processed.</p>
