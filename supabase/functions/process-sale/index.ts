@@ -233,22 +233,23 @@ Deno.serve(async (req) => {
       await supabase.rpc("increment_conversion_count", { link_id: affiliateLinkId });
     }
 
-    // Increment coupon usage
+    // Increment coupon usage (atomic)
     if (appliedCouponId) {
-      await supabase
-        .from("vendor_coupons")
-        .update({ current_uses: (await supabase.from("vendor_coupons").select("current_uses").eq("id", appliedCouponId).single()).data?.current_uses + 1 || 1 })
-        .eq("id", appliedCouponId);
+      await supabase.rpc("increment_coupon_usage", { coupon_id: appliedCouponId });
     }
 
     // ======== WALLET UPDATES ========
     const updateWallet = async (userId: string, amount: number, type: string, description: string) => {
       const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
       if (wallet) {
-        await supabase.from("transactions").insert({
-          wallet_id: wallet.id, sale_id: sale.id, amount, type, earning_state: "pending", description,
+        // Use atomic RPC function for transaction + balance update
+        await supabase.rpc("create_wallet_transaction", {
+          _wallet_id: wallet.id,
+          _sale_id: sale.id,
+          _amount: amount,
+          _type: type,
+          _description: description,
         });
-        await supabase.rpc("increment_pending_balance", { _wallet_id: wallet.id, _amount: amount });
       }
     };
 

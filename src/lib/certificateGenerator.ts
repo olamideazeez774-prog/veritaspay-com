@@ -557,7 +557,8 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
       const origin = window.location.origin;
       doc.addImage(`${origin}${iconUrl}`, "PNG", iconX, iconY, iconSize, iconSize);
     }
-  } catch {
+  } catch (err) {
+    logger.error("Failed to load platform icon for certificate", err);
     // Fallback to platform name if image fails
     setTextCol(doc, design.textSubtitle);
     doc.setFont("helvetica", "bold");
@@ -694,7 +695,9 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   if (data.adminSignatureUrl) {
     try {
       doc.addImage(data.adminSignatureUrl, "PNG", 198, bottomY - 20, 54, 17);
-    } catch { /* skip */ }
+    } catch (err) {
+      logger.error("Failed to load admin signature for certificate", err);
+    }
   }
 
   const sigName = data.ceoName || "Platform CEO";
@@ -760,7 +763,9 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
       doc.setLineWidth(0.6);
       doc.circle(photoCx, photoCy, photoR + 2);
       doc.setGState(new GState({ opacity: 1 }));
-    } catch { /* skip if image fails */ }
+    } catch (err) {
+      logger.error("Failed to load avatar for certificate", err);
+    }
   }
 
   // ======== SAVE ========

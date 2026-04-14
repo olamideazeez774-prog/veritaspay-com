@@ -72,26 +72,65 @@ export default function AdminUsers() {
 
   const addRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      // Validate role is valid
+      const validRoles = ["admin", "vendor", "affiliate", "customer"];
+      if (!validRoles.includes(role)) {
+        throw new Error("Invalid role specified");
+      }
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
+      // Audit logging
+      await supabase.rpc("write_system_log", {
+        _event_type: "role_added",
+        _category: "user",
+        _description: `Role ${role} added to user`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "user_roles",
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Role added"); },
-    onError: () => { toast.error("Failed to add role"); },
+    onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to add role"); },
   });
 
   const removeRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      // Prevent removing the last admin role
+      if (role === "admin") {
+        const { data: adminCount } = await supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin");
+        if (adminCount === 1) {
+          throw new Error("Cannot remove the last admin user");
+        }
+      }
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
       if (error) throw error;
+      // Audit logging
+      await supabase.rpc("write_system_log", {
+        _event_type: "role_removed",
+        _category: "user",
+        _description: `Role ${role} removed from user`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "user_roles",
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Role removed"); },
-    onError: () => { toast.error("Failed to remove role"); },
+    onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to remove role"); },
   });
 
   const updateVendorTier = useMutation({
     mutationFn: async ({ userId, tier }: { userId: string; tier: string }) => {
       const { error } = await supabase.from("profiles").update({ vendor_tier: tier }).eq("id", userId);
       if (error) throw error;
+      // Audit logging
+      await supabase.rpc("write_system_log", {
+        _event_type: "vendor_tier_updated",
+        _category: "user",
+        _description: `Vendor tier updated to ${tier}`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "profile",
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Vendor tier updated"); },
     onError: () => { toast.error("Failed to update tier"); },
@@ -101,6 +140,15 @@ export default function AdminUsers() {
     mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
       const { error } = await supabase.from("profiles").update({ is_verified: verified }).eq("id", userId);
       if (error) throw error;
+      // Audit logging
+      await supabase.rpc("write_system_log", {
+        _event_type: verified ? "user_verified" : "user_unverified",
+        _category: "user",
+        _description: `User ${verified ? "verified" : "unverified"}`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "profile",
+      });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Verification updated"); },
     onError: () => { toast.error("Failed to update"); },
@@ -143,21 +191,45 @@ export default function AdminUsers() {
 
   const fraudFlag = useMutation({
     mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      // Validate inputs
+      if (!userId || !email) {
+        throw new Error("User ID and email are required");
+      }
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error("Invalid email format");
+      }
+      // Sanitize description
+      const sanitizedEmail = email.replace(/[<>]/g, "");
       const { error } = await supabase.from("fraud_events").insert({
         user_id: userId,
         event_type: "admin_manual_flag",
-        description: `Manually flagged by admin for review: ${email}`,
+        description: `Manually flagged by admin for review: ${sanitizedEmail}`,
         severity: "high",
         status: "flagged",
       });
       if (error) throw error;
+      // Audit logging
+      await supabase.rpc("write_system_log", {
+        _event_type: "user_fraud_flagged",
+        _category: "security",
+        _description: `User flagged for fraud review: ${sanitizedEmail}`,
+        _actor_id: currentUser?.id,
+        _related_id: userId,
+        _related_type: "fraud_events",
+      });
     },
-    onSuccess: () => { toast.success("User flagged for fraud review"); },
-    onError: () => { toast.error("Failed to flag"); },
+    onSuccess: () => { toast.success("User flagged for review"); },
+    onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to flag user"); },
   });
 
   const sendMessage = useMutation({
     mutationFn: async ({ toUserId, message }: { toUserId: string; message: string }) => {
+      // Validate inputs
+      if (!toUserId || !message) {
+        throw new Error("To user ID and message are required");
+      }
       const { error } = await supabase.from("user_messages").insert({
         from_admin_id: currentUser!.id,
         to_user_id: toUserId,
