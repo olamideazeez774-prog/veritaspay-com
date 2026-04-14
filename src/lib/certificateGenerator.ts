@@ -544,11 +544,26 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
     doc.setGState(new GState({ opacity: 1 }));
   }
 
-  // ======== LAYER 8: PLATFORM BRANDING (top-left) ========
-  setTextCol(doc, design.textSubtitle);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text(PLATFORM_NAME, 22, 20);
+  // ======== LAYER 8: PLATFORM ICON (top-left) ========
+  // Add platform icon/image at top-left instead of text
+  try {
+    const iconSize = 14;
+    const iconX = 15;
+    const iconY = 12;
+    // Use the PWA icon - in browser environment, fetch and convert to base64
+    const iconUrl = "/pwa-192x192.png";
+    // For jsPDF, we need to load the image. In browser, we'll use the origin
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      doc.addImage(`${origin}${iconUrl}`, "PNG", iconX, iconY, iconSize, iconSize);
+    }
+  } catch {
+    // Fallback to platform name if image fails
+    setTextCol(doc, design.textSubtitle);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(PLATFORM_NAME, 22, 20);
+  }
 
   // ======== LAYER 9: STAR BADGE (top center) ========
   drawStarBadge(doc, cx, 30, 11, design);
@@ -629,7 +644,11 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   const bodyText = `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
   const bodyLines = doc.splitTextToSize(bodyText, 200);
   const bodyStartY = nameY + 37;
-  doc.text(bodyLines, cx, bodyStartY + 3, { align: "center" });
+  const lineHeight = 4.5;
+  // Draw each line centered individually for consistent alignment
+  bodyLines.forEach((line: string, index: number) => {
+    doc.text(line, cx, bodyStartY + 3 + (index * lineHeight), { align: "center" });
+  });
 
   // ======== LAYER 17: VERIFIED EARNINGS ========
   if (data.totalCommission > 0) {

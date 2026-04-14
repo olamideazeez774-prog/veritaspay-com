@@ -75,13 +75,14 @@ export default function CertificatesPage() {
   const { data: certificates, refetch: refetchCerts } = useQuery({
     queryKey: ["my-certificates", user?.id],
     queryFn: async () => {
+      // Join with affiliate_ranks to get sort_order for proper ranking
       const { data, error } = await supabase
         .from("certificates")
-        .select("*")
+        .select(`*, affiliate_ranks!inner(sort_order, min_earnings)`)
         .eq("user_id", user!.id)
-        .order("issued_at", { ascending: false });
+        .order("affiliate_ranks(sort_order)", { ascending: true });
       if (error) throw error;
-      return data as Certificate[];
+      return data as (Certificate & { affiliate_ranks: { sort_order: number; min_earnings: number } })[];
     },
     enabled: !!user,
   });
@@ -144,8 +145,8 @@ export default function CertificatesPage() {
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
-      metadata: metadata as any,
-    } as any);
+      metadata: metadata as Record<string, unknown>,
+    } as Record<string, unknown>);
 
     if (error) {
       if (error.code === "23505") toast.info("Certificate already claimed!");

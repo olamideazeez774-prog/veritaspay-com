@@ -5,7 +5,7 @@ export const PLATFORM_TAGLINE = "The Premium Affiliate Commerce Platform";
 
 export const DEFAULT_PLATFORM_FEE_PERCENT = 10; // Platform takes 10% on every vendor sale
 export const DEFAULT_COMMISSION_PERCENT = 50; // Default affiliate commission (cannot be lower)
-export const MIN_COMMISSION_PERCENT = 50; // Minimum affiliate commission (vendors can set higher)
+export const MIN_COMMISSION_PERCENT = 35; // Minimum affiliate commission (vendors can set higher)
 export const MAX_COMMISSION_PERCENT = 90; // Maximum affiliate commission
 export const DEFAULT_REFUND_WINDOW_DAYS = 0; // Strict no-refund policy (0 days)
 export const DEFAULT_COOKIE_DURATION_DAYS = 30;
