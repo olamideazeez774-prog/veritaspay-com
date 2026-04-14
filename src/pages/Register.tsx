@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRateLimit } from "@/hooks/useRateLimit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +24,6 @@ function validateReferralCodeFormat(code: string): boolean {
 function setRefCookie(code: string) {
   // Validate code before setting cookie
   if (!validateReferralCodeFormat(code)) {
-    console.warn("Invalid referral code format rejected");
     return;
   }
   
@@ -53,6 +53,11 @@ export default function Register() {
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const { recordAttempt, checkRateLimit, getTimeRemaining } = useRateLimit({
+    maxAttempts: 3,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    lockoutMs: 24 * 60 * 60 * 1000, // 24 hours
+  });
 
   // Persist ref param to localStorage + cookie immediately on page load
   const paramRef = searchParams.get("ref");
@@ -91,11 +96,21 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check rate limit
+    const rateLimitCheck = checkRateLimit();
+    if (!rateLimitCheck.allowed) {
+      const hours = Math.ceil(getTimeRemaining() / (60 * 60 * 1000));
+      toast.error(`Too many registration attempts. Please try again in ${hours} hour${hours > 1 ? 's' : ''}.`);
+      return;
+    }
+    
     setIsLoading(true);
 
     const { error, data } = await signUp(email, password, fullName);
 
     if (error) {
+      recordAttempt();
       toast.error(error.message);
       setIsLoading(false);
     } else {

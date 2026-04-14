@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRateLimit } from "@/hooks/useRateLimit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn, Timer } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,17 +16,35 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { recordAttempt, checkRateLimit, isLocked, getTimeRemaining } = useRateLimit({
+    maxAttempts: 5,
+    windowMs: 60 * 1000, // 1 minute
+    lockoutMs: 15 * 60 * 1000, // 15 minutes
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check rate limit before attempting
+    const rateLimitCheck = checkRateLimit();
+    if (!rateLimitCheck.allowed) {
+      const minutes = Math.ceil(getTimeRemaining() / 60000);
+      toast.error(`Too many failed attempts. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+      return;
+    }
+    
     setIsLoading(true);
 
     const { error } = await signIn(email, password);
 
     if (error) {
+      // Record failed attempt
+      recordAttempt();
+      
       // Provide more helpful error messages
       if (error.message.includes("Invalid login credentials")) {
-        toast.error("Invalid email or password. Please check and try again.");
+        const remaining = checkRateLimit().remainingAttempts;
+        toast.error(`Invalid email or password. ${remaining > 0 ? `${remaining} attempts remaining.` : ''}`);
       } else if (error.message.includes("Email not confirmed")) {
         toast.error("Please verify your email before signing in. Check your inbox.");
       } else {
