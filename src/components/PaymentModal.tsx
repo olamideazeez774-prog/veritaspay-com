@@ -66,7 +66,7 @@ export function PaymentModal({
       return (data?.value as Record<string, string>) || {
         bankName: "Wema Bank",
         accountNumber: "0123456789",
-        accountName: "Avenyx Ltd",
+        accountName: "Mirvyn Ltd",
       };
     },
   });

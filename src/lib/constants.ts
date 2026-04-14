@@ -1,6 +1,6 @@
 // Platform configuration constants
 
-export const PLATFORM_NAME = "Avenyx";
+export const PLATFORM_NAME = "Mirvyn";
 export const PLATFORM_TAGLINE = "The Premium Affiliate Commerce Platform";
 
 export const DEFAULT_PLATFORM_FEE_PERCENT = 10;
