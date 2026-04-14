@@ -70,7 +70,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" id="email-label">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -78,14 +78,18 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-labelledby="email-label"
+                aria-required="true"
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" id="password-label">Password</Label>
                 <Link 
                   to="/forgot-password" 
                   className="text-sm text-primary hover:underline"
+                  aria-label="Forgot your password?"
                 >
                   Forgot password?
                 </Link>
@@ -97,17 +101,26 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-labelledby="password-label"
+                aria-required="true"
+                autoComplete="current-password"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
+              aria-label={isLoading ? "Signing in, please wait..." : "Sign in to your account"}
+              aria-busy={isLoading}
+            >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="mr-2 h-4 w-4" aria-hidden="true" />
               )}
-              Sign In
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}

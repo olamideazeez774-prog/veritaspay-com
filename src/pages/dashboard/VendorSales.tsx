@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
-import { ShoppingCart, TrendingUp, Users, DollarSign } from "lucide-react";
+import { ShoppingCart, TrendingUp, Users, DollarSign, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorStats } from "@/hooks/useStats";
 import { useVendorSales } from "@/hooks/useSales";
 import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
@@ -116,10 +119,19 @@ export default function VendorSales() {
           </div>
 
           {!sales?.length ? (
-            <div className="p-8 text-center text-muted-foreground">
-              <ShoppingCart className="mx-auto mb-3 h-12 w-12 opacity-40" />
-              <p>No sales yet. Share your products to start selling!</p>
-            </div>
+            <EmptyState
+              icon={ShoppingCart}
+              title="No sales yet"
+              description="Share your products to start making sales. Create your first product to begin selling."
+              action={
+                <Link to="/dashboard/products/new">
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Product
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
