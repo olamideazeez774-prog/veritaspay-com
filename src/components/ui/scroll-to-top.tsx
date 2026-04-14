@@ -53,6 +53,7 @@ export function ScrollToTop() {
           <Button
             onClick={isAtBottom ? scrollToTop : scrollToBottom}
             size="icon"
+            aria-label={isAtBottom ? "Scroll to top" : "Scroll to bottom"}
             className={cn(
               "h-12 w-12 rounded-full shadow-lg transition-all",
               "bg-primary hover:bg-primary/90",
@@ -60,9 +61,9 @@ export function ScrollToTop() {
             )}
           >
             {isAtBottom ? (
-              <ArrowUp className="h-5 w-5" />
+              <ArrowUp className="h-5 w-5" aria-hidden="true" />
             ) : (
-              <ArrowDown className="h-5 w-5" />
+              <ArrowDown className="h-5 w-5" aria-hidden="true" />
             )}
           </Button>
         </motion.div>
