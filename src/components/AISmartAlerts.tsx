@@ -41,21 +41,21 @@ export function AISmartAlerts({ compact = false, maxAlerts }: AISmartAlertsProps
   const getAlertIcon = (type: string) => {
     switch (type) {
       case "opportunity":
-        return <TrendingUp className="h-4 w-4 text-success" />;
+        return <TrendingUp className="h-4 w-4 text-success" aria-hidden="true" />;
       case "trend":
-        return <TrendingUp className="h-4 w-4 text-primary" />;
+        return <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />;
       case "optimization":
-        return <Lightbulb className="h-4 w-4 text-warning" />;
+        return <Lightbulb className="h-4 w-4 text-warning" aria-hidden="true" />;
       case "warning":
-        return <AlertTriangle className="h-4 w-4 text-destructive" />;
+        return <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />;
       default:
-        return <Info className="h-4 w-4 text-muted-foreground" />;
+        return <Info className="h-4 w-4 text-muted-foreground" aria-hidden="true" />;
     }
   };
 
   const displayAlerts = showAll
-    ? alerts
-    : alerts?.slice(0, maxAlerts || (compact ? 3 : 10));
+    ? (Array.isArray(alerts) ? alerts : [])
+    : (Array.isArray(alerts) ? alerts.slice(0, maxAlerts || (compact ? 3 : 10)) : []);
 
   if (isLoading) {
     return (
@@ -75,7 +75,7 @@ export function AISmartAlerts({ compact = false, maxAlerts }: AISmartAlertsProps
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+              <Bell className="h-5 w-5" aria-hidden="true" />
               Smart Alerts
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-2">
@@ -92,7 +92,7 @@ export function AISmartAlerts({ compact = false, maxAlerts }: AISmartAlertsProps
       <CardContent>
         {!alerts?.length ? (
           <div className="text-center py-8 text-muted-foreground">
-            <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" aria-hidden="true" />
             <p>No alerts yet.</p>
             <p className="text-sm">AI is monitoring for opportunities...</p>
           </div>
@@ -157,9 +157,9 @@ export function AISmartAlerts({ compact = false, maxAlerts }: AISmartAlertsProps
                           size="sm"
                           onClick={() => markRead.mutate(alert.id)}
                           disabled={markRead.isPending}
-                          title="Mark as read"
+                          aria-label="Mark alert as read"
                         >
-                          <Check className="h-4 w-4" />
+                          <Check className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       )}
                       <Button
@@ -167,9 +167,9 @@ export function AISmartAlerts({ compact = false, maxAlerts }: AISmartAlertsProps
                         size="sm"
                         onClick={() => dismiss.mutate(alert.id)}
                         disabled={dismiss.isPending}
-                        title="Dismiss"
+                        aria-label="Dismiss alert"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   )}
@@ -194,10 +194,17 @@ export function AIAlertBell() {
   const { data: count } = useUnreadAlertCount();
 
   return (
-    <Link to="/dashboard/alerts" className="relative">
-      <Bell className="h-5 w-5" />
+    <Link
+      to="/dashboard/alerts"
+      className="relative"
+      aria-label={`Smart alerts ${count && count > 0 ? `(${count} unread)` : ""}`}
+    >
+      <Bell className="h-5 w-5" aria-hidden="true" />
       {count && count > 0 && (
-        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+        <span
+          className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center"
+          aria-hidden="true"
+        >
           {count > 9 ? "9+" : count}
         </span>
       )}

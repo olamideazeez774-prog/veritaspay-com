@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, Link2, BarChart3, Wallet, ShoppingCart,
@@ -138,16 +138,21 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
-  // Save progress to DB
+  // Debounced progress save to DB (prevents excessive writes)
   useEffect(() => {
     if (!user) return;
-    const role = isVendor ? "vendor" : "affiliate";
-    supabase.from("onboarding_progress").upsert({
-      user_id: user.id,
-      role,
-      current_step: currentStep,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id" }).then(() => {});
+
+    const timeoutId = setTimeout(() => {
+      const role = isVendor ? "vendor" : "affiliate";
+      supabase.from("onboarding_progress").upsert({
+        user_id: user.id,
+        role,
+        current_step: currentStep,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" }).catch(console.error);
+    }, 1000); // Debounce 1 second
+
+    return () => clearTimeout(timeoutId);
   }, [currentStep, user, isVendor]);
 
   const handleNext = () => {
@@ -181,6 +186,29 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   };
 
   const step = steps[currentStep];
+  const modalRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+  // Handle ESC key to close/skip
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onSkip();
+    }
+  }, [onSkip]);
+
+  // Set up keyboard listeners and focus trap
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    // Focus first focusable element when modal opens
+    firstFocusableRef.current?.focus();
+    // Prevent body scroll
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [handleKeyDown]);
 
   const variants = {
     enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0 }),
@@ -189,20 +217,37 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-title"
+      aria-describedby="onboarding-description"
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === modalRef.current) onSkip();
+      }}
+    >
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold">
+            <h2 id="onboarding-title" className="text-lg font-bold">
               Welcome to Mirvyn
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p id="onboarding-description" className="text-sm text-muted-foreground">
               {isVendor ? "Vendor" : "Affiliate"} Quick Start Guide
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onSkip} className="text-muted-foreground">
-            <X className="h-4 w-4 mr-1" /> Skip
+          <Button
+            ref={firstFocusableRef}
+            variant="ghost"
+            size="sm"
+            onClick={onSkip}
+            className="text-muted-foreground"
+            aria-label="Skip onboarding"
+          >
+            <X className="h-4 w-4 mr-1" aria-hidden="true" /> Skip
           </Button>
         </div>
 
@@ -229,9 +274,12 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
               className="flex-1 flex flex-col items-center text-center space-y-5"
             >
               {/* Icon */}
-              <div className={cn(
-                "h-20 w-20 rounded-2xl flex items-center justify-center bg-muted/50 border-2 border-border",
-              )}>
+              <div
+                className={cn(
+                  "h-20 w-20 rounded-2xl flex items-center justify-center bg-muted/50 border-2 border-border",
+                )}
+                aria-hidden="true"
+              >
                 <step.icon className={cn("h-10 w-10", step.color)} />
               </div>
 
@@ -246,7 +294,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
               {/* Action */}
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 w-full">
                 <p className="text-xs font-medium text-primary flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {step.action}
                 </p>
               </div>
@@ -261,22 +309,25 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
             onClick={handlePrev}
             disabled={currentStep === 0}
             className="min-h-[44px]"
+            aria-label="Previous step"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <ChevronLeft className="h-4 w-4 mr-1" aria-hidden="true" />
             Back
           </Button>
 
           {/* Step dots */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5" role="tablist" aria-label="Onboarding steps">
             {steps.map((_, i) => (
               <button
                 key={i}
                 onClick={() => { setDirection(i > currentStep ? 1 : -1); setCurrentStep(i); }}
-                title={`Go to step ${i + 1}`}
                 className={cn(
-                  "h-2 rounded-full transition-all",
+                  "h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   i === currentStep ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                 )}
+                aria-label={`Go to step ${i + 1} of ${totalSteps}`}
+                aria-current={i === currentStep ? "step" : undefined}
+                role="tab"
               />
             ))}
           </div>
@@ -284,16 +335,17 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
           <Button
             onClick={handleNext}
             className="min-h-[44px]"
+            aria-label={currentStep === totalSteps - 1 ? "Complete onboarding" : "Next step"}
           >
             {currentStep === totalSteps - 1 ? (
               <>
-                <Check className="h-4 w-4 mr-1" />
+                <Check className="h-4 w-4 mr-1" aria-hidden="true" />
                 Done
               </>
             ) : (
               <>
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="h-4 w-4 ml-1" aria-hidden="true" />
               </>
             )}
           </Button>

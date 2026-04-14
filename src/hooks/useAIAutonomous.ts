@@ -162,6 +162,9 @@ export function useMarkAlertRead() {
       queryClient.invalidateQueries({ queryKey: ["ai-smart-alerts"] });
       queryClient.invalidateQueries({ queryKey: ["ai-unread-alert-count"] });
     },
+    onError: (error: Error) => {
+      toast.error("Failed to mark alert as read: " + error.message);
+    },
   });
 }
 
@@ -179,6 +182,10 @@ export function useDismissAlert() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-smart-alerts"] });
       queryClient.invalidateQueries({ queryKey: ["ai-unread-alert-count"] });
+      toast.success("Alert dismissed");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to dismiss alert: " + error.message);
     },
   });
 }
@@ -228,6 +235,10 @@ export function useUpdateContentStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-content-calendar"] });
+      toast.success("Status updated");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update status: " + error.message);
     },
   });
 }
@@ -248,6 +259,9 @@ export function useDeleteContentItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-content-calendar"] });
       toast.success("Content removed");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to remove content: " + error.message);
     },
   });
 }
