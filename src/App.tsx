@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Public pages - lazy loaded for code splitting
 const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
@@ -94,17 +95,18 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>}>
-              <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
+            <ErrorBoundary>
+              <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>}>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/ref/:code" element={<ProductDetail />} />
               <Route path="/checkout/:productId" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
@@ -429,10 +431,11 @@ const App = () => (
                 }
               />
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Suspense>
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>

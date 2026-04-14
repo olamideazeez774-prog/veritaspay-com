@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface CheckoutContext {
   productId: string;
@@ -44,7 +45,7 @@ export default function PaymentCallback() {
 
         // Verify the reference matches
         if (reference && reference !== context.paymentReference) {
-          console.warn("Reference mismatch:", reference, context.paymentReference);
+          logger.error("Payment reference mismatch", { received: reference, expected: context.paymentReference });
         }
 
         // Check if context is too old (30 minutes expiry)
@@ -98,7 +99,7 @@ export default function PaymentCallback() {
         }, 2000);
 
       } catch (err: unknown) {
-        console.error("Payment callback error:", err);
+        logger.error("Payment callback error", err);
         setStatus("error");
         const errorMessage = err instanceof Error ? err.message : "Payment verification failed";
         setMessage(errorMessage);

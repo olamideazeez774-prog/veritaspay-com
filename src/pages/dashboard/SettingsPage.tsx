@@ -1,19 +1,18 @@
-import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import { User, Mail, Lock, Save, Upload, Moon, Sun, PenTool, Trash2, BadgeCheck, Shield } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { staggerContainer, staggerItem } from "@/lib/animations";
-import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Loader2, Upload, Camera, Trophy, CheckCircle, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
+import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { PLATFORM_NAME } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
 
 export default function SettingsPage() {
@@ -141,7 +140,7 @@ export default function SettingsPage() {
       toast.success("Profile photo updated!");
       refreshProfile();
     } catch (err) {
-      console.error("Upload error:", err);
+      logger.error("Profile photo upload error", err);
       toast.error("Failed to upload photo");
     } finally {
       setUploading(false);

@@ -14,9 +14,16 @@ export const logger = {
       console.warn(...args);
     }
   },
-  error: (...args: unknown[]) => {
-    // Always log errors, even in production
-    console.error(...args);
+  error: (message: string, error?: unknown) => {
+    // In production, send to monitoring service instead of console
+    // In development, log sanitized error
+    if (isDevelopment) {
+      console.error(message, error);
+    } else {
+      // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
+      // For now, only log generic message without sensitive data
+      console.error(`[Error] ${message}`);
+    }
   },
   info: (...args: unknown[]) => {
     if (isDevelopment) {

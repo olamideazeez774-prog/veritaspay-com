@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LISTING_FEE } from "@/hooks/useListingPayment";
 import { formatCurrency } from "@/lib/format";
+import { logger } from "@/lib/logger";
 import {
   DEFAULT_COMMISSION_PERCENT,
   MIN_COMMISSION_PERCENT,
@@ -112,7 +113,7 @@ export default function ProductForm() {
       });
       navigate("/dashboard/products");
     } catch (error) {
-      console.error("Failed to create product:", error);
+      logger.error("Failed to create product", error);
     }
   };
 

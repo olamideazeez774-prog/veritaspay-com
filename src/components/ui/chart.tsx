@@ -65,24 +65,33 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Build CSS custom properties safely without dangerouslySetInnerHTML
+  const cssVariables: Record<string, string> = {};
+  
+  colorConfig.forEach(([key, itemConfig]) => {
+    Object.entries(THEMES).forEach(([theme, prefix]) => {
+      const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+      if (color) {
+        // Only allow valid CSS color values (hex, rgb, rgba, hsl, named colors)
+        const sanitizedColor = color.replace(/[<>\"']/g, '');
+        const cssVarName = `--color-${key}`;
+        
+        // Apply to specific theme context
+        if (prefix === "" || (theme === "dark" && typeof document !== "undefined" && document.documentElement.classList.contains("dark"))) {
+          cssVariables[cssVarName] = sanitizedColor;
+        }
+      }
+    });
+  });
+
   return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
+    <div 
+      aria-hidden="true" 
+      style={{ 
+        display: 'none',
+        ...cssVariables 
+      }} 
+      data-chart-style={id} 
     />
   );
 };

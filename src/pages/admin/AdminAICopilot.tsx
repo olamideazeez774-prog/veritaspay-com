@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { AIContentCalendar } from "@/components/AIContentCalendar";
 import { AISmartAlerts } from "@/components/AISmartAlerts";
 import { AIOptimizationSettingsPanel } from "@/components/AIOptimizationSettings";
+import { logger } from "@/lib/logger";
 
 const AUTO_INTERVAL_MS = 60_000;
 
@@ -218,7 +219,7 @@ export default function AdminAICopilot() {
         qc.invalidateQueries({ queryKey: ["ai-copilot-platform-data"] });
       }
     } catch (err) {
-      console.error("Auto cycle error:", err);
+      logger.error("Auto cycle error", err);
     }
   }, [autoHoldFraud, autoAdjustRankings, autoPromoBoosts, refetchPlatform, qc]);
 

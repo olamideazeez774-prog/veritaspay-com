@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
 import { generatePremiumCertificatePDF } from "@/lib/certificateGenerator";
+import { logger } from "@/lib/logger";
 
 interface AffiliateRank {
   id: string;
@@ -171,7 +172,7 @@ export default function CertificatesPage() {
       });
       toast.success("Certificate downloaded!");
     } catch (err) {
-      console.error("PDF generation error:", err);
+      logger.error("PDF generation error", err);
       toast.error("Failed to generate PDF");
     }
   };

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
+import { logger } from "@/lib/logger";
 
 interface DeliveryData {
   sale: {
@@ -75,7 +76,7 @@ export default function DeliveryPage() {
 
         setData(deliveryData);
       } catch (err: unknown) {
-        console.error("Delivery fetch error:", err);
+        logger.error("Delivery fetch error", err);
         setError(err instanceof Error ? err.message : "Failed to load your purchase");
       } finally {
         setLoading(false);

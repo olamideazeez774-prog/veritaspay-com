@@ -24,6 +24,7 @@ import { ShareMenu } from "@/components/ui/share-menu";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { ScarcityTimer } from "@/components/ScarcityTimer";
 import { useQuery } from "@tanstack/react-query";
+import { logger } from "@/lib/logger";
 
 export default function ProductDetail() {
   const { id, code } = useParams();
@@ -69,7 +70,7 @@ export default function ProductDetail() {
           });
 
           if (error) {
-            console.error("Error tracking click:", error);
+            logger.error("Error tracking click", error);
             const { data: linkData } = await supabase
               .from("affiliate_links")
               .select("product_id")
@@ -88,7 +89,7 @@ export default function ProductDetail() {
             localStorage.setItem("affiliate_code_timestamp", Date.now().toString());
           }
         } catch (err) {
-          console.error("Error in click tracking:", err);
+          logger.error("Error in click tracking", err);
         } finally {
           setIsTrackingClick(false);
         }

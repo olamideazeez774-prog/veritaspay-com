@@ -13,18 +13,34 @@ import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferra
 const REF_STORAGE_KEY = "vp_referral_code";
 const REF_ID_STORAGE_KEY = "vp_referrer_id";
 
+// Referral code validation regex - alphanumeric only, 6-20 chars
+const REFERRAL_CODE_REGEX = /^[A-Z0-9]{6,20}$/;
+
+function validateReferralCodeFormat(code: string): boolean {
+  return REFERRAL_CODE_REGEX.test(code);
+}
+
 function setRefCookie(code: string) {
+  // Validate code before setting cookie
+  if (!validateReferralCodeFormat(code)) {
+    console.warn("Invalid referral code format rejected");
+    return;
+  }
+  
   const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-  document.cookie = `vp_ref=${encodeURIComponent(code)};expires=${expires};path=/;SameSite=Lax`;
+  const secure = window.location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `vp_ref=${encodeURIComponent(code)};expires=${expires};path=/;SameSite=Strict${secure}`;
 }
 
 function getRefCookie(): string {
   const match = document.cookie.match(/(?:^|;\s*)vp_ref=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : "";
+  const value = match ? decodeURIComponent(match[1]) : "";
+  // Validate on retrieval too
+  return validateReferralCodeFormat(value) ? value : "";
 }
 
 function clearRefCookie() {
-  document.cookie = "vp_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  document.cookie = "vp_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict";
 }
 
 export default function Register() {

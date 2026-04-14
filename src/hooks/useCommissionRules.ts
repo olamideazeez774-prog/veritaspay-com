@@ -39,7 +39,7 @@ export function useCreateCommissionRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (rule: Partial<CommissionRule>) => {
-      const { data, error } = await supabase.from("commission_rules").insert(rule as any).select().single();
+      const { data, error } = await supabase.from("commission_rules").insert(rule as { name: string; rule_type: string; affiliate_id?: string; bonus_amount?: number; boost_percent?: number; commission_override?: number; created_at?: string; ends_at?: string; id?: string; is_active?: boolean; metadata?: import("@/integrations/supabase/types").Json; min_sales?: number; priority?: number; product_id?: string; starts_at?: string; updated_at?: string }).select().single();
       if (error) throw error;
       return data;
     },
