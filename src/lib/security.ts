@@ -49,7 +49,7 @@ export function sanitizeInput(input: string): string {
   const dangerousTags = /<(script|iframe|object|embed|form|input|textarea|button|link|style)[^>]*>.*?<\/\1>/gi;
   const dangerousAttributes = /\s*(on\w+|javascript:|data:text\/html)[^=]*=["'][^"']*["']/gi;
 
-  let sanitized = input
+  const sanitized = input
     .replace(dangerousTags, "")
     .replace(dangerousAttributes, "")
     .replace(/[<>]/g, (match) => (match === "<" ? "&lt;" : "&gt;"));

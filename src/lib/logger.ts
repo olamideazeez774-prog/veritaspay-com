@@ -27,7 +27,8 @@ async function flushErrors(): Promise<void> {
   try {
     // Try to send to your backend logging endpoint
     const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.from("error_logs").insert(
+    // Use type assertion since error_logs table is not in generated types
+    await (supabase as any).from("error_logs").insert(
       errorsToSend.map(e => ({
         message: e.message.slice(0, 500),
         error_details: e.error?.slice(0, 1000),
