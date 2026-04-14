@@ -107,10 +107,8 @@ export default function ProductForm() {
     if (!pendingProductData) return;
 
     try {
-      await createProduct.mutateAsync({
-        ...pendingProductData as any,
-        status: "draft",
-      });
+      const productData = { ...pendingProductData, status: "draft" as const };
+      await createProduct.mutateAsync(productData as Record<string, unknown>);
       navigate("/dashboard/products");
     } catch (error) {
       logger.error("Failed to create product", error);
@@ -289,10 +287,14 @@ export default function ProductForm() {
                         step={5}
                         className="py-4"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Affiliates will earn {formData.commission_percent}% of each sale they
-                        generate.
-                      </p>
+                      <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden="true" />
+                        <span>
+                          Minimum commission is {MIN_COMMISSION_PERCENT}%. You can increase this
+                          to attract more affiliates. At {formData.commission_percent}%, affiliates
+                          earn {formatCurrency(Math.round(parseFloat(formData.price || "0") * formData.commission_percent / 100))} per sale.
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}

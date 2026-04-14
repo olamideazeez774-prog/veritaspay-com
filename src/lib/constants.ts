@@ -3,13 +3,19 @@
 export const PLATFORM_NAME = "Mirvyn";
 export const PLATFORM_TAGLINE = "The Premium Affiliate Commerce Platform";
 
-export const DEFAULT_PLATFORM_FEE_PERCENT = 10;
-export const DEFAULT_COMMISSION_PERCENT = 30;
-export const MIN_COMMISSION_PERCENT = 5;
-export const MAX_COMMISSION_PERCENT = 90;
-export const DEFAULT_REFUND_WINDOW_DAYS = 7;
+export const DEFAULT_PLATFORM_FEE_PERCENT = 10; // Platform takes 10% on every vendor sale
+export const DEFAULT_COMMISSION_PERCENT = 50; // Default affiliate commission (cannot be lower)
+export const MIN_COMMISSION_PERCENT = 50; // Minimum affiliate commission (vendors can set higher)
+export const MAX_COMMISSION_PERCENT = 90; // Maximum affiliate commission
+export const DEFAULT_REFUND_WINDOW_DAYS = 0; // Strict no-refund policy (0 days)
 export const DEFAULT_COOKIE_DURATION_DAYS = 30;
-export const MIN_WITHDRAWAL_AMOUNT = 5000; // in Naira
+export const MIN_WITHDRAWAL_AMOUNT = 4000; // Minimum withdrawal: ₦4,000
+export const WITHDRAWAL_FEE_PERCENT_MIN = 2; // Minimum withdrawal fee: 2%
+export const WITHDRAWAL_FEE_PERCENT_MAX = 4; // Maximum withdrawal fee: 4%
+export const REFERRAL_BONUS_PERCENT = 3; // 3% referral bonus on referred user earnings
+export const VENDOR_REGISTRATION_FEE = 8500; // Vendor account creation: ₦8,500
+export const AFFILIATE_REGISTRATION_FEE = 2000; // Affiliate registration: ₦2,000
+export const AFFILIATE_RENEWAL_MONTHS = 6; // Affiliate renewal required every 6 months
 
 export const CURRENCY = {
   code: "NGN",

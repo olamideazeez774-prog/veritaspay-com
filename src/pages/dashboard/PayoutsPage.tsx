@@ -4,8 +4,6 @@ import { Wallet, Clock, CheckCircle, XCircle, Plus, Banknote, Info } from "lucid
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, usePayoutRequests, useCreatePayoutRequest } from "@/hooks/useWallet";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +12,11 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import {
+  MIN_WITHDRAWAL_AMOUNT,
+  WITHDRAWAL_FEE_PERCENT_MIN,
+  WITHDRAWAL_FEE_PERCENT_MAX,
+} from "@/lib/constants";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -48,20 +51,40 @@ export default function PayoutsPage() {
     },
   });
 
-  const withdrawalFeePercent = feeSettings?.withdrawal_fee_percent || 0;
-  const withdrawalFlatFee = feeSettings?.withdrawal_flat_fee || 0;
+  // Calculate withdrawal fee based on amount (2% - 4% sliding scale)
+  // Higher amounts get lower percentage fees
   const amount = parseFloat(formData.amount) || 0;
-  const feeAmount = isAdmin ? 0 : Math.round((amount * withdrawalFeePercent / 100) + withdrawalFlatFee);
+  const getWithdrawalFeePercent = (amt: number): number => {
+    if (isAdmin) return 0;
+    // Sliding scale: ₦4,000 = 4%, ₦50,000+ = 2%
+    const minFee = WITHDRAWAL_FEE_PERCENT_MIN; // 2%
+    const maxFee = WITHDRAWAL_FEE_PERCENT_MAX; // 4%
+    const maxAmount = 50000;
+    const minAmount = MIN_WITHDRAWAL_AMOUNT; // 4000
+    if (amt >= maxAmount) return minFee;
+    // Linear interpolation between min and max
+    const feeRange = maxFee - minFee;
+    const amountProgress = (maxAmount - amt) / (maxAmount - minAmount);
+    return Math.round((minFee + feeRange * amountProgress) * 10) / 10;
+  };
+
+  const withdrawalFeePercent = getWithdrawalFeePercent(amount);
+  const feeAmount = isAdmin ? 0 : Math.round(amount * withdrawalFeePercent / 100);
   const netAmount = Math.max(0, amount - feeAmount);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
+    if (amount < MIN_WITHDRAWAL_AMOUNT) {
+      toast.error(`Minimum withdrawal amount is ${formatCurrency(MIN_WITHDRAWAL_AMOUNT)}`);
+      return;
+    }
+
     if (!wallet || amount > wallet.withdrawable_balance) {
       toast.error("Insufficient withdrawable balance");
       return;
@@ -137,29 +160,29 @@ export default function PayoutsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input id="amount" type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} max={wallet?.withdrawable_balance} step="0.01" required />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="amount">Amount</Label>
+                      <span className="text-xs text-muted-foreground">
+                        Min: {formatCurrency(MIN_WITHDRAWAL_AMOUNT)}
+                      </span>
+                    </div>
+                    <Input id="amount" type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} max={wallet?.withdrawable_balance} min={MIN_WITHDRAWAL_AMOUNT} step="0.01" required />
+                    <p className="text-xs text-muted-foreground">
+                      Withdrawal fee: 2% - 4% (lower fees for larger amounts)
+                    </p>
                   </div>
 
                   {/* Fee breakdown */}
-                  {amount > 0 && (withdrawalFeePercent > 0 || withdrawalFlatFee > 0) && !isAdmin && (
+                  {amount >= MIN_WITHDRAWAL_AMOUNT && withdrawalFeePercent > 0 && !isAdmin && (
                     <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
                       <div className="flex items-center gap-1 text-muted-foreground mb-2">
-                        <Info className="h-4 w-4" />
+                        <Info className="h-4 w-4" aria-hidden="true" />
                         <span className="font-medium">Fee Breakdown</span>
                       </div>
-                      {withdrawalFeePercent > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Percentage fee ({withdrawalFeePercent}%)</span>
-                          <span>{formatCurrency(Math.round(amount * withdrawalFeePercent / 100))}</span>
-                        </div>
-                      )}
-                      {withdrawalFlatFee > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Flat fee</span>
-                          <span>{formatCurrency(withdrawalFlatFee)}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Processing fee ({withdrawalFeePercent}%)</span>
+                        <span>{formatCurrency(feeAmount)}</span>
+                      </div>
                       <div className="flex justify-between border-t pt-1 font-semibold">
                         <span>You'll receive</span>
                         <span className="text-success">{formatCurrency(netAmount)}</span>
