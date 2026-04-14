@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, Loader2, ArrowRight, Package } from "lucide-react";
@@ -26,6 +26,15 @@ export default function PaymentCallback() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your payment...");
   const [saleId, setSaleId] = useState<string | null>(null);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get reference from URL (Paystack sends 'reference' or 'trxref')
   const reference = searchParams.get("reference") || searchParams.get("trxref");
@@ -94,7 +103,7 @@ export default function PaymentCallback() {
         toast.success("Payment successful!");
 
         // Redirect to success page after a short delay
-        setTimeout(() => {
+        redirectTimeoutRef.current = setTimeout(() => {
           navigate("/checkout/success");
         }, 2000);
 

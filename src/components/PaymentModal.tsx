@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreditCard, CheckCircle, Loader2, Copy, ExternalLink } from "lucide-react";
 import {
@@ -42,6 +42,16 @@ export function PaymentModal({
   const [businessName, setBusinessName] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
+  const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (completeTimeoutRef.current) {
+        clearTimeout(completeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const createPayment = useCreateListingPayment();
 
   // Load bank details from platform settings
@@ -93,7 +103,7 @@ export function PaymentModal({
         business_email: businessEmail,
       });
       setStep("complete");
-      setTimeout(() => {
+      completeTimeoutRef.current = setTimeout(() => {
         onPaymentComplete(paymentReference);
         onOpenChange(false);
         setStep("details");

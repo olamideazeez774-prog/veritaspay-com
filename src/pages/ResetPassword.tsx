@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,15 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const navigate = useNavigate();
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Check if we have a valid session from the reset link
@@ -62,7 +71,7 @@ export default function ResetPassword() {
       } else {
         setIsSuccess(true);
         toast.success("Password updated successfully!");
-        setTimeout(() => navigate("/login"), 2000);
+        redirectTimeoutRef.current = setTimeout(() => navigate("/login"), 2000);
       }
     } catch (error) {
       toast.error("An error occurred. Please try again.");
