@@ -1,5 +1,6 @@
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 // Extended jsPDF interface for internal APIs - using unknown for internal types
 interface JSPDFExtended {
