@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { VercelAnalytics } from "@/components/vercel-analytics";
+import { VercelSpeedInsights } from "@/components/vercel-speed-insights";
 
 // Public pages - lazy loaded for code splitting
 const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
@@ -93,6 +95,8 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
+          <VercelAnalytics />
+          <VercelSpeedInsights />
           <BrowserRouter>
             <ScrollToTop />
             <ErrorBoundary>
