@@ -3,11 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AppRole } from "@/types/database";
 
-// Allowed admin emails - extra security layer
-const ALLOWED_ADMIN_EMAILS = [
-  "stanleyvic13@gmail.com",
-  "olamideazeez774@gmail.com"
-];
+// Allowed admin emails - loaded from environment for security
+const ALLOWED_ADMIN_EMAILS = import.meta.env.VITE_ADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

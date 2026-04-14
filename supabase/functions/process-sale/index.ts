@@ -183,19 +183,24 @@ Deno.serve(async (req) => {
 
     const vendorEarnings = afterPlatformFee - affiliateCommission;
 
-    // Second-tier commission
+    // Second-tier commission - calculated from AFFILIATE commission (not platform fee)
+    // The referring affiliate earns a percentage of what their referred affiliate earns
     let secondTierAffiliateId: string | null = null;
     let secondTierCommission = 0;
 
-    const { data: vendorReferral } = await supabase
-      .from("platform_referrals").select("referrer_id").eq("referred_user_id", product.vendor_id).maybeSingle();
+    if (affiliateId) {
+      // Check if the affiliate was referred by another affiliate
+      const { data: affiliateReferral } = await supabase
+        .from("platform_referrals").select("referrer_id").eq("referred_user_id", affiliateId).maybeSingle();
 
-    if (vendorReferral) {
-      const { data: referrerRole } = await supabase
-        .from("user_roles").select("role").eq("user_id", vendorReferral.referrer_id).eq("role", "affiliate").maybeSingle();
-      if (referrerRole) {
-        secondTierAffiliateId = vendorReferral.referrer_id;
-        secondTierCommission = Math.round((platformFee * secondTierCommissionPercent) / 100);
+      if (affiliateReferral) {
+        const { data: referrerRole } = await supabase
+          .from("user_roles").select("role").eq("user_id", affiliateReferral.referrer_id).eq("role", "affiliate").maybeSingle();
+        if (referrerRole) {
+          secondTierAffiliateId = affiliateReferral.referrer_id;
+          // Second-tier commission is a percentage of the PRIMARY affiliate's commission
+          secondTierCommission = Math.round((affiliateCommission * secondTierCommissionPercent) / 100);
+        }
       }
     }
 
