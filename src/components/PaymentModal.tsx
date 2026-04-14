@@ -54,21 +54,28 @@ export function PaymentModal({
 
   const createPayment = useCreateListingPayment();
 
-  // Load bank details from platform settings
-  const { data: bankDetails } = useQuery({
+  // Load bank details from platform settings - no fallback to prevent accidental test data usage
+  const { data: bankDetails, isLoading: isLoadingBankDetails, error: bankDetailsError } = useQuery({
     queryKey: ["payment-bank-details"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("platform_settings")
         .select("value")
         .eq("key", "bank_details")
         .maybeSingle();
-      return (data?.value as Record<string, string>) || {
-        bankName: "Wema Bank",
-        accountNumber: "0123456789",
-        accountName: "Mirvyn Ltd",
-      };
+
+      if (error) throw error;
+
+      const bankConfig = data?.value as Record<string, string> | null;
+
+      // Validate that bank details are properly configured
+      if (!bankConfig?.bankName || !bankConfig?.accountNumber || !bankConfig?.accountName) {
+        throw new Error("Bank details not configured. Please contact support.");
+      }
+
+      return bankConfig;
     },
+    retry: false,
   });
 
   const handleCopyAccount = () => {
@@ -177,28 +184,49 @@ export function PaymentModal({
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4 py-4"
             >
-              <div className="p-4 rounded-lg bg-muted space-y-3">
-                <p className="text-sm font-medium">Transfer {formatCurrency(amount)} to:</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Bank</span>
-                    <span className="font-medium">{bankDetails?.bankName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Account Number</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium">{bankDetails?.accountNumber}</span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyAccount}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
+              {/* Bank Details Error State */}
+              {bankDetailsError && (
+                <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                  <p className="text-sm text-destructive font-medium">Payment Configuration Error</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Bank details are not properly configured. Please contact support or try again later.
+                  </p>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {isLoadingBankDetails && (
+                <div className="p-4 rounded-lg bg-muted text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Loading payment details...</p>
+                </div>
+              )}
+
+              {/* Bank Details Display */}
+              {!bankDetailsError && !isLoadingBankDetails && bankDetails && (
+                <div className="p-4 rounded-lg bg-muted space-y-3">
+                  <p className="text-sm font-medium">Transfer {formatCurrency(amount)} to:</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Bank</span>
+                      <span className="font-medium">{bankDetails.bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Account Number</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium">{bankDetails.accountNumber}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyAccount}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Account Name</span>
+                      <span className="font-medium">{bankDetails.accountName}</span>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Account Name</span>
-                    <span className="font-medium">{bankDetails?.accountName}</span>
-                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                 <ExternalLink className="h-4 w-4 text-warning shrink-0" />
@@ -221,7 +249,11 @@ export function PaymentModal({
                 <Button variant="outline" onClick={() => setStep("details")} className="flex-1">
                   Back
                 </Button>
-                <Button onClick={handleConfirmPayment} className="flex-1">
+                <Button
+                  onClick={handleConfirmPayment}
+                  className="flex-1"
+                  disabled={!bankDetails || isLoadingBankDetails || !!bankDetailsError}
+                >
                   I've Made Payment
                 </Button>
               </div>

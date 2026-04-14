@@ -12,6 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatDateTime, formatCurrency } from "@/lib/format";
@@ -22,6 +32,9 @@ import { AIOptimizationSettingsPanel } from "@/components/AIOptimizationSettings
 import { logger } from "@/lib/logger";
 
 const AUTO_INTERVAL_MS = 60_000;
+const MAX_AUTO_ACTIONS_PER_SESSION = 100; // Safety limit
+const MAX_ACTIONS_PER_CYCLE = 10; // Prevent runaway actions
+const REQUIRES_CONFIRMATION_ABOVE = 50; // Actions requiring explicit confirmation
 
 export default function AdminAICopilot() {
   const { user } = useAuth();
@@ -32,7 +45,10 @@ export default function AdminAICopilot() {
   const [marginFloor, setMarginFloor] = useState(5);
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [sessionActions, setSessionActions] = useState(0);
+  const [showAutoConfirmDialog, setShowAutoConfirmDialog] = useState(false);
+  const [isAutoStopping, setIsAutoStopping] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cycleCountRef = useRef(0);
   const aiInsight = useAIInsight();
 
   const { data: platformData, refetch: refetchPlatform } = useQuery({
@@ -208,40 +224,86 @@ export default function AdminAICopilot() {
   }, [logDecision]);
 
   const runAutoCycle = useCallback(async () => {
+    // Safety: Check if we've exceeded max actions per session
+    if (sessionActions >= MAX_AUTO_ACTIONS_PER_SESSION) {
+      logger.warn(`Auto cycle skipped: Max actions per session (${MAX_AUTO_ACTIONS_PER_SESSION}) reached`);
+      toast.warning("Autonomous mode auto-paused: Maximum actions per session reached. Please review decisions and re-enable if needed.");
+      setAutoEnabled(false);
+      return;
+    }
+
+    cycleCountRef.current += 1;
+
     try {
       await refetchPlatform();
       const fraudHeld = await autoHoldFraud();
       const rankingsAdjusted = await autoAdjustRankings();
       const promosBoosted = await autoPromoBoosts();
       const total = fraudHeld + rankingsAdjusted + promosBoosted;
+
+      // Safety: Limit actions per cycle to prevent runaway
+      if (total > MAX_ACTIONS_PER_CYCLE) {
+        logger.error(`Emergency stop: ${total} actions in single cycle exceeds limit of ${MAX_ACTIONS_PER_CYCLE}`);
+        toast.error("Emergency stop: Too many actions detected. Autonomous mode disabled.");
+        setAutoEnabled(false);
+        return;
+      }
+
       setSessionActions(prev => prev + total);
+
+      // Safety: Warn when approaching limit
+      if (sessionActions + total >= REQUIRES_CONFIRMATION_ABOVE && sessionActions < REQUIRES_CONFIRMATION_ABOVE) {
+        toast.warning(`${sessionActions + total} actions taken. Approaching session limit. Review decisions before continuing.`);
+      }
+
       if (total > 0) {
         qc.invalidateQueries({ queryKey: ["ai-copilot-platform-data"] });
       }
     } catch (err) {
       logger.error("Auto cycle error", err);
     }
-  }, [autoHoldFraud, autoAdjustRankings, autoPromoBoosts, refetchPlatform, qc]);
+  }, [autoHoldFraud, autoAdjustRankings, autoPromoBoosts, refetchPlatform, qc, sessionActions]);
+
+  // Handle enabling/disabling autonomous mode with safety checks
+  const handleAutoToggle = useCallback((enabled: boolean) => {
+    if (enabled) {
+      // Show confirmation dialog for enabling
+      setShowAutoConfirmDialog(true);
+    } else {
+      setIsAutoStopping(true);
+      setAutoEnabled(false);
+      setIsAutoStopping(false);
+    }
+  }, []);
+
+  const confirmEnableAuto = useCallback(() => {
+    setSessionActions(0);
+    cycleCountRef.current = 0;
+    setAutoEnabled(true);
+    setShowAutoConfirmDialog(false);
+    toast.success("Autonomous Mode enabled with safety limits active");
+  }, []);
 
   useEffect(() => {
     if (autoEnabled) {
-      setSessionActions(0);
       runAutoCycle();
       intervalRef.current = setInterval(runAutoCycle, AUTO_INTERVAL_MS);
-      toast.success("Autonomous Mode enabled — running every 60s");
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (sessionActions > 0) {
+      if (sessionActions > 0 && isAutoStopping) {
         toast.info(`AI Steward Report: ${sessionActions} actions taken during this session.`);
       }
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [autoEnabled, runAutoCycle, sessionActions]);
+  }, [autoEnabled, runAutoCycle, sessionActions, isAutoStopping]);
 
   return (
     <DashboardLayout>
@@ -266,7 +328,11 @@ export default function AdminAICopilot() {
               </p>
             </div>
           </div>
-          <Switch checked={autoEnabled} onCheckedChange={setAutoEnabled} />
+          <Switch
+            checked={autoEnabled}
+            onCheckedChange={handleAutoToggle}
+            aria-label="Toggle autonomous mode"
+          />
         </div>
 
         {/* Guardrails */}
@@ -406,6 +472,40 @@ export default function AdminAICopilot() {
             </motion.div>
           )}
         </div>
+
+        {/* Autonomous Mode Confirmation Dialog */}
+        <AlertDialog open={showAutoConfirmDialog} onOpenChange={setShowAutoConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                Enable Autonomous Mode?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Autonomous mode will automatically execute actions every 60 seconds without individual confirmation.</p>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  <li>Fraud commission holds</li>
+                  <li>Product ranking adjustments</li>
+                  <li>Promotional boosts</li>
+                </ul>
+                <p className="text-warning font-medium text-sm mt-2">
+                  Safety limits: Max {MAX_AUTO_ACTIONS_PER_SESSION} actions per session, max {MAX_ACTIONS_PER_CYCLE} per cycle.
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  All actions are logged and can be rolled back from the Decision Log.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowAutoConfirmDialog(false)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmEnableAuto} className="bg-success hover:bg-success/90">
+                Enable Autonomous Mode
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

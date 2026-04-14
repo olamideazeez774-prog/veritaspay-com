@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Settings, Sparkles, Bell, Calendar, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import {
 export function AIOptimizationSettingsPanel() {
   const { data: settings, isLoading } = useAIOptimizationSettings();
   const updateSettings = useUpdateAIOptimizationSettings();
-  const [localSettings, setLocalSettings] = useState(settings);
 
   if (isLoading) {
     return (
@@ -26,9 +24,7 @@ export function AIOptimizationSettingsPanel() {
     );
   }
 
-  const handleToggle = (key: keyof typeof localSettings, value: boolean) => {
-    const newSettings = { ...localSettings, [key]: value };
-    setLocalSettings(newSettings);
+  const handleToggle = (key: string, value: boolean) => {
     updateSettings.mutate({ [key]: value });
   };
 

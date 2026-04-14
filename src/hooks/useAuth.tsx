@@ -15,7 +15,7 @@ interface AuthContextType {
   isAffiliate: boolean;
   isPremium: boolean;
   isEmailVerified: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; data: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; data: unknown }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -32,25 +32,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    if (profileData) {
-      setProfile(profileData as Profile);
+      if (error) {
+        logger.error("Failed to fetch profile", error);
+        return;
+      }
+
+      if (profileData) {
+        setProfile(profileData as Profile);
+      }
+    } catch (err) {
+      logger.error("Unexpected error fetching profile", err);
     }
   };
 
   const fetchRoles = async (userId: string) => {
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      const { data: rolesData, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
-    if (rolesData) {
-      setRoles(rolesData.map((r) => r.role as AppRole));
+      if (error) {
+        logger.error("Failed to fetch roles", error);
+        return;
+      }
+
+      if (rolesData) {
+        setRoles(rolesData.map((r) => r.role as AppRole));
+      }
+    } catch (err) {
+      logger.error("Unexpected error fetching roles", err);
     }
   };
 

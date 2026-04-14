@@ -151,7 +151,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex h-16 items-center justify-between gap-2 px-4">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold">
-              V
+              M
             </div>
             {sidebarOpen && (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}

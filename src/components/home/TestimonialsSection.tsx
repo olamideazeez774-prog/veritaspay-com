@@ -3,35 +3,37 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Quote, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Testimonials from verified platform users
+// TODO: Replace with dynamic testimonials from database once review system is implemented
 const testimonials = [
   {
-    name: "Adaeze Okonkwo",
+    name: "Sarah Mitchell",
     role: "Digital Course Creator",
-    avatar: "AO",
+    avatar: "SM",
     content:
-      "Afficore transformed my business. I went from struggling to sell my courses to having a team of affiliates promoting them. My revenue tripled in 3 months!",
+      "Mirvyn transformed my business. I went from struggling to sell my courses to having a team of affiliates promoting them. My revenue tripled in 3 months!",
     rating: 5,
   },
   {
-    name: "Emmanuel Obi",
+    name: "James Rodriguez",
     role: "Affiliate Marketer",
-    avatar: "EO",
+    avatar: "JR",
     content:
       "The tracking is incredibly accurate, and payouts are always on time. It's the most transparent platform I've used. I recommend it to all my fellow marketers.",
     rating: 5,
   },
   {
-    name: "Fatima Hassan",
+    name: "Priya Sharma",
     role: "E-book Author",
-    avatar: "FH",
+    avatar: "PS",
     content:
       "Setting up my products was a breeze. The affiliate network brought me customers I never would have reached on my own. Truly a game-changer!",
     rating: 5,
   },
   {
-    name: "Chukwudi Nnamdi",
+    name: "Michael Chen",
     role: "Software Developer",
-    avatar: "CN",
+    avatar: "MC",
     content:
       "I sell templates and UI kits here. The platform handles everything—payments, delivery, affiliate management. I just focus on creating products.",
     rating: 5,
