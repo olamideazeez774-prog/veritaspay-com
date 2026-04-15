@@ -44,8 +44,6 @@ export function Footer() {
               <img src="/logo.jpg" alt="Avenyx" className="h-10 w-10 rounded-lg object-cover" />
               <span className="text-2xl font-bold font-serif text-gradient-primary">
                 {PLATFORM_NAME}
-              <span className="text-2xl font-bold font-serif text-gradient-primary">
-                {PLATFORM_NAME}
               </span>
             </Link>
             <p className="text-muted-foreground max-w-sm mb-6">

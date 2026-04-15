@@ -74,8 +74,6 @@ export function Header() {
               <img src="/logo.jpg" alt="Avenyx" className="h-9 w-9 rounded-lg object-cover" />
               <span className="text-xl font-bold font-serif text-gradient-primary hidden sm:block">
                 {PLATFORM_NAME}
-              <span className="text-xl font-bold font-serif text-gradient-primary hidden sm:block">
-                {PLATFORM_NAME}
               </span>
             </motion.div>
           </Link>
