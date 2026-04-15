@@ -4,7 +4,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AppRole } from "@/types/database";
 
 // Allowed admin emails - loaded from environment for security
-const ALLOWED_ADMIN_EMAILS = import.meta.env.VITE_ADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
+const ALLOWED_ADMIN_EMAILS = import.meta.env.VITE_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || [];
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,8 +29,19 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   if (requiredRoles && requiredRoles.length > 0) {
     if (requiredRoles.includes("admin")) {
-      const userEmail = user.email || profile?.email || "";
-      const isEmailAllowed = ALLOWED_ADMIN_EMAILS.includes(userEmail.toLowerCase());
+      const userEmail = (user.email || profile?.email || "").toLowerCase();
+      const isEmailAllowed = ALLOWED_ADMIN_EMAILS.includes(userEmail);
+      
+      // Debug logging for admin access issues (development only)
+      if (import.meta.env.DEV) {
+        console.log("Admin Access Check:", {
+          userEmail,
+          allowedEmails: ALLOWED_ADMIN_EMAILS,
+          isEmailAllowed,
+          isAdmin,
+          userRoles: roles
+        });
+      }
       
       if (!isEmailAllowed || !isAdmin) {
         return <Navigate to="/dashboard" replace />;

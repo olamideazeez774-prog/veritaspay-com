@@ -124,7 +124,7 @@ export default function PayoutsPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button disabled={!wallet || wallet.withdrawable_balance <= 0} className="min-h-[44px]">
+              <Button className="min-h-[44px]">
                 <Plus className="mr-2 h-4 w-4" />
                 Request Payout
               </Button>
