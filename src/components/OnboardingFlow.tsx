@@ -149,7 +149,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         role,
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" }).catch(console.error);
+      }, { onConflict: "user_id" }).then(() => {});
     }, 1000); // Debounce 1 second
 
     return () => clearTimeout(timeoutId);
@@ -233,7 +233,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 id="onboarding-title" className="text-lg font-bold">
-              Welcome to Mirvyn
+              Welcome to Avenyx
             </h2>
             <p id="onboarding-description" className="text-sm text-muted-foreground">
               {isVendor ? "Vendor" : "Affiliate"} Quick Start Guide

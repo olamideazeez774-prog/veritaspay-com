@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (!email || !amount || !productId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       console.error("Paystack error:", paystackData);
       return new Response(JSON.stringify({ error: paystackData.message || "Payment initialization failed" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 

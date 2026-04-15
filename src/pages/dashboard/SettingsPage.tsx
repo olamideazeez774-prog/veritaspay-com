@@ -8,12 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Upload, Camera, Trophy, CheckCircle, ExternalLink } from "lucide-react";
+import { Loader2, Upload, Camera, Trophy, CheckCircle, ExternalLink, Sun, Moon, User, Mail, Save, BadgeCheck, Shield, PenTool, Trash2, Lock as LockIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
+import { cn } from "@/lib/utils";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "@/hooks/useTheme";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function SettingsPage() {
   const { user, profile, isLoading, isAdmin, refreshProfile } = useAuth();
@@ -483,14 +486,14 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="new_password">New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <LockIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="new_password" type="password" placeholder="Enter new password" value={passwordData.new} onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })} className="pl-10" required />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <LockIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="confirm_password" type="password" placeholder="Confirm new password" value={passwordData.confirm} onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })} className="pl-10" required />
                 </div>
               </div>

@@ -35,21 +35,7 @@ export default function PayoutsPage() {
     account_name: "",
   });
 
-  // Fetch fee settings
-  const { data: feeSettings } = useQuery({
-    queryKey: ["micro-fees"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "micro_fees")
-        .maybeSingle();
-      return (data?.value as Record<string, number>) || {
-        withdrawal_fee_percent: 0,
-        withdrawal_flat_fee: 0,
-      };
-    },
-  });
+  // Fee settings are handled via constants for now
 
   // Calculate withdrawal fee based on amount (2% - 4% sliding scale)
   // Higher amounts get lower percentage fees

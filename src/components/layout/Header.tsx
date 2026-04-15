@@ -71,9 +71,7 @@ export function Header() {
               whileTap={{ scale: 0.95 }}
               className="flex items-center gap-2"
             >
-              <div className="h-9 w-9 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-xl font-bold text-white font-serif">V</span>
-              </div>
+              <img src="/logo.jpg" alt="Avenyx" className="h-9 w-9 rounded-lg object-cover" />
               <span className="text-xl font-bold font-serif text-gradient-primary hidden sm:block">
                 {PLATFORM_NAME}
               </span>

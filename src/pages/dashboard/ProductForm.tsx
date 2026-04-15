@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Save, Loader2, CreditCard, Info } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useProduct, useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
@@ -104,11 +104,16 @@ export default function ProductForm() {
   };
 
   const handlePaymentComplete = async (paymentReference: string) => {
-    if (!pendingProductData) return;
+    if (!pendingProductData || !user) return;
 
     try {
-      const productData = { ...pendingProductData, status: "draft" as const };
-      await createProduct.mutateAsync(productData as Record<string, unknown>);
+      await createProduct.mutateAsync({
+        vendor_id: user.id,
+        title: (pendingProductData as Record<string, unknown>).title as string,
+        price: (pendingProductData as Record<string, unknown>).price as number,
+        ...(pendingProductData as Record<string, unknown>),
+        status: "draft" as const,
+      });
       navigate("/dashboard/products");
     } catch (error) {
       logger.error("Failed to create product", error);

@@ -41,9 +41,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-xl font-bold text-white font-serif">A</span>
-              </div>
+              <img src="/logo.jpg" alt="Avenyx" className="h-10 w-10 rounded-lg object-cover" />
               <span className="text-2xl font-bold font-serif text-gradient-primary">
                 {PLATFORM_NAME}
               </span>
