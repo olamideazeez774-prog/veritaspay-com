@@ -108,7 +108,7 @@ export default function ProductForm() {
 
     try {
       const productData = { ...pendingProductData, status: "draft" as const };
-      await createProduct.mutateAsync(productData as Record<string, unknown>);
+      await createProduct.mutateAsync(productData);
       navigate("/dashboard/products");
     } catch (error) {
       logger.error("Failed to create product", error);

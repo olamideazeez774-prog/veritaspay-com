@@ -118,8 +118,9 @@ export default function Register() {
       const storedReferrerId = referrerId || localStorage.getItem(REF_ID_STORAGE_KEY);
       const storedCode = referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "";
       
-      if (storedReferrerId && data?.user?.id && storedReferrerId !== data.user.id) {
-        await recordPlatformReferral(storedReferrerId, data.user.id, storedCode);
+      const signUpData = data as { user?: { id: string } } | null;
+      if (storedReferrerId && signUpData?.user?.id && storedReferrerId !== signUpData.user.id) {
+        await recordPlatformReferral(storedReferrerId, signUpData.user.id, storedCode);
       }
 
       // Clean up storage

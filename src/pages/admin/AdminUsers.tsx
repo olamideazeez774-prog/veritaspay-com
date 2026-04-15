@@ -97,8 +97,8 @@ export default function AdminUsers() {
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       // Prevent removing the last admin role
       if (role === "admin") {
-        const { data: adminCount } = await supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin");
-        if (adminCount === 1) {
+        const { count: adminCount } = await supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin");
+        if ((adminCount ?? 0) <= 1) {
           throw new Error("Cannot remove the last admin user");
         }
       }
