@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Save, Loader2, CreditCard, Info } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useProduct, useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";

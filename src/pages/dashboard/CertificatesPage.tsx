@@ -131,13 +131,13 @@ export default function CertificatesPage() {
     }
     const hash = `VP-${rankName.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
 
-    const metadata: Record<string, unknown> = {
-      full_name: profile?.full_name,
-      email: profile?.email,
+    const metadata = {
+      full_name: profile?.full_name || "",
+      email: profile?.email || "",
       total_commission: totalEarned,
       milestone_date: new Date().toISOString(),
       platform_name: PLATFORM_NAME,
-      avatar_url: profile?.avatar_url,
+      avatar_url: profile?.avatar_url || "",
     };
 
     const { error } = await supabase.from("certificates").insert([{
