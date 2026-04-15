@@ -149,7 +149,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         role,
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" }).then(() => {}).catch(console.error);
+      }, { onConflict: "user_id" }).then(() => {});
     }, 1000); // Debounce 1 second
 
     return () => clearTimeout(timeoutId);

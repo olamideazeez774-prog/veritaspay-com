@@ -140,12 +140,12 @@ export default function CertificatesPage() {
       avatar_url: profile?.avatar_url,
     };
 
-    const { error } = await supabase.from("certificates").insert({
+    const { error } = await supabase.from("certificates").insert([{
       user_id: user.id,
       rank_name: rankName,
       certificate_hash: hash,
       metadata: metadata,
-    });
+    }]);
 
     if (error) {
       if (error.code === "23505") toast.info("Certificate already claimed!");

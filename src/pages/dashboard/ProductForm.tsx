@@ -104,11 +104,16 @@ export default function ProductForm() {
   };
 
   const handlePaymentComplete = async (paymentReference: string) => {
-    if (!pendingProductData) return;
+    if (!pendingProductData || !user) return;
 
     try {
-      const productData = { ...pendingProductData, status: "draft" as const };
-      await createProduct.mutateAsync(productData);
+      await createProduct.mutateAsync({
+        vendor_id: user.id,
+        title: (pendingProductData as Record<string, unknown>).title as string,
+        price: (pendingProductData as Record<string, unknown>).price as number,
+        ...(pendingProductData as Record<string, unknown>),
+        status: "draft" as const,
+      });
       navigate("/dashboard/products");
     } catch (error) {
       logger.error("Failed to create product", error);
