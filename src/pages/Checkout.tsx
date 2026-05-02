@@ -129,9 +129,9 @@ export default function Checkout() {
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("initialize-payment", {
         body: {
           email: formData.email,
-          amount: finalPrice,
           productId: product.id,
           affiliateCode: affiliateCode || undefined,
+          couponCode: couponApplied?.code || undefined,
           buyerName: formData.name,
           callbackUrl: `${window.location.origin}/payment/callback`,
         },

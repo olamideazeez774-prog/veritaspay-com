@@ -233,7 +233,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 id="onboarding-title" className="text-lg font-bold">
-              Welcome to Avenyx
+              Welcome to Mirvyn
             </h2>
             <p id="onboarding-description" className="text-sm text-muted-foreground">
               {isVendor ? "Vendor" : "Affiliate"} Quick Start Guide

@@ -4,6 +4,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// SECURITY: this function must only be called from other edge functions (service role)
+// or by authenticated admins. Reject any unauthenticated public callers.
+function isAuthorized(req: Request): boolean {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  // Allow service-role calls (from other edge functions) only.
+  // Anon-key calls are rejected even if the key is present.
+  return token === serviceKey;
+}
+
 interface EmailRequest {
   to: string;
   subject: string;
@@ -17,6 +29,13 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (!isAuthorized(req)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const { to, subject, html, from }: EmailRequest = await req.json();
 
@@ -41,7 +60,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: from || "Avenyx <noreply@avenyx.com>",
+        from: from || "Mirvyn <noreply@mirvyn.com>",
         to: [to],
         subject,
         html,
