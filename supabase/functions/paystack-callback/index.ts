@@ -14,7 +14,7 @@ interface CallbackRequest {
   buyerName?: string;
   affiliateCode?: string;
   couponCode?: string;
-  finalPrice: number;
+  finalPrice?: number;
 }
 
 Deno.serve(async (req) => {
@@ -42,7 +42,6 @@ Deno.serve(async (req) => {
       buyerName,
       affiliateCode,
       couponCode,
-      finalPrice,
     }: CallbackRequest = await req.json();
 
     if (!reference || !productId || !buyerEmail) {
@@ -50,6 +49,40 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // SECURITY: Recompute expected price server-side. Never trust the client.
+    const { data: product, error: productErr } = await supabase
+      .from("products")
+      .select("id, price, vendor_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (productErr || !product) {
+      return new Response(JSON.stringify({ error: "Product not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let serverFinalPrice = Number(product.price);
+    if (couponCode) {
+      const { data: coupon } = await supabase
+        .from("vendor_coupons")
+        .select("*")
+        .eq("code", String(couponCode).toUpperCase().trim())
+        .eq("is_active", true)
+        .eq("vendor_id", product.vendor_id)
+        .maybeSingle();
+      if (coupon) {
+        const validProduct = !coupon.product_id || coupon.product_id === productId;
+        const notExpired = !coupon.expires_at || new Date(coupon.expires_at) > new Date();
+        const hasUses = !coupon.max_uses || coupon.current_uses < coupon.max_uses;
+        if (validProduct && notExpired && hasUses) {
+          if (coupon.discount_percent > 0) {
+            serverFinalPrice = Math.max(0, serverFinalPrice - Math.round(serverFinalPrice * (coupon.discount_percent / 100)));
+          } else if (coupon.discount_amount > 0) {
+            serverFinalPrice = Math.max(0, serverFinalPrice - Number(coupon.discount_amount));
+          }
+        }
+      }
     }
 
     // Verify payment with Paystack
@@ -74,7 +107,7 @@ Deno.serve(async (req) => {
     // Check payment status
     const transactionStatus = paystackData.data?.status;
     const amountPaid = paystackData.data?.amount || 0;
-    const expectedAmount = Math.round(finalPrice * 100); // Paystack uses kobo
+    const expectedAmount = Math.round(serverFinalPrice * 100); // server-computed kobo
 
     if (transactionStatus !== "success") {
       return new Response(
@@ -83,19 +116,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify amount matches (with small tolerance for currency conversion)
     const amountDiff = Math.abs(amountPaid - expectedAmount);
     if (amountDiff > 100) { // 1 naira tolerance
       console.warn(`Amount mismatch: expected ${expectedAmount}, got ${amountPaid}`);
-      // Log fraud attempt but don't block for now
       await supabase.from("fraud_events").insert({
         event_type: "payment_amount_mismatch",
-        severity: "medium",
+        severity: "high",
         related_id: productId,
         related_type: "product",
-        description: `Payment amount mismatch: expected ₦${finalPrice}, reference: ${reference}`,
-        status: "flagged",
+        description: `Payment amount mismatch: expected ₦${serverFinalPrice}, paid kobo ${amountPaid}, ref: ${reference}`,
+        status: "blocked",
       });
+      return new Response(
+        JSON.stringify({ error: "Payment amount mismatch — sale rejected" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const paymentVerified = true;
