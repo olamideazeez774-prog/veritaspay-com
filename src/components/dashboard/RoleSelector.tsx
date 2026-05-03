@@ -149,9 +149,6 @@ export function RoleSelector() {
         })}
       </div>
 
-      <div className="mt-6 flex justify-center">
-      </div>
-
       {selectedRoles.includes("vendor") && (
         <div className="mt-6 rounded-xl border border-border p-4">
           <p className="mb-3 text-sm font-semibold">Choose your vendor plan</p>
