@@ -150,6 +150,34 @@ export function RoleSelector() {
       </div>
 
       <div className="mt-6 flex justify-center">
+      </div>
+
+      {selectedRoles.includes("vendor") && (
+        <div className="mt-6 rounded-xl border border-border p-4">
+          <p className="mb-3 text-sm font-semibold">Choose your vendor plan</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {([
+              { id: "standard", title: "Growth Plan", desc: `${formatCurrency(VENDOR_REGISTRATION_FEE)} upfront + 10% per sale` },
+              { id: "starter", title: "Starter Plan", desc: `${formatCurrency(VENDOR_STARTER_UPFRONT)} now + ${formatCurrency(VENDOR_STARTER_DEFERRED)} from your first 5 sales + 10% per sale` },
+            ] as const).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setVendorPlan(p.id)}
+                className={cn(
+                  "rounded-lg border-2 p-3 text-left text-sm transition-all",
+                  vendorPlan === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                )}
+              >
+                <p className="font-semibold">{p.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-center">
         <Button
           size="lg"
           onClick={handleSubmit}
