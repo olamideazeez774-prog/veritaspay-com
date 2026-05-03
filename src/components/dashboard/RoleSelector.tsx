@@ -9,28 +9,30 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import {
   VENDOR_REGISTRATION_FEE,
+  VENDOR_STARTER_UPFRONT,
+  VENDOR_STARTER_DEFERRED,
   AFFILIATE_REGISTRATION_FEE,
-  AFFILIATE_RENEWAL_MONTHS,
+  AFFILIATE_DISPLAY_MONTHLY,
 } from "@/lib/constants";
 
 const roles = [
   {
     id: "vendor",
     title: "Become a Vendor",
-    description: "Sell digital products and recruit affiliates to scale your revenue.",
+    description: "Sell digital products with two flexible onboarding plans.",
     icon: Package,
     fee: VENDOR_REGISTRATION_FEE,
-    feeLabel: "One-time registration fee",
+    feeLabel: `Standard ${VENDOR_REGISTRATION_FEE} or Starter ${VENDOR_STARTER_UPFRONT} now + ${VENDOR_STARTER_DEFERRED} from first 5 sales`,
     platformFee: "10% platform fee on sales",
     features: ["List unlimited products", "Set commission rates (50%+)", "Track sales & earnings"],
   },
   {
     id: "affiliate",
     title: "Become an Affiliate",
-    description: "Promote products and earn commissions on every sale you generate.",
+    description: `Just ₦${AFFILIATE_DISPLAY_MONTHLY}/month, billed annually. Promote products and earn commissions.`,
     icon: Link2,
     fee: AFFILIATE_REGISTRATION_FEE,
-    feeLabel: `Registration fee (renew every ${AFFILIATE_RENEWAL_MONTHS} months)`,
+    feeLabel: `₦${AFFILIATE_DISPLAY_MONTHLY}/mo billed annually (${formatCurrency(AFFILIATE_REGISTRATION_FEE)}/yr)`,
     features: ["Generate affiliate links", "Track clicks & conversions", "Earn 50%+ commission per sale"],
   },
 ];
