@@ -40,6 +40,7 @@ const roles = [
 export function RoleSelector() {
   const { user, refreshProfile } = useAuth();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [vendorPlan, setVendorPlan] = useState<"standard" | "starter">("standard");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleRole = (roleId: string) => {
@@ -61,6 +62,13 @@ export function RoleSelector() {
       const { error } = await supabase.from("user_roles").insert(rolesToInsert);
 
       if (error) throw error;
+
+      if (selectedRoles.includes("vendor")) {
+        await supabase.from("profiles").update({
+          vendor_plan: vendorPlan,
+          onboarding_balance_due: vendorPlan === "starter" ? VENDOR_STARTER_DEFERRED : 0,
+        }).eq("id", user.id);
+      }
 
       toast.success("Roles assigned successfully!");
       await refreshProfile();
