@@ -94,6 +94,7 @@ export default function ProductForm() {
       cover_image_url: formData.cover_image_url || null,
       status: formData.status,
       affiliate_enabled: formData.affiliate_enabled,
+      listing_model: formData.listing_model,
     };
 
     if (isEditing && id) {
@@ -101,9 +102,18 @@ export default function ProductForm() {
       await updateProduct.mutateAsync({ id, ...productData });
       navigate("/dashboard/products");
     } else {
-      // New product requires payment
-      setPendingProductData(productData);
-      setShowPaymentModal(true);
+      if (formData.listing_model === "waiver") {
+        // Zero-upfront option: no payment modal, just create the product (15% fee will be enforced server-side)
+        await createProduct.mutateAsync({
+          ...productData,
+          status: "draft" as const,
+        });
+        navigate("/dashboard/products");
+      } else {
+        // Standard: ₦2,000 listing payment required
+        setPendingProductData(productData);
+        setShowPaymentModal(true);
+      }
     }
   };
 
