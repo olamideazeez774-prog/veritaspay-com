@@ -690,11 +690,18 @@ export type Database = {
           account_number: string | null
           admin_notes: string | null
           amount: number
+          auto_processed: boolean
           bank_name: string | null
           created_at: string
+          failure_reason: string | null
+          fee_amount: number
+          hold_until: string
           id: string
+          net_amount: number
           processed_at: string | null
           status: Database["public"]["Enums"]["payout_status"]
+          transfer_code: string | null
+          transfer_status: string | null
           updated_at: string
           user_id: string
           wallet_id: string
@@ -704,11 +711,18 @@ export type Database = {
           account_number?: string | null
           admin_notes?: string | null
           amount: number
+          auto_processed?: boolean
           bank_name?: string | null
           created_at?: string
+          failure_reason?: string | null
+          fee_amount?: number
+          hold_until?: string
           id?: string
+          net_amount?: number
           processed_at?: string | null
           status?: Database["public"]["Enums"]["payout_status"]
+          transfer_code?: string | null
+          transfer_status?: string | null
           updated_at?: string
           user_id: string
           wallet_id: string
@@ -718,11 +732,18 @@ export type Database = {
           account_number?: string | null
           admin_notes?: string | null
           amount?: number
+          auto_processed?: boolean
           bank_name?: string | null
           created_at?: string
+          failure_reason?: string | null
+          fee_amount?: number
+          hold_until?: string
           id?: string
+          net_amount?: number
           processed_at?: string | null
           status?: Database["public"]["Enums"]["payout_status"]
+          transfer_code?: string | null
+          transfer_status?: string | null
           updated_at?: string
           user_id?: string
           wallet_id?: string
@@ -859,6 +880,7 @@ export type Database = {
           is_featured: boolean | null
           is_sponsored: boolean | null
           is_subscription: boolean
+          listing_model: string
           platform_fee_percent: number
           price: number
           ranking_score: number | null
@@ -884,6 +906,7 @@ export type Database = {
           is_featured?: boolean | null
           is_sponsored?: boolean | null
           is_subscription?: boolean
+          listing_model?: string
           platform_fee_percent?: number
           price: number
           ranking_score?: number | null
@@ -909,6 +932,7 @@ export type Database = {
           is_featured?: boolean | null
           is_sponsored?: boolean | null
           is_subscription?: boolean
+          listing_model?: string
           platform_fee_percent?: number
           price?: number
           ranking_score?: number | null
@@ -932,10 +956,12 @@ export type Database = {
           id: string
           is_banned: boolean
           is_verified: boolean
+          onboarding_balance_due: number
           referral_code: string | null
           referred_by: string | null
           suspended_until: string | null
           updated_at: string
+          vendor_plan: string
           vendor_tier: string
         }
         Insert: {
@@ -947,10 +973,12 @@ export type Database = {
           id: string
           is_banned?: boolean
           is_verified?: boolean
+          onboarding_balance_due?: number
           referral_code?: string | null
           referred_by?: string | null
           suspended_until?: string | null
           updated_at?: string
+          vendor_plan?: string
           vendor_tier?: string
         }
         Update: {
@@ -962,10 +990,12 @@ export type Database = {
           id?: string
           is_banned?: boolean
           is_verified?: boolean
+          onboarding_balance_due?: number
           referral_code?: string | null
           referred_by?: string | null
           suspended_until?: string | null
           updated_at?: string
+          vendor_plan?: string
           vendor_tier?: string
         }
         Relationships: [
@@ -1460,6 +1490,25 @@ export type Database = {
         Args: { _amount: number; _wallet_id: string }
         Returns: undefined
       }
+      compute_withdrawal_fee: { Args: { _amount: number }; Returns: number }
+      create_wallet_transaction: {
+        Args: {
+          _amount: number
+          _description: string
+          _sale_id: string
+          _type: string
+          _wallet_id: string
+        }
+        Returns: undefined
+      }
+      debit_wallet_for_payout: {
+        Args: { _amount: number; _wallet_id: string }
+        Returns: undefined
+      }
+      deduct_onboarding_balance: {
+        Args: { _max_deduction: number; _vendor_id: string }
+        Returns: number
+      }
       dismiss_ai_alert: { Args: { alert_id: string }; Returns: undefined }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_profile_referral_code: { Args: never; Returns: string }
@@ -1474,6 +1523,10 @@ export type Database = {
       }
       increment_conversion_count: {
         Args: { link_id: string }
+        Returns: undefined
+      }
+      increment_coupon_usage: {
+        Args: { coupon_id: string }
         Returns: undefined
       }
       increment_pending_balance: {

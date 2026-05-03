@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet, Transaction, PayoutRequest } from "@/types/database";
 import { toast } from "sonner";
+import { WITHDRAWAL_FEE_PERCENT_MIN, WITHDRAWAL_FEE_PERCENT_MAX, WITHDRAWAL_FEE_TIER_THRESHOLD } from "@/lib/constants";
 
 export function useWallet(userId?: string) {
   return useQuery({
@@ -69,12 +70,19 @@ export function useCreatePayoutRequest() {
   
   return useMutation({
     mutationFn: async (request: { user_id: string; wallet_id: string; amount: number; bank_name?: string; account_number?: string; account_name?: string }) => {
+      const feePercent = request.amount >= WITHDRAWAL_FEE_TIER_THRESHOLD
+        ? WITHDRAWAL_FEE_PERCENT_MIN
+        : WITHDRAWAL_FEE_PERCENT_MAX;
+      const feeAmount = Math.round(request.amount * feePercent / 100);
+      const netAmount = Math.max(0, request.amount - feeAmount);
       const { data, error } = await supabase
         .from("payout_requests")
         .insert({
           user_id: request.user_id,
           wallet_id: request.wallet_id,
           amount: request.amount,
+          fee_amount: feeAmount,
+          net_amount: netAmount,
           bank_name: request.bank_name,
           account_number: request.account_number,
           account_name: request.account_name,
@@ -87,7 +95,7 @@ export function useCreatePayoutRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payout-requests"] });
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
-      toast.success("Payout request submitted!");
+      toast.success("Payout requested! Held 12 hours for fraud review, then auto-paid via Paystack.");
     },
     onError: (error: Error) => {
       toast.error(error.message);

@@ -9,28 +9,30 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import {
   VENDOR_REGISTRATION_FEE,
+  VENDOR_STARTER_UPFRONT,
+  VENDOR_STARTER_DEFERRED,
   AFFILIATE_REGISTRATION_FEE,
-  AFFILIATE_RENEWAL_MONTHS,
+  AFFILIATE_DISPLAY_MONTHLY,
 } from "@/lib/constants";
 
 const roles = [
   {
     id: "vendor",
     title: "Become a Vendor",
-    description: "Sell digital products and recruit affiliates to scale your revenue.",
+    description: "Sell digital products with two flexible onboarding plans.",
     icon: Package,
     fee: VENDOR_REGISTRATION_FEE,
-    feeLabel: "One-time registration fee",
+    feeLabel: `Standard ${VENDOR_REGISTRATION_FEE} or Starter ${VENDOR_STARTER_UPFRONT} now + ${VENDOR_STARTER_DEFERRED} from first 5 sales`,
     platformFee: "10% platform fee on sales",
     features: ["List unlimited products", "Set commission rates (50%+)", "Track sales & earnings"],
   },
   {
     id: "affiliate",
     title: "Become an Affiliate",
-    description: "Promote products and earn commissions on every sale you generate.",
+    description: `Just ₦${AFFILIATE_DISPLAY_MONTHLY}/month, billed annually. Promote products and earn commissions.`,
     icon: Link2,
     fee: AFFILIATE_REGISTRATION_FEE,
-    feeLabel: `Registration fee (renew every ${AFFILIATE_RENEWAL_MONTHS} months)`,
+    feeLabel: `₦${AFFILIATE_DISPLAY_MONTHLY}/mo billed annually (${formatCurrency(AFFILIATE_REGISTRATION_FEE)}/yr)`,
     features: ["Generate affiliate links", "Track clicks & conversions", "Earn 50%+ commission per sale"],
   },
 ];
@@ -38,6 +40,7 @@ const roles = [
 export function RoleSelector() {
   const { user, refreshProfile } = useAuth();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [vendorPlan, setVendorPlan] = useState<"standard" | "starter">("standard");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleRole = (roleId: string) => {
@@ -59,6 +62,13 @@ export function RoleSelector() {
       const { error } = await supabase.from("user_roles").insert(rolesToInsert);
 
       if (error) throw error;
+
+      if (selectedRoles.includes("vendor")) {
+        await supabase.from("profiles").update({
+          vendor_plan: vendorPlan,
+          onboarding_balance_due: vendorPlan === "starter" ? VENDOR_STARTER_DEFERRED : 0,
+        }).eq("id", user.id);
+      }
 
       toast.success("Roles assigned successfully!");
       await refreshProfile();
@@ -138,6 +148,31 @@ export function RoleSelector() {
           );
         })}
       </div>
+
+      {selectedRoles.includes("vendor") && (
+        <div className="mt-6 rounded-xl border border-border p-4">
+          <p className="mb-3 text-sm font-semibold">Choose your vendor plan</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {([
+              { id: "standard", title: "Growth Plan", desc: `${formatCurrency(VENDOR_REGISTRATION_FEE)} upfront + 10% per sale` },
+              { id: "starter", title: "Starter Plan", desc: `${formatCurrency(VENDOR_STARTER_UPFRONT)} now + ${formatCurrency(VENDOR_STARTER_DEFERRED)} from your first 5 sales + 10% per sale` },
+            ] as const).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setVendorPlan(p.id)}
+                className={cn(
+                  "rounded-lg border-2 p-3 text-left text-sm transition-all",
+                  vendorPlan === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                )}
+              >
+                <p className="font-semibold">{p.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 flex justify-center">
         <Button

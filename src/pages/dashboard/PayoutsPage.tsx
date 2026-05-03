@@ -16,6 +16,8 @@ import {
   MIN_WITHDRAWAL_AMOUNT,
   WITHDRAWAL_FEE_PERCENT_MIN,
   WITHDRAWAL_FEE_PERCENT_MAX,
+  WITHDRAWAL_FEE_TIER_THRESHOLD,
+  PAYOUT_HOLD_HOURS,
 } from "@/lib/constants";
 import { toast } from "sonner";
 import {
@@ -40,18 +42,12 @@ export default function PayoutsPage() {
   // Calculate withdrawal fee based on amount (2% - 4% sliding scale)
   // Higher amounts get lower percentage fees
   const amount = parseFloat(formData.amount) || 0;
+  // Tiered withdrawal fee: < ₦20,000 = 3%, ≥ ₦20,000 = 2%
   const getWithdrawalFeePercent = (amt: number): number => {
     if (isAdmin) return 0;
-    // Sliding scale: ₦4,000 = 4%, ₦50,000+ = 2%
-    const minFee = WITHDRAWAL_FEE_PERCENT_MIN; // 2%
-    const maxFee = WITHDRAWAL_FEE_PERCENT_MAX; // 4%
-    const maxAmount = 50000;
-    const minAmount = MIN_WITHDRAWAL_AMOUNT; // 4000
-    if (amt >= maxAmount) return minFee;
-    // Linear interpolation between min and max
-    const feeRange = maxFee - minFee;
-    const amountProgress = (maxAmount - amt) / (maxAmount - minAmount);
-    return Math.round((minFee + feeRange * amountProgress) * 10) / 10;
+    return amt >= WITHDRAWAL_FEE_TIER_THRESHOLD
+      ? WITHDRAWAL_FEE_PERCENT_MIN
+      : WITHDRAWAL_FEE_PERCENT_MAX;
   };
 
   const withdrawalFeePercent = getWithdrawalFeePercent(amount);
@@ -154,7 +150,7 @@ export default function PayoutsPage() {
                     </div>
                     <Input id="amount" type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} max={wallet?.withdrawable_balance} min={MIN_WITHDRAWAL_AMOUNT} step="0.01" required />
                     <p className="text-xs text-muted-foreground">
-                      Withdrawal fee: 2% - 4% (lower fees for larger amounts)
+                      Fee: 3% under {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)} · 2% from {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)}+. Auto-paid via Paystack after a {PAYOUT_HOLD_HOURS}h fraud-review hold.
                     </p>
                   </div>
 

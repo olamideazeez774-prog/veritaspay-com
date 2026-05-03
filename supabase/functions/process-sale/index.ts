@@ -181,7 +181,23 @@ Deno.serve(async (req) => {
       ? Math.round((afterPlatformFee * commissionPercent) / 100)
       : 0;
 
-    const vendorEarnings = afterPlatformFee - affiliateCommission;
+    let vendorEarnings = afterPlatformFee - affiliateCommission;
+
+    // ======== STARTER PLAN ONBOARDING DEDUCTION ========
+    // Vendors on the Starter plan (₦3k upfront + ₦5,500 deferred) have ₦1,100 deducted
+    // from up to their first 5 sales' vendor earnings.
+    let onboardingDeducted = 0;
+    {
+      const perSaleMax = Math.min(1100, vendorEarnings);
+      if (perSaleMax > 0) {
+        const { data: deducted } = await supabase.rpc("deduct_onboarding_balance", {
+          _vendor_id: product.vendor_id,
+          _max_deduction: perSaleMax,
+        });
+        onboardingDeducted = Number(deducted) || 0;
+        vendorEarnings -= onboardingDeducted;
+      }
+    }
 
     // Second-tier commission - calculated from AFFILIATE commission (not platform fee)
     // The referring affiliate earns a percentage of what their referred affiliate earns
