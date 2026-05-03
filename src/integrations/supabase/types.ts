@@ -1501,6 +1501,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      debit_wallet_for_payout: {
+        Args: { _amount: number; _wallet_id: string }
+        Returns: undefined
+      }
       deduct_onboarding_balance: {
         Args: { _max_deduction: number; _vendor_id: string }
         Returns: number
