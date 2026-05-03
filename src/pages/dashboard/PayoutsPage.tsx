@@ -150,7 +150,7 @@ export default function PayoutsPage() {
                     </div>
                     <Input id="amount" type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} max={wallet?.withdrawable_balance} min={MIN_WITHDRAWAL_AMOUNT} step="0.01" required />
                     <p className="text-xs text-muted-foreground">
-                      Withdrawal fee: 2% - 4% (lower fees for larger amounts)
+                      Fee: 3% under {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)} · 2% from {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)}+. Auto-paid via Paystack after a {PAYOUT_HOLD_HOURS}h fraud-review hold.
                     </p>
                   </div>
 
