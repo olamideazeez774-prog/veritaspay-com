@@ -321,27 +321,44 @@ export default function ProductForm() {
             </Card>
           </motion.div>
 
-          {/* Listing Fee Notice (for new products only) */}
+          {/* Listing model picker (new products only) */}
           {!isEditing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-full bg-primary/10 p-3">
-                      <CreditCard className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">Listing Fee Required</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        A one-time listing fee of <strong>{formatCurrency(LISTING_FEE)}</strong> is
-                        required to publish your product. Your product will be reviewed and
-                        activated within 24 hours after payment verification.
-                      </p>
-                    </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Listing Option</CardTitle>
+                  <CardDescription>Choose how you want to pay for this listing</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {([
+                    {
+                      id: "standard" as const,
+                      title: "Standard Listing",
+                      desc: `Pay ${formatCurrency(PRODUCT_LISTING_FEE_STANDARD)} now · 10% platform fee per sale`,
+                      recommended: true,
+                    },
+                    {
+                      id: "waiver" as const,
+                      title: "Zero Upfront",
+                      desc: `No listing fee · ${PLATFORM_FEE_WAIVER_PERCENT}% platform fee per sale`,
+                    },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, listing_model: opt.id })}
+                      className={`w-full rounded-lg border-2 p-4 text-left transition-all ${formData.listing_model === opt.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold">{opt.title}</p>
+                        {opt.recommended && <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5">Recommended</span>}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{opt.desc}</p>
+                    </button>
+                  ))}
+                  <div className="flex items-start gap-1.5 text-xs text-muted-foreground pt-1">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>Products are reviewed and activated within 24h.</span>
                   </div>
                 </CardContent>
               </Card>
