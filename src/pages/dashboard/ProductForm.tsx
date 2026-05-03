@@ -21,6 +21,8 @@ import {
   DEFAULT_COMMISSION_PERCENT,
   MIN_COMMISSION_PERCENT,
   MAX_COMMISSION_PERCENT,
+  PRODUCT_LISTING_FEE_STANDARD,
+  PLATFORM_FEE_WAIVER_PERCENT,
 } from "@/lib/constants";
 import { ProductStatus } from "@/types/database";
 import { toast } from "sonner";
@@ -46,6 +48,7 @@ export default function ProductForm() {
     cover_image_url: "",
     status: "draft" as ProductStatus,
     affiliate_enabled: true,
+    listing_model: "standard" as "standard" | "waiver",
   });
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export default function ProductForm() {
         cover_image_url: existingProduct.cover_image_url || "",
         status: existingProduct.status,
         affiliate_enabled: existingProduct.affiliate_enabled,
+        listing_model: ((existingProduct as unknown as { listing_model?: "standard" | "waiver" }).listing_model) || "standard",
       });
     }
   }, [existingProduct]);
