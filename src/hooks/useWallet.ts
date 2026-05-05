@@ -109,11 +109,18 @@ export function useAllPayoutRequests() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payout_requests")
-        .select("*, profiles:user_id(full_name, email)")
+        .select("*")
         .order("created_at", { ascending: false });
-      
       if (error) throw error;
-      return data;
+      const rows = data || [];
+      if (rows.length === 0) return rows;
+      const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      const map = new Map((profs || []).map((p) => [p.id, p]));
+      return rows.map((r) => ({ ...r, profiles: map.get(r.user_id) }));
     },
   });
 }
