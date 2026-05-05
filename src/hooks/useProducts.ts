@@ -77,6 +77,7 @@ export function useCreateProduct() {
           cover_image_url: product.cover_image_url,
           status: product.status,
           affiliate_enabled: product.affiliate_enabled,
+          listing_model: product.listing_model,
         })
         .select()
         .single();
