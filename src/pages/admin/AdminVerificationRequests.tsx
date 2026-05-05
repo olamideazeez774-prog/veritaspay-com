@@ -19,7 +19,7 @@ interface VerificationRequest {
   path: "gold_rank" | "paid";
   status: "pending" | "approved" | "rejected";
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   admin_notes?: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -45,11 +45,7 @@ export default function AdminVerificationRequests() {
     queryFn: async () => {
       let query = supabase
         .from("verification_requests")
-        .select(`
-          *,
-          profiles:user_id (full_name, email, avatar_url, is_verified),
-          wallets:user_id (total_earned)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (filter !== "all") {
@@ -58,7 +54,33 @@ export default function AdminVerificationRequests() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as unknown as VerificationRequest[];
+      const rows = (data || []) as unknown as VerificationRequest[];
+      if (rows.length === 0) return rows;
+
+      const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
+      const [profilesRes, walletsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, avatar_url, is_verified")
+          .in("id", userIds),
+        supabase
+          .from("wallets")
+          .select("user_id, total_earned")
+          .in("user_id", userIds),
+      ]);
+
+      const profileMap = new Map(
+        (profilesRes.data || []).map((p) => [p.id, p])
+      );
+      const walletMap = new Map(
+        (walletsRes.data || []).map((w) => [w.user_id, w])
+      );
+
+      return rows.map((r) => ({
+        ...r,
+        profiles: profileMap.get(r.user_id) as VerificationRequest["profiles"],
+        wallets: walletMap.get(r.user_id) as VerificationRequest["wallets"],
+      }));
     },
   });
 
