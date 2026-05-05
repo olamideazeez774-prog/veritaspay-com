@@ -28,10 +28,10 @@ export default function VerifyCertificate() {
       if (!data) return null;
 
       const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, email, avatar_url")
+        .from("public_profiles")
+        .select("full_name, avatar_url")
         .eq("id", data.user_id)
-        .single();
+        .maybeSingle();
 
       return { ...data, profile };
     },
