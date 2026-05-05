@@ -725,6 +725,7 @@ export type Database = {
           created_at: string
           failure_reason: string | null
           fee_amount: number
+          funds_reserved: boolean
           hold_until: string
           id: string
           net_amount: number
@@ -746,6 +747,7 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           fee_amount?: number
+          funds_reserved?: boolean
           hold_until?: string
           id?: string
           net_amount?: number
@@ -767,6 +769,7 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           fee_amount?: number
+          funds_reserved?: boolean
           hold_until?: string
           id?: string
           net_amount?: number
