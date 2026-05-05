@@ -19,7 +19,7 @@ interface VerificationRequest {
   path: "gold_rank" | "paid";
   status: "pending" | "approved" | "rejected";
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   admin_notes?: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -54,7 +54,7 @@ export default function AdminVerificationRequests() {
 
       const { data, error } = await query;
       if (error) throw error;
-      const rows = (data || []) as VerificationRequest[];
+      const rows = (data || []) as unknown as VerificationRequest[];
       if (rows.length === 0) return rows;
 
       const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
