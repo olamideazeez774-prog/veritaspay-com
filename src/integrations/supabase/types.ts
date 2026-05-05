@@ -365,6 +365,36 @@ export type Database = {
           },
         ]
       }
+      automation_job_runs: {
+        Row: {
+          amount_processed: number
+          created_at: string
+          details: Json
+          id: string
+          job_name: string
+          processed_count: number
+          status: string
+        }
+        Insert: {
+          amount_processed?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          job_name: string
+          processed_count?: number
+          status?: string
+        }
+        Update: {
+          amount_processed?: number
+          created_at?: string
+          details?: Json
+          id?: string
+          job_name?: string
+          processed_count?: number
+          status?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           certificate_hash: string
@@ -1490,6 +1520,7 @@ export type Database = {
         Args: { _amount: number; _wallet_id: string }
         Returns: undefined
       }
+      clear_eligible_earnings: { Args: { _batch_size?: number }; Returns: Json }
       compute_withdrawal_fee: { Args: { _amount: number }; Returns: number }
       create_wallet_transaction: {
         Args: {
