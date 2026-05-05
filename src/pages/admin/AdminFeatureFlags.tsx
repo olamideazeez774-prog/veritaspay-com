@@ -40,6 +40,10 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
   { key: "affiliate_rewards", label: "Affiliate Reward Programs", description: "Enable rank ladder and streak rewards", category: "Affiliate", enabled: true },
   { key: "ranking_algorithm", label: "Ranking Algorithm", description: "Use automated marketplace product ranking", category: "Marketplace", enabled: true },
   { key: "experiments", label: "Experiment Features", description: "Allow A/B testing of platform variables", category: "Advanced", enabled: false },
+  { key: "affiliate_toolkit", label: "Affiliate Toolkit", description: "Show QR, UTM, promo material, and AI toolkit pages", category: "Affiliate", enabled: true },
+  { key: "certificates", label: "Certificates", description: "Allow users to claim and view achievement certificates", category: "Affiliate", enabled: true },
+  { key: "daily_digest", label: "Daily Digest", description: "Show automated daily digest pages and navigation", category: "Experience", enabled: true },
+  { key: "leaderboard", label: "Leaderboard", description: "Show leaderboard navigation and admin leaderboard tools", category: "Affiliate", enabled: true },
 ];
 
 export default function AdminFeatureFlags() {
