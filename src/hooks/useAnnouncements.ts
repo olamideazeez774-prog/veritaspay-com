@@ -43,9 +43,17 @@ export function usePublishedAnnouncements() {
       if (error) throw error;
       // Fetch vendor profiles
       const vendorIds = [...new Set((data || []).map(a => a.vendor_id))];
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name, email").in("id", vendorIds);
+      const { data: profiles } = await supabase
+        .from("public_profiles")
+        .select("id, full_name")
+        .in("id", vendorIds);
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      return (data || []).map(a => ({ ...a, vendor_profile: profileMap.get(a.vendor_id) })) as VendorAnnouncement[];
+      return (data || []).map(a => ({
+        ...a,
+        vendor_profile: profileMap.get(a.vendor_id)
+          ? { full_name: profileMap.get(a.vendor_id)!.full_name, email: "" }
+          : undefined,
+      })) as VendorAnnouncement[];
     },
   });
 }
