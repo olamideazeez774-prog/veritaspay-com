@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -12,6 +12,7 @@ import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { VercelAnalytics } from "@/components/vercel-analytics";
 import { VercelSpeedInsights } from "@/components/vercel-speed-insights";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 // Public pages - lazy loaded for code splitting
 const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
@@ -87,6 +88,13 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function FeatureFlagRoute({ flag, children }: { flag: string; children: React.ReactNode }) {
+  const { enabled, isLoading } = useFeatureFlag(flag);
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>;
+  if (!enabled) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
 
 const App = () => (
   <ThemeProvider>
