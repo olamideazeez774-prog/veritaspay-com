@@ -23,12 +23,14 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export default function PayoutsPage() {
   const { user, profile, isAdmin } = useAuth();
   const { data: wallet, isLoading: walletLoading } = useWallet(user?.id);
   const { data: payouts, isLoading: payoutsLoading } = usePayoutRequests(user?.id);
   const createPayout = useCreatePayoutRequest();
+  const { enabled: withdrawalFeesEnabled } = useFeatureFlag("withdrawal_fees");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
@@ -44,14 +46,14 @@ export default function PayoutsPage() {
   const amount = parseFloat(formData.amount) || 0;
   // Tiered withdrawal fee: < ₦20,000 = 3%, ≥ ₦20,000 = 2%
   const getWithdrawalFeePercent = (amt: number): number => {
-    if (isAdmin) return 0;
+    if (isAdmin || !withdrawalFeesEnabled) return 0;
     return amt >= WITHDRAWAL_FEE_TIER_THRESHOLD
       ? WITHDRAWAL_FEE_PERCENT_MIN
       : WITHDRAWAL_FEE_PERCENT_MAX;
   };
 
   const withdrawalFeePercent = getWithdrawalFeePercent(amount);
-  const feeAmount = isAdmin ? 0 : Math.round(amount * withdrawalFeePercent / 100);
+  const feeAmount = isAdmin || !withdrawalFeesEnabled ? 0 : Math.round(amount * withdrawalFeePercent / 100);
   const netAmount = Math.max(0, amount - feeAmount);
 
   const handleSubmit = (e: React.FormEvent) => {

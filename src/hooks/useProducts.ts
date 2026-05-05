@@ -63,7 +63,7 @@ export function useCreateProduct() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (product: { vendor_id: string; title: string; price: number } & Partial<Product>) => {
+    mutationFn: async (product: { vendor_id: string; title: string; price: number; listing_model?: string } & Partial<Product>) => {
       const { data, error } = await supabase
         .from("products")
         .insert({
@@ -77,6 +77,7 @@ export function useCreateProduct() {
           cover_image_url: product.cover_image_url,
           status: product.status,
           affiliate_enabled: product.affiliate_enabled,
+          listing_model: product.listing_model,
         })
         .select()
         .single();

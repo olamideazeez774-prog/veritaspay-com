@@ -102,17 +102,14 @@ Deno.serve(async (_req) => {
         continue;
       }
 
-      // 4. Mark paid + debit wallet
+      // 4. Mark paid. Wallet funds were already reserved by the payout insert trigger;
+      // the status update trigger records total withdrawn without double-debiting.
       await supabase.from("payout_requests").update({
         status: "paid",
         transfer_code: xferJson.data?.transfer_code ?? null,
         transfer_status: xferJson.data?.status ?? "queued",
         processed_at: new Date().toISOString(),
       }).eq("id", p.id);
-
-      await supabase.rpc("debit_wallet_for_payout", {
-        _wallet_id: p.wallet_id, _amount: Number(p.amount),
-      });
 
       results.push({ id: p.id, ok: true });
     } catch (e) {

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -12,6 +12,7 @@ import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { VercelAnalytics } from "@/components/vercel-analytics";
 import { VercelSpeedInsights } from "@/components/vercel-speed-insights";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 // Public pages - lazy loaded for code splitting
 const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
@@ -87,6 +88,13 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function FeatureFlagRoute({ flag, children }: { flag: string; children: React.ReactNode }) {
+  const { enabled, isLoading } = useFeatureFlag(flag);
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>;
+  if (!enabled) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
 
 const App = () => (
   <ThemeProvider>
@@ -200,7 +208,7 @@ const App = () => (
                 path="/dashboard/toolkit"
                 element={
                   <ProtectedRoute requiredRoles={["affiliate"]}>
-                    <AffiliateToolkit />
+                    <FeatureFlagRoute flag="affiliate_toolkit"><AffiliateToolkit /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -208,7 +216,7 @@ const App = () => (
                 path="/dashboard/analytics"
                 element={
                   <ProtectedRoute requiredRoles={["affiliate"]}>
-                    <AffiliateAnalytics />
+                    <FeatureFlagRoute flag="ai_modules"><AffiliateAnalytics /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -216,7 +224,7 @@ const App = () => (
                 path="/dashboard/certificates"
                 element={
                   <ProtectedRoute>
-                    <CertificatesPage />
+                    <FeatureFlagRoute flag="certificates"><CertificatesPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -268,7 +276,7 @@ const App = () => (
                 path="/dashboard/digest"
                 element={
                   <ProtectedRoute>
-                    <DailyDigestPage />
+                    <FeatureFlagRoute flag="daily_digest"><DailyDigestPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -326,7 +334,7 @@ const App = () => (
                 path="/vp-admin-x7k9/listing-payments"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminListingPayments />
+                    <FeatureFlagRoute flag="listing_fees"><AdminListingPayments /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -366,7 +374,7 @@ const App = () => (
                 path="/vp-admin-x7k9/leaderboard"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminLeaderboard />
+                    <FeatureFlagRoute flag="leaderboard"><AdminLeaderboard /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -414,7 +422,7 @@ const App = () => (
                 path="/vp-admin-x7k9/ai-copilot"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminAICopilot />
+                    <FeatureFlagRoute flag="ai_modules"><AdminAICopilot /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -422,7 +430,7 @@ const App = () => (
                 path="/vp-admin-x7k9/experiments"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminExperiments />
+                    <FeatureFlagRoute flag="experiments"><AdminExperiments /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />

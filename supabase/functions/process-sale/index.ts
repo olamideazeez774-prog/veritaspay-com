@@ -224,6 +224,9 @@ Deno.serve(async (req) => {
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
 
     // ======== CREATE SALE ========
+    // Paystack has already been verified by paystack-callback before this function is called,
+    // so the sale must be completed immediately. Pending wallet funds are held only by the
+    // refund window, not by the sale status.
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -232,7 +235,7 @@ Deno.serve(async (req) => {
         total_amount: totalAmount, platform_fee: platformFee,
         affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission,
         vendor_earnings: vendorEarnings, commission_percent_snapshot: commissionPercent,
-        platform_fee_percent_snapshot: platformFeePercent, status: "pending",
+        platform_fee_percent_snapshot: platformFeePercent, status: "completed",
         refund_eligible_until: refundEligibleUntil.toISOString(),
         payment_reference: paymentReference, payment_gateway: paymentGateway,
       })

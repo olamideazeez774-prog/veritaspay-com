@@ -26,6 +26,7 @@ import {
 } from "@/lib/constants";
 import { ProductStatus } from "@/types/database";
 import { toast } from "sonner";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -34,6 +35,7 @@ export default function ProductForm() {
   const { data: existingProduct, isLoading: loadingProduct } = useProduct(id || "");
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const { enabled: listingFeesEnabled } = useFeatureFlag("listing_fees");
 
   const isEditing = !!id;
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -102,7 +104,7 @@ export default function ProductForm() {
       await updateProduct.mutateAsync({ id, ...productData });
       navigate("/dashboard/products");
     } else {
-      if (formData.listing_model === "waiver") {
+      if (!listingFeesEnabled || formData.listing_model === "waiver") {
         // Zero-upfront option: no payment modal, just create the product (15% fee will be enforced server-side)
         await createProduct.mutateAsync({
           ...productData,
@@ -370,7 +372,7 @@ export default function ProductForm() {
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEditing ? (
                 <>
@@ -380,7 +382,7 @@ export default function ProductForm() {
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Continue to Payment
+                  {listingFeesEnabled && formData.listing_model === "standard" ? "Continue to Payment" : "Create Product"}
                 </>
               )}
             </Button>
