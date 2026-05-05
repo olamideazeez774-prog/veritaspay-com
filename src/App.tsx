@@ -334,7 +334,7 @@ const App = () => (
                 path="/vp-admin-x7k9/listing-payments"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminListingPayments />
+                    <FeatureFlagRoute flag="listing_fees"><AdminListingPayments /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -374,7 +374,7 @@ const App = () => (
                 path="/vp-admin-x7k9/leaderboard"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminLeaderboard />
+                    <FeatureFlagRoute flag="leaderboard"><AdminLeaderboard /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -422,7 +422,7 @@ const App = () => (
                 path="/vp-admin-x7k9/ai-copilot"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminAICopilot />
+                    <FeatureFlagRoute flag="ai_modules"><AdminAICopilot /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -430,7 +430,7 @@ const App = () => (
                 path="/vp-admin-x7k9/experiments"
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
-                    <AdminExperiments />
+                    <FeatureFlagRoute flag="experiments"><AdminExperiments /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
