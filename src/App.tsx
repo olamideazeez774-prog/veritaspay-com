@@ -208,7 +208,7 @@ const App = () => (
                 path="/dashboard/toolkit"
                 element={
                   <ProtectedRoute requiredRoles={["affiliate"]}>
-                    <AffiliateToolkit />
+                    <FeatureFlagRoute flag="affiliate_toolkit"><AffiliateToolkit /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -216,7 +216,7 @@ const App = () => (
                 path="/dashboard/analytics"
                 element={
                   <ProtectedRoute requiredRoles={["affiliate"]}>
-                    <AffiliateAnalytics />
+                    <FeatureFlagRoute flag="ai_modules"><AffiliateAnalytics /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -224,7 +224,7 @@ const App = () => (
                 path="/dashboard/certificates"
                 element={
                   <ProtectedRoute>
-                    <CertificatesPage />
+                    <FeatureFlagRoute flag="certificates"><CertificatesPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
@@ -276,7 +276,7 @@ const App = () => (
                 path="/dashboard/digest"
                 element={
                   <ProtectedRoute>
-                    <DailyDigestPage />
+                    <FeatureFlagRoute flag="daily_digest"><DailyDigestPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
