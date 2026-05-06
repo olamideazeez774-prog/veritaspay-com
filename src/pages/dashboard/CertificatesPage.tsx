@@ -96,7 +96,23 @@ export default function CertificatesPage() {
         .maybeSingle();
       return (data?.value as Record<string, string>)?.url || null;
     },
+    enabled: !!user && !!isAdmin,
   });
+
+  // Public flag: non-admins use this to know whether the platform signature is configured
+  const { data: signatureConfigured } = useQuery({
+    queryKey: ["admin-signature-configured"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "admin_signature_configured")
+        .maybeSingle();
+      return Boolean((data?.value as Record<string, boolean>)?.configured);
+    },
+  });
+
+  const canClaim = isAdmin || signatureConfigured;
 
   const { data: ceoName } = useQuery({
     queryKey: ["ceo-name"],
@@ -125,7 +141,7 @@ export default function CertificatesPage() {
 
   const handleClaimCertificate = async (rankName: string) => {
     if (!user) return;
-    if (!adminSignature && !isAdmin) {
+    if (!isAdmin && !signatureConfigured) {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
@@ -200,7 +216,7 @@ export default function CertificatesPage() {
           <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
         </div>
 
-        {!adminSignature && !isAdmin && (
+        {!canClaim && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <span>Certificate claiming is disabled until the admin configures a signature. Contact your platform administrator.</span>
@@ -266,7 +282,7 @@ export default function CertificatesPage() {
                     </div>
                     <div className="flex gap-2">
                       {achieved && !claimed && (
-                        <Button size="sm" onClick={() => handleClaimCertificate(rank.rank_name)} disabled={!adminSignature && !isAdmin} className="min-h-[44px]">
+                        <Button size="sm" onClick={() => handleClaimCertificate(rank.rank_name)} disabled={!canClaim} className="min-h-[44px]">
                           <Award className="h-4 w-4 mr-1" />Claim
                         </Button>
                       )}

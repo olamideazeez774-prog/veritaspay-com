@@ -174,14 +174,15 @@ Deno.serve(async (req) => {
     const platformFeePercent = isVendorAdmin ? 0 : product.platform_fee_percent;
     const secondTierCommissionPercent = product.second_tier_commission_percent || 5;
 
+    // CORRECT COMMISSION FORMULA (industry-standard):
+    //   platform_fee       = total * platform_fee_percent / 100
+    //   affiliate_commission = total * commission_percent / 100   (% OF SALE PRICE, not of net)
+    //   vendor_earnings    = total - platform_fee - affiliate_commission
     const platformFee = Math.round((totalAmount * platformFeePercent) / 100);
-    const afterPlatformFee = totalAmount - platformFee;
-
     const affiliateCommission = affiliateId
-      ? Math.round((afterPlatformFee * commissionPercent) / 100)
+      ? Math.round((totalAmount * commissionPercent) / 100)
       : 0;
-
-    let vendorEarnings = afterPlatformFee - affiliateCommission;
+    let vendorEarnings = Math.max(0, totalAmount - platformFee - affiliateCommission);
 
     // ======== STARTER PLAN ONBOARDING DEDUCTION ========
     // Vendors on the Starter plan (₦3k upfront + ₦5,500 deferred) have ₦1,100 deducted

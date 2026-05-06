@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorStats } from "@/hooks/useStats";
 import { useVendorSales } from "@/hooks/useSales";
+import { useWallet } from "@/hooks/useWallet";
 import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,6 +27,7 @@ export default function VendorSales() {
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useVendorStats(user?.id);
   const { data: sales, isLoading: salesLoading } = useVendorSales(user?.id);
+  const { data: wallet } = useWallet(user?.id);
 
   const isLoading = statsLoading || salesLoading;
 
@@ -88,9 +90,7 @@ export default function VendorSales() {
             <motion.div variants={staggerItem}>
               <StatCard
                 title="Your Earnings"
-                value={formatCurrency(
-                  stats.pendingEarnings + stats.clearedEarnings + stats.withdrawableBalance
-                )}
+                value={formatCurrency(wallet?.total_earned || 0)}
                 icon={DollarSign}
                 variant="success"
               />
