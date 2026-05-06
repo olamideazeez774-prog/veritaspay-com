@@ -46,22 +46,22 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatC
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border p-6 shadow-sm transition-shadow hover:shadow-md",
+        "rounded-xl border p-4 sm:p-6 shadow-sm transition-shadow hover:shadow-md overflow-hidden",
         variantStyles[variant],
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold tracking-tight">{value}</p>
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="space-y-1 min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <p className="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight break-all leading-tight">{value}</p>
           {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{subtitle}</p>
           )}
           {trend && (
             <p
               className={cn(
-                "text-sm font-medium",
+                "text-xs sm:text-sm font-medium",
                 trend.isPositive ? "text-success" : "text-destructive"
               )}
             >
@@ -72,11 +72,11 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatC
         {Icon && (
           <div
             className={cn(
-              "rounded-lg p-3",
+              "rounded-lg p-2 sm:p-3 shrink-0",
               iconVariantStyles[variant]
             )}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         )}
       </div>
