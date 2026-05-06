@@ -1,276 +1,125 @@
+# Mirvyn Launch-Blocker Fix Plan
 
-
-# VeritasPay Premium Upgrade -- Complete Implementation Plan
-
-This plan covers the major updates requested: premium certificate redesign, AI Copilot automation, notifications, admin user controls, profile photo uploads, toolkit expansion, verification badge system, and mobile responsiveness fixes.
+This plan groups every issue you reported into 9 focused workstreams. Each ships in a single pass so the UI, DB and edge functions stay in sync.
 
 ---
 
-## 1. CERTIFICATE SYSTEM -- Premium Redesign (Major Overhaul)
+## 1. Financial calculations (HIGH PRIORITY)
 
-The current certificates use basic jsPDF text rendering with letter-in-circle badges. This will be completely rebuilt to match the premium reference images.
+**Problem:** Vendor/admin dashboards show wrong totals; affiliate commission shown as ₦22,500 on a ₦25,000/60% sale (should be ₦15,000); "Your earnings" sums all balance buckets twice.
 
-### Certificate PDF Generator -- Per-Rank Unique Designs
+**Fix:**
 
-Each rank certificate will be generated as a landscape A4 PDF using `jsPDF` with the following premium elements:
+- Audit `src/hooks/useStats.ts` (`useVendorStats`, `useAffiliateStats`) and `src/hooks/useWallet.ts`. Stop double-counting `pending + cleared + withdrawable` (cleared already moves into withdrawable).
+- Fix `VendorSales.tsx` "Your Earnings" stat to use `wallet.total_earned` only.
+- Verify `process-sale` edge function uses `commission_percent_snapshot` from the product at checkout time and writes the correct `affiliate_commission`, `vendor_earnings`, `platform_fee` per the corrected formula:
+  - `affiliate_commission = total_amount * commission_percent / 100`
+  - `platform_fee = total_amount * platform_fee_percent / 100` (10% standard, 15% waiver)
+  - `vendor_earnings = total_amount - affiliate_commission - platform_fee`
+- Backfill any existing miscomputed sales via a one-off SQL update (insert tool).
+- Same fix applied to `AdminDashboard` aggregates.
 
-**Shared Structure (all ranks):**
-- Gold foil-style double/triple borders drawn with rank-specific colors
-- "CERTIFICATE OF ACHIEVEMENT" title in decorative serif style
-- Rank name with proper emoji icon (not letter badges)
-- "Awarded to" + affiliate name in large script-style font
-- Body copy: "In recognition of outstanding performance and verified achievement on VeritasPay, demonstrating exceptional results and commitment to platform excellence."
-- Total Verified Earnings amount
-- Rank Milestone Achieved date
-- CEO signature line with actual admin signature image and "Chief Executive Officer" title (not "Platform Administrator")
-- Embossed seal graphic (drawn circle with inner rings and text)
-- Certificate ID, Issue Date, and Verification URL in footer
-- Profile photo circle frame (if user has avatar_url)
+## 2. Mobile responsiveness overflow (sales, intelligence, rankings, products, admin dashboard, vendor dashboard icons)
 
-**Rank-Specific Design Table:**
+**Problem:** Numbers overflow `StatCard` boxes; tables overflow viewport on <768px.
 
-| Rank | Icon | Background | Accent Color | Border Style |
-|------|------|-----------|-------------|-------------|
-| Bronze | medal emoji | Dark slate #1e293b | Copper #b87333 | Single ornate |
-| Silver | medal emoji | Charcoal #374151 | Silver #c0c0c0 | Double border |
-| Gold | medal emoji | Deep navy #0f172a | Gold #d4af37 | Triple ornate |
-| Diamond | diamond emoji | Black #030712 | Ice blue #93c5fd | Diamond pattern |
-| Platinum | Hex shield (drawn) | Dark purple #1e1b4b | Platinum #e5e7eb | Metallic gradient |
-| Elite | Crown (drawn) | Pure black #000 | Gold gradient | Double ornate with sparkles |
+**Fix:**
 
-### Remove Preview Watermark for Production
-- Admin certificates in production mode will NOT have the "PREVIEW" watermark
-- Preview watermark only appears when `is_preview: true` AND environment is explicitly staging/sandbox
-- Since this is production, admin downloads will be clean certificates
+- `src/components/ui/stat-card.tsx`: add `truncate`, `min-w-0`, `text-balance`, scale down value font on mobile (`text-xl sm:text-2xl`), wrap icon in `shrink-0`.
+- All admin tables (`AdminProducts`, `AdminRankings`, `AdminUsers`, `VendorSales`, `AffiliateAnalytics`): add the existing table-to-card pattern <768px (already used elsewhere) so rows stack as cards.
+- `AffiliateToolkit`: re-grid to `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` with consistent card heights and spacing.
 
-### Profile Photo on Certificates
-- If user has `avatar_url` in their profile, render it as a circular crop on the certificate (top-right area)
-- If no photo, skip the photo frame gracefully
+## 3. Verification badge — paid path
 
-### Rank Icons Update (Everywhere)
-Replace letter-in-circle badges across the entire app:
-- CertificatesPage.tsx rank ladder cards
-- VerifyCertificate.tsx
-- Leaderboard
-- Dashboard profile display
+**Problem:** Paid path opens no payment flow; admin approve fails ("failed to update requests").
 
-Mapping:
-- Bronze: "&#127949;" 
-- Silver: "&#127948;" 
-- Gold: "&#127941;"
-- Diamond: "&#128142;"
-- Platinum: Hex badge (SVG/unicode)
-- Elite: "&#128081;"
+**Fix:**
 
----
+- `SettingsPage.tsx`: when user picks "paid path", open `PaymentModal` (Paystack init via `initialize-payment` with `purpose=verification`, ₦ amount from `platform_settings`).
+- New `paystack-callback` branch handles purpose `verification` → marks `verification_requests.payment_reference` and `status='pending_review'`.
+- Fix `AdminVerificationRequests` update mutation: it currently fails because the row update also writes `updated_at` which doesn't exist on the table — remove that field, and on approve also update `profiles.is_verified=true`.
 
-## 2. ADMIN SIGNATURE -- Label Fix
+## 4. Certificate signature false-warning
 
-Change the signature label from "Platform Administrator" to the admin's actual full_name + "Chief Executive Officer" on all certificates.
+**Problem:** Certificates page shows "signature not configured" even though admin signed.
 
----
+**Fix:** `CertificatesPage.tsx` reads `platform_settings.admin_signature` but RLS hides it from non-admins. Replace with a public-safe boolean setting `admin_signature_configured` (true/false), updated by a trigger whenever `admin_signature` changes. Read that flag client-side instead.
 
-## 3. PROFILE PHOTO UPLOAD
+## 5. Vendor announcements
 
-### Storage Setup
-- Create a `avatars` storage bucket in the backend
-- Add RLS policies: users can upload/read their own avatars
+**Problem:** No vendor name/brand shown, no expiry, no banner image, no URL field; onboarding never collects brand name.
 
-### Settings Page Update
-- Replace the disabled camera button with a working file upload
-- On upload: store in `avatars` bucket, update `profiles.avatar_url`
-- Show current photo in the avatar component
-- Add image size validation (max 2MB) and type validation (JPEG/PNG only)
+**Fix:**
 
-### Across the App
-- All avatar displays already use `AvatarImage` with `profile.avatar_url` -- once the URL is set, it will show everywhere automatically
+- Migration: add `brand_name text`, `business_url text` to `profiles`; add `expires_at timestamptz`, `banner_url text`, `link_url text` to `vendor_announcements`.
+- `OnboardingFlow`: vendor step asks for brand name (saved to `profiles.brand_name`).
+- `VendorAnnouncements` form: add expiry date picker, banner upload (avatars bucket), link URL field.
+- Announcements list (affiliate side): show vendor avatar, brand name, expiry badge, banner image, click-through link.
+- Filter out expired announcements in `useAnnouncements`.
 
----
+## 6. Referral tracking broken
 
-## 4. DAILY DIGEST -- Fix Visibility
+**Problem:** Signing up via `?ref=CODE` link doesn't record referral; manual code entry says "invalid".
 
-### Problem
-The daily digest card shows on the Dashboard but only if data exists. The `generate-daily-digest` edge function exists but must be called. There is no route or nav entry for a dedicated digest page.
+**Fix:**
 
-### Fix
-- Add the daily digest generation to the AI Copilot's auto-cycle (when autonomous mode is ON, run `generate-daily-digest` every cycle as well)
-- Add a manual "Generate Digests" button in the AI Copilot Auto Actions tab
-- Ensure the Dashboard daily digest card is visible to all roles (admin + vendor + affiliate)
+- `Register.tsx`: read `?ref=` and persist to `localStorage` AND pass into `signUp` metadata.
+- After signup completion, `handle_new_user` trigger reads metadata and writes `profiles.referred_by` + `platform_referrals` row.
+- Manual code entry: validate against `profiles.referral_code` OR `affiliate_referral_codes.referral_code` (currently only checks one); use `.maybeSingle()`.
 
----
+## 7. Admin user management actions
 
-## 5. AI COPILOT -- Complete Autonomous Mode
+**Problem:** Only role add/remove works; ban/suspend/verify/premium/message/fraud-flag are dead buttons.
 
-### Current State
-The autonomous toggle works with a 60s interval running `autoHoldFraud` and `autoAdjustRankings`. But:
-- "Promo Boosts" is disabled with "Coming soon"
-- No steward report on toggle-off
-- No daily digest trigger
+**Fix:** `AdminUsers.tsx` — wire each button to mutations:
 
-### Updates
-- **Enable Promo Boosts**: When auto-mode runs, check `commission_rules` for active promotions and boost eligible products' ranking scores
-- **Remove "Coming soon"** from Promo Boosts button -- wire it to actual logic
-- **Generate AI Steward Report on Toggle-Off**: When admin disables autonomous mode, generate a summary of all actions taken during the session and display it as a toast/card
-- **Include daily digest generation** in the auto-cycle (call the edge function)
-- **Add additional auto-actions**: vendor recommendation scoring, onboarding improvement flags
+- Ban → `profiles.is_banned=true`
+- Suspend → `profiles.suspended_until = now()+7d`
+- Verify → `profiles.is_verified=true` (+ insert certificate-eligible audit)
+- Premium → `profiles.vendor_tier='premium'`
+- Send message → insert `user_messages` row
+- Fraud flag → insert `fraud_events` row
+- Add `ProtectedRoute`/middleware to block banned/suspended users at login.
+
+## 8. Leaderboard, AI copilot, fraud, commission rules, revenue/AI, feature flags, materials
+
+- **Leaderboard:** create `/dashboard/leaderboard` (affiliate + vendor views) showing ranked tables with the user's row highlighted; reuse `useLeaderboard` and ensure it computes by sales/commission for the period.
+- **AI Copilot (`AdminAICopilot`):** rebuild as mobile-first card stack; make `ai-autonomous-scheduler` actually take non-financial actions (not limited to auto-approve clean products, auto-send digests, auto-flag fraud) and only NOTIFY admin for financial actions.
+- **Fraud monitor:** finish UI — list `fraud_events`, allow resolve/hold-commission actions, link to user.
+- **Commission rules page:** sync default values to current monetary model (10%/15% platform, ₦4,000 affiliate fee, ₦2,000 listing, ₦8,500/₦3,000 onboarding, withdrawal 2/3%).
+- **Revenue & AI controls:** make sliders actually write to `platform_settings` and have `process-sale`/`process-payouts` read them at runtime.
+- **Feature flags:** verify the `FeatureFlagRoute` guard is wired into ALL flagged routes and that hidden features don't render menu entries when off.
+- **Materials page:** repurpose as "Promo Asset Library" — admin uploads banners/copy/swipe files that vendors+affiliates can browse and download from their toolkits.
+
+## 9. Payment flows (vendor listing fee + onboarding fee)
+
+**Problem:** Both flows incomplete — modal opens but nothing happens / no callback verification.
+
+**Fix:**
+
+- `ProductForm` listing-fee modal: call `initialize-payment` with `purpose=listing_fee`, redirect to Paystack, on callback `paystack-callback` inserts `product_listing_payments` row + flips product to `pending_review`.
+- Vendor onboarding: same pattern with `purpose=vendor_onboarding`, deducts from `profiles.onboarding_balance_due` (Plan B) or marks plan paid (Plan A).
+- Affiliate ₦4,000 membership: `purpose=affiliate_membership`, sets `profiles.affiliate_membership_expires_at`.
+- All purposes handled centrally in `paystack-callback`.
+
+## 10. Daily digest
+
+**Fix:** `generate-daily-digest` cron is configured but never ran for users with no recent activity. Trigger it for ALL active vendors/affiliates daily, not just those with sales. Verify the function inserts to `daily_digests` with proper `digest_type` and that `Dashboard.tsx` reads `latestDigest` (already does).
 
 ---
 
-## 6. ADMIN USER CONTROLS -- Ban/Suspend/Message
+## Technical execution order
 
-### AdminUsers.tsx Manage Menu Additions
-Add to the existing dropdown:
-- **Ban User**: Sets `is_banned: true` on profiles, logs to system_logs
-- **Temp Suspend**: Sets `suspended_until` timestamp (e.g., 7 days)
-- **Send Direct Message**: Opens a dialog to send a message stored in a `user_messages` table
-- **Attach Warning Note**: Stores admin note in `admin_notes` column on profiles
-- **Fraud Flag**: Manually flag user for fraud review
+1. Migrations: announcement fields, profiles brand_name/membership, signature_configured flag/trigger, backfill sales.
+2. Edge functions: `process-sale` math fix, `paystack-callback` purpose router, `ai-autonomous-scheduler` autonomy upgrade, `generate-daily-digest` universal run.
+3. Hooks: `useStats`, `useWallet`, `useAnnouncements`, `useReferrals`.
+4. UI: StatCard, all overflow tables, OnboardingFlow, SettingsPage, CertificatesPage, VendorAnnouncements, Register, AdminUsers, AdminVerificationRequests, AdminAICopilot, AdminFraudDashboard, AdminCommissionRules, AdminRevenueControls, AdminFeatureFlags, AffiliateToolkit, leaderboard pages.
+5. Re-run Supabase linter; QA each flow.
 
-### Database Changes
-- Add `is_banned`, `suspended_until`, `admin_notes` columns to `profiles`
-- Create `user_messages` table (from_admin_id, to_user_id, message, created_at, is_read)
+## Risks
 
-### Auth Check
-- On login, if `is_banned = true` or `suspended_until > now()`, show error message and prevent access
+- Backfilling sales math will change historical wallet balances — will log every adjustment to `system_logs`.
+- Signature-configured flag requires admins to re-save signature once to populate.
+- Adding required brand_name to onboarding doesn't retroactively fill existing vendors — they'll be prompted on next dashboard visit.
 
----
-
-## 7. IN-APP NOTIFICATION CENTER
-
-### Database
-- Create `notifications` table (user_id, type, title, body, image_url, cta_url, is_read, created_at)
-
-### Triggers That Create Notifications
-Wire real events to insert notifications:
-- Sale completed (affiliate + vendor)
-- Rank change
-- Certificate issued
-- Payout processed
-- Fraud flag on your account
-- New vendor announcement
-- Commission earned
-- Experiment impact
-
-### UI
-- Add bell icon in dashboard header (both mobile and desktop)
-- Badge count of unread notifications
-- Dropdown/sheet showing recent notifications
-- Mark as read on click
-- "Mark all as read" button
-
----
-
-## 8. VENDOR & AFFILIATE TOOLKIT EXPANSION
-
-### Vendor Tools (New tabs in vendor dashboard or separate page)
-- **Price A/B Tester**: Simple UI to set two price variants, track which converts better (uses `experiments` table)
-- **ROI Calculator**: Input form: product price, commission %, estimated clicks -- outputs projected revenue
-- **Scarcity Timer**: Set countdown timer on product pages (store `countdown_end` on products)
-
-### Affiliate Tools (Add to AffiliateToolkit.tsx)
-- **Profit Estimator**: Input clicks, conversion rate -- output estimated commission
-- **Best Product Today**: AI-powered suggestion using `ai-insights` edge function with `smart_matching` type
-- **Caption Generator**: AI-powered social media caption for selected product link
-- **Headline Tester**: AI generates 3 headline variants for A/B testing
-
----
-
-## 9. VERIFICATION BADGE -- Dual Path System
-
-### Earned Path
-- Gold+ rank users see "Apply for Verification" button
-- Creates entry in a `verification_requests` table (user_id, path: "earned", status: "pending")
-- Admin/AI reviews and approves
-- On approval: sets `is_verified = true` on profiles
-
-### Paid Path
-- Any user can click "Get Verified" and pay the `verification_badge_fee` from platform_settings
-- Creates payment record + verification request
-- Auto-approved on payment confirmation
-
-### UI
-- Add verification section to Settings page
-- Show badge status and application flow
-
----
-
-## 10. FEATURE FLAGS -- Wire to Route Visibility
-
-### Current State
-Feature flags exist in `platform_settings` but don't actually hide routes or components.
-
-### Fix
-- Create a `useFeatureFlag` hook that reads from `platform_settings`
-- Wrap conditional routes/components with feature flag checks
-- When flag is OFF: hide nav item + return "Feature disabled" page if accessed directly
-
----
-
-## 11. MOBILE RESPONSIVENESS FIXES
-
-### AdminAnalytics.tsx
-- Calendar popovers: add `side="bottom"` and `align="start"` to prevent viewport overflow
-- Stack the "From" and "To" calendars vertically on mobile
-
-### AdminAICopilot.tsx
-- Decision log cards: ensure reasoning text wraps properly on mobile (remove `truncate` on mobile)
-
-### AdminRevenueControls.tsx
-- "Save All" button: on mobile, make it full-width below the title instead of inline
-
-### AffiliateAnalytics.tsx (Intelligence page)
-- Product performance table: convert to card layout on mobile (hide table, show cards below `sm` breakpoint)
-
-### AdminCommissionRules.tsx
-- Create dialog: add `max-h-[85vh] overflow-y-auto` to DialogContent
-- Stack grid-cols-2 fields to grid-cols-1 on mobile
-
-### AdminExperiments.tsx
-- Create dialog: add scrollable wrapper with `max-h-[80vh] overflow-y-auto`
-
-### General
-- All Dialog components: ensure `max-h-[85vh] overflow-y-auto` on DialogContent
-- Touch targets: verify all buttons are min 44px
-
----
-
-## 12. CLEANUP
-
-### Remove
-- "Coming soon" label from AI Copilot Promo Boosts button
-- `as any` type assertions where proper types exist
-- Disabled camera button placeholder in Settings (replace with real upload)
-- Any remaining non-functional toggles
-
----
-
-## Technical Summary
-
-### Database Changes (Migration)
-- Add columns to `profiles`: `is_banned` (boolean), `suspended_until` (timestamptz), `admin_notes` (text)
-- Create `notifications` table
-- Create `user_messages` table
-- Create `verification_requests` table
-- Create `avatars` storage bucket with RLS
-
-### New/Modified Edge Functions
-- `generate-daily-digest`: Already exists, will be triggered from AI Copilot auto-cycle
-
-### Modified Pages (approximately 12)
-- `CertificatesPage.tsx`: Complete PDF generator rewrite with premium designs
-- `VerifyCertificate.tsx`: Enhanced display with rank icons and profile photo
-- `AdminAICopilot.tsx`: Full autonomous mode with steward reports
-- `AdminUsers.tsx`: Ban/suspend/message controls
-- `SettingsPage.tsx`: Profile photo upload + verification badge section
-- `AffiliateToolkit.tsx`: AI-powered tools expansion
-- `DashboardLayout.tsx`: Notification bell icon
-- `AffiliateAnalytics.tsx`: Mobile card layout
-- `AdminAnalytics.tsx`: Calendar popover positioning
-- `AdminCommissionRules.tsx`: Dialog scrollability
-- `AdminExperiments.tsx`: Dialog scrollability
-- `AdminRevenueControls.tsx`: Mobile save button positioning
-
-### New Components
-- `NotificationCenter`: Bell icon + dropdown with notification list
-- `NotificationBell`: Badge with unread count
-
+Approve to proceed and I'll execute all 10 workstreams in one go.
