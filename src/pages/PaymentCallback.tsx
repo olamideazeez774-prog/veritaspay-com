@@ -42,6 +42,23 @@ export default function PaymentCallback() {
   useEffect(() => {
     const processCallback = async () => {
       try {
+        // Purpose-aware: check for non-sale flow first
+        const purposeCtxJson = sessionStorage.getItem("payment_purpose_context");
+        if (purposeCtxJson) {
+          const ctx = JSON.parse(purposeCtxJson) as { purpose: string; userId: string; productId?: string; reference: string; redirect?: string };
+          const { data, error } = await supabase.functions.invoke("paystack-callback", {
+            body: { reference: reference || ctx.reference, purpose: ctx.purpose, userId: ctx.userId, productId: ctx.productId },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          sessionStorage.removeItem("payment_purpose_context");
+          setStatus("success");
+          setMessage("Payment confirmed!");
+          toast.success("Payment confirmed!");
+          redirectTimeoutRef.current = setTimeout(() => navigate(data?.redirect || ctx.redirect || "/dashboard"), 1500);
+          return;
+        }
+
         // Check for checkout context in sessionStorage
         const contextJson = sessionStorage.getItem("checkout_context");
         if (!contextJson) {
