@@ -86,11 +86,11 @@ export default function AdminVerificationRequests() {
 
   const updateRequest = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: "approved" | "rejected"; notes: string }) => {
+      const request = requests?.find(r => r.id === id);
       const { error } = await supabase
         .from("verification_requests")
         .update({
           status,
-          admin_notes: notes,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", id);
@@ -98,16 +98,18 @@ export default function AdminVerificationRequests() {
       if (error) throw error;
 
       // If approved, also update the user's profile to verified
-      if (status === "approved") {
-        const request = requests?.find(r => r.id === id);
-        if (request) {
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .update({ is_verified: true })
-            .eq("id", request.user_id);
-          
-          if (profileError) throw profileError;
-        }
+      if (status === "approved" && request) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ is_verified: true, ...(notes ? { admin_notes: notes } : {}) })
+          .eq("id", request.user_id);
+
+        if (profileError) throw profileError;
+      } else if (notes && request) {
+        await supabase
+          .from("profiles")
+          .update({ admin_notes: notes })
+          .eq("id", request.user_id);
       }
     },
     onSuccess: () => {
@@ -116,8 +118,8 @@ export default function AdminVerificationRequests() {
       setSelected(null);
       setNotes("");
     },
-    onError: () => {
-      toast.error("Failed to update request");
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update request");
     },
   });
 
