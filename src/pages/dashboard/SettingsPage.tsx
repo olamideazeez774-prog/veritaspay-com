@@ -384,19 +384,32 @@ export default function SettingsPage() {
                           if (!user) return;
                           setApplyingVerification(true);
                           try {
-                            const { error } = await supabase.from("verification_requests").insert({
+                            // Insert request row (idempotent best-effort)
+                            await supabase.from("verification_requests").insert({
                               user_id: user.id,
                               path: "paid",
                               status: "pending",
                             });
-                            if (error) {
-                              if (error.code === "23505") toast.info("Verification request already submitted");
-                              else throw error;
-                            } else {
-                              toast.success("Paid verification request submitted! You'll be notified once reviewed.");
-                            }
+                            // Fetch fee
+                            const { data: feeRow } = await supabase
+                              .from("platform_settings")
+                              .select("value")
+                              .eq("key", "verification_fee")
+                              .maybeSingle();
+                            const amount = Number((feeRow?.value as { amount?: number })?.amount ?? 5000);
+                            // Init Paystack
+                            const callbackUrl = `${window.location.origin}/payment/callback`;
+                            const { data, error } = await supabase.functions.invoke("initialize-payment", {
+                              body: { email: user.email, purpose: "verification", userId: user.id, amount, callbackUrl },
+                            });
+                            if (error) throw error;
+                            if (data?.error) throw new Error(data.error);
+                            sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+                              purpose: "verification", userId: user.id, reference: data.reference, redirect: "/dashboard/settings",
+                            }));
+                            window.location.href = data.authorization_url;
                           } catch {
-                            toast.error("Failed to submit verification request");
+                            toast.error("Failed to start verification payment");
                           } finally {
                             setApplyingVerification(false);
                           }
