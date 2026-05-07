@@ -18,12 +18,50 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, productId, affiliateCode, buyerName, callbackUrl, couponCode } = await req.json();
+    const { email, productId, affiliateCode, buyerName, callbackUrl, couponCode, purpose, userId, amount } = await req.json();
 
-    if (!email || !productId) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    if (!email) {
+      return new Response(JSON.stringify({ error: "Missing email" }), {
         status: 400,
         headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
+    // Non-sale purposes: amount-based init, no product lookup
+    if (purpose && purpose !== "sale") {
+      if (!userId || !amount || amount <= 0) {
+        return new Response(JSON.stringify({ error: "Missing userId/amount for purpose: " + purpose }), {
+          status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
+      const reference = `MV-${purpose.toUpperCase().slice(0,3)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+      const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          amount: Math.round(amount * 100),
+          reference,
+          callback_url: callbackUrl || undefined,
+          metadata: { purpose, user_id: userId, product_id: productId || null },
+        }),
+      });
+      const data = await paystackRes.json();
+      if (!paystackRes.ok || !data.status) {
+        return new Response(JSON.stringify({ error: data.message || "Init failed" }), {
+          status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        reference, amount, purpose,
+        authorization_url: data.data.authorization_url,
+        access_code: data.data.access_code,
+      }), { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } });
+    }
+
+    if (!productId) {
+      return new Response(JSON.stringify({ error: "Missing productId" }), {
+        status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
