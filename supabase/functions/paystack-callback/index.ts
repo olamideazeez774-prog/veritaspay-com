@@ -125,14 +125,7 @@ Deno.serve(async (req) => {
     }
 
     // Sale flow (default)
-    const {
-      reference,
-      productId,
-      buyerEmail,
-      buyerName,
-      affiliateCode,
-      couponCode,
-    } = body;
+    const { productId, buyerEmail, buyerName, affiliateCode, couponCode } = body;
 
     if (!reference || !productId || !buyerEmail) {
       return new Response(
