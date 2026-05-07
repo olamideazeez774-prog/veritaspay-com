@@ -982,7 +982,10 @@ export type Database = {
       profiles: {
         Row: {
           admin_notes: string | null
+          affiliate_membership_expires_at: string | null
           avatar_url: string | null
+          brand_name: string | null
+          business_url: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -999,7 +1002,10 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          affiliate_membership_expires_at?: string | null
           avatar_url?: string | null
+          brand_name?: string | null
+          business_url?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -1016,7 +1022,10 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          affiliate_membership_expires_at?: string | null
           avatar_url?: string | null
+          brand_name?: string | null
+          business_url?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -1319,11 +1328,14 @@ export type Database = {
       vendor_announcements: {
         Row: {
           announcement_type: string
+          banner_url: string | null
           content: string
           created_at: string
+          expires_at: string | null
           id: string
           is_moderated: boolean
           is_published: boolean
+          link_url: string | null
           moderated_by: string | null
           product_id: string | null
           title: string
@@ -1332,11 +1344,14 @@ export type Database = {
         }
         Insert: {
           announcement_type?: string
+          banner_url?: string | null
           content: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_moderated?: boolean
           is_published?: boolean
+          link_url?: string | null
           moderated_by?: string | null
           product_id?: string | null
           title: string
@@ -1345,11 +1360,14 @@ export type Database = {
         }
         Update: {
           announcement_type?: string
+          banner_url?: string | null
           content?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_moderated?: boolean
           is_published?: boolean
+          link_url?: string | null
           moderated_by?: string | null
           product_id?: string | null
           title?: string

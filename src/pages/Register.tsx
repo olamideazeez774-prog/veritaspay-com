@@ -107,7 +107,8 @@ export default function Register() {
     
     setIsLoading(true);
 
-    const { error, data } = await signUp(email, password, fullName);
+    const refToSend = referralValid ? (referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "") : "";
+    const { error, data } = await signUp(email, password, fullName, refToSend);
 
     if (error) {
       recordAttempt();

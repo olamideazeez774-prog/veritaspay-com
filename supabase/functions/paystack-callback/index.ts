@@ -9,12 +9,14 @@ const corsHeaders = {
 interface CallbackRequest {
   reference: string;
   trxref?: string;
-  productId: string;
-  buyerEmail: string;
+  productId?: string;
+  buyerEmail?: string;
   buyerName?: string;
   affiliateCode?: string;
   couponCode?: string;
   finalPrice?: number;
+  purpose?: "sale" | "verification" | "listing_fee" | "vendor_onboarding" | "affiliate_membership";
+  userId?: string;
 }
 
 Deno.serve(async (req) => {
@@ -35,14 +37,95 @@ Deno.serve(async (req) => {
       );
     }
 
-    const {
-      reference,
-      productId,
-      buyerEmail,
-      buyerName,
-      affiliateCode,
-      couponCode,
-    }: CallbackRequest = await req.json();
+    const body: CallbackRequest = await req.json();
+    const purpose = body.purpose || "sale";
+    const { reference } = body;
+    if (!reference) {
+      return new Response(JSON.stringify({ error: "Missing reference" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify with Paystack
+    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const paystackData = await verifyRes.json();
+    if (!verifyRes.ok || !paystackData.status || paystackData.data?.status !== "success") {
+      return new Response(
+        JSON.stringify({ error: paystackData?.message || "Payment not successful" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const amountPaidKobo = paystackData.data?.amount || 0;
+
+    // Non-sale purposes: handle and return early
+    if (purpose === "verification") {
+      const userId = body.userId || paystackData.data?.metadata?.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing user_id for verification" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await supabase
+        .from("verification_requests")
+        .update({ payment_reference: reference, status: "pending" })
+        .eq("user_id", userId)
+        .eq("path", "paid")
+        .is("payment_reference", null);
+      return new Response(JSON.stringify({ success: true, purpose, redirect: "/dashboard/settings" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (purpose === "listing_fee") {
+      const userId = body.userId || paystackData.data?.metadata?.user_id;
+      const productId = body.productId || paystackData.data?.metadata?.product_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing user_id" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await supabase.from("product_listing_payments").insert({
+        vendor_id: userId,
+        product_id: productId || null,
+        amount: amountPaidKobo / 100,
+        payment_reference: reference,
+        payment_gateway: "paystack",
+        status: "verified",
+      });
+      return new Response(JSON.stringify({ success: true, purpose, redirect: "/dashboard/products" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (purpose === "vendor_onboarding") {
+      const userId = body.userId || paystackData.data?.metadata?.user_id;
+      if (userId) {
+        await supabase.rpc("deduct_onboarding_balance", { _vendor_id: userId, _max_deduction: amountPaidKobo / 100 });
+      }
+      return new Response(JSON.stringify({ success: true, purpose, redirect: "/dashboard" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (purpose === "affiliate_membership") {
+      const userId = body.userId || paystackData.data?.metadata?.user_id;
+      if (userId) {
+        const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        await supabase.from("profiles").update({ affiliate_membership_expires_at: expiresAt }).eq("id", userId);
+      }
+      return new Response(JSON.stringify({ success: true, purpose, redirect: "/dashboard" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Sale flow (default)
+    const { productId, buyerEmail, buyerName, affiliateCode, couponCode } = body;
 
     if (!reference || !productId || !buyerEmail) {
       return new Response(
@@ -85,26 +168,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Verify payment with Paystack
-    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const paystackData = await verifyRes.json();
-
-    if (!verifyRes.ok || !paystackData.status) {
-      console.error("Paystack verification failed:", paystackData);
-      return new Response(
-        JSON.stringify({ error: paystackData?.message || "Payment verification failed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check payment status
+    // (Already verified above for purpose=sale) Use paystackData
     const transactionStatus = paystackData.data?.status;
     const amountPaid = paystackData.data?.amount || 0;
     const expectedAmount = Math.round(serverFinalPrice * 100); // server-computed kobo
