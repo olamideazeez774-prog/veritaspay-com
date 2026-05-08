@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, Link2, BarChart3, Wallet, CreditCard,
   Settings, Users, ShoppingCart, ChevronLeft, Menu, LogOut, Shield,
-  X, Inbox, Newspaper, Wrench, BadgeCheck,
+  X, Inbox, Newspaper, Wrench, BadgeCheck, Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
   { title: "Referrals", href: "/dashboard/referrals", icon: Users, roles: ["affiliate"] },
   { title: "Toolkit", href: "/dashboard/toolkit", icon: Link2, roles: ["affiliate"], featureFlag: "affiliate_toolkit" },
   { title: "Certificates", href: "/dashboard/certificates", icon: Shield, featureFlag: "certificates" },
+  { title: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, roles: ["vendor", "affiliate"], featureFlag: "leaderboard" },
   { title: "Sales", href: "/dashboard/sales", icon: ShoppingCart, roles: ["vendor", "admin"] },
   { title: "Announcements", href: "/dashboard/announcements", icon: Menu, roles: ["vendor"] },
   { title: "Wallet", href: "/dashboard/wallet", icon: Wallet },
