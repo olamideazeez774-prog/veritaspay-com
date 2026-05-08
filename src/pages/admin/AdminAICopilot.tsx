@@ -464,7 +464,7 @@ export default function AdminAICopilot() {
                           <Undo2 className="h-4 w-4 mr-1" />Rollback
                         </Button>
                       )}
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(d.created_at)}</span>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(d.created_at)}</span>
                     </div>
                   </div>
                 </motion.div>
