@@ -72,6 +72,36 @@ export function RoleSelector() {
 
       toast.success("Roles assigned successfully!");
       await refreshProfile();
+
+      // Calculate upfront fee due now
+      let upfront = 0;
+      let purpose: "vendor_onboarding" | "affiliate_membership" | null = null;
+      if (selectedRoles.includes("vendor")) {
+        upfront += vendorPlan === "starter" ? VENDOR_STARTER_UPFRONT : VENDOR_REGISTRATION_FEE;
+        purpose = "vendor_onboarding";
+      }
+      if (selectedRoles.includes("affiliate")) {
+        upfront += AFFILIATE_REGISTRATION_FEE;
+        if (!purpose) purpose = "affiliate_membership";
+      }
+
+      if (upfront > 0 && purpose) {
+        try {
+          const callbackUrl = `${window.location.origin}/payment/callback`;
+          const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
+            body: { email: user.email, purpose, userId: user.id, amount: upfront, callbackUrl },
+          });
+          if (payErr) throw payErr;
+          if (data?.error) throw new Error(data.error);
+          sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+            purpose, userId: user.id, reference: data.reference, redirect: "/dashboard",
+          }));
+          window.location.href = data.authorization_url;
+          return;
+        } catch (e) {
+          toast.error("Could not start payment. You can pay later from Settings.");
+        }
+      }
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message);
