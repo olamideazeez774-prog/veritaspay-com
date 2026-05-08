@@ -29,7 +29,14 @@ export default function VendorAnnouncements() {
   const createAnn = useCreateAnnouncement();
   const deleteAnn = useDeleteAnnouncement();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", announcement_type: "general" });
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    announcement_type: "general",
+    expires_at: "",
+    banner_url: "",
+    link_url: "",
+  });
 
   const handleCreate = () => {
     createAnn.mutate({
@@ -37,7 +44,15 @@ export default function VendorAnnouncements() {
       title: form.title,
       content: form.content,
       announcement_type: form.announcement_type,
-    }, { onSuccess: () => { setShowCreate(false); setForm({ title: "", content: "", announcement_type: "general" }); } });
+      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+      banner_url: form.banner_url || null,
+      link_url: form.link_url || null,
+    } as Parameters<typeof createAnn.mutate>[0], {
+      onSuccess: () => {
+        setShowCreate(false);
+        setForm({ title: "", content: "", announcement_type: "general", expires_at: "", banner_url: "", link_url: "" });
+      },
+    });
   };
 
   return (
@@ -95,6 +110,20 @@ export default function VendorAnnouncements() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Message</Label><Textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={4} placeholder="Write your announcement..." /></div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Expires (optional)</Label>
+                  <Input type="datetime-local" value={form.expires_at} onChange={e => setForm({...form, expires_at: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Link URL (optional)</Label>
+                  <Input type="url" placeholder="https://..." value={form.link_url} onChange={e => setForm({...form, link_url: e.target.value})} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Banner Image URL (optional)</Label>
+                <Input type="url" placeholder="https://..." value={form.banner_url} onChange={e => setForm({...form, banner_url: e.target.value})} />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
