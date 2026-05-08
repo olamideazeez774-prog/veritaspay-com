@@ -307,7 +307,7 @@ export default function AdminAICopilot() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0 max-w-full">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
             <Bot className="h-7 w-7 text-primary" /> AI Copilot
@@ -346,8 +346,8 @@ export default function AdminAICopilot() {
           </ul>
         </div>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "advisory" | "auto" | "autonomous")}>
-          <TabsList className="w-full sm:w-auto">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "advisory" | "auto" | "autonomous")} className="min-w-0">
+          <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex">
             <TabsTrigger value="advisory" className="flex-1 sm:flex-none"><Sparkles className="h-4 w-4 mr-1" />Advisory</TabsTrigger>
             <TabsTrigger value="auto" className="flex-1 sm:flex-none"><Bot className="h-4 w-4 mr-1" />Auto Actions</TabsTrigger>
             <TabsTrigger value="autonomous" className="flex-1 sm:flex-none"><Calendar className="h-4 w-4 mr-1" />Autonomous</TabsTrigger>
@@ -464,7 +464,7 @@ export default function AdminAICopilot() {
                           <Undo2 className="h-4 w-4 mr-1" />Rollback
                         </Button>
                       )}
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(d.created_at)}</span>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(d.created_at)}</span>
                     </div>
                   </div>
                 </motion.div>

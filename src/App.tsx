@@ -73,6 +73,7 @@ const InboxPage = lazy(() => import("./pages/dashboard/InboxPage").then(m => ({ 
 const DailyDigestPage = lazy(() => import("./pages/dashboard/DailyDigestPage").then(m => ({ default: m.default })));
 const VendorToolkit = lazy(() => import("./pages/dashboard/VendorToolkit").then(m => ({ default: m.default })));
 const AIAssistantPage = lazy(() => import("./pages/dashboard/AIAssistantPage").then(m => ({ default: m.default })));
+const LeaderboardPage = lazy(() => import("./pages/dashboard/LeaderboardPage").then(m => ({ default: m.default })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -293,6 +294,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <AIAssistantPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <FeatureFlagRoute flag="leaderboard"><LeaderboardPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />
