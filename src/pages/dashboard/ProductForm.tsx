@@ -13,8 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { PaymentModal } from "@/components/PaymentModal";
 import { LISTING_FEE } from "@/hooks/useListingPayment";
+import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/format";
 import { logger } from "@/lib/logger";
 import {
@@ -38,8 +38,7 @@ export default function ProductForm() {
   const { enabled: listingFeesEnabled } = useFeatureFlag("listing_fees");
 
   const isEditing = !!id;
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [pendingProductData, setPendingProductData] = useState<Record<string, unknown> | null>(null);
+  const [payingListingFee, setPayingListingFee] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -112,31 +111,43 @@ export default function ProductForm() {
         });
         navigate("/dashboard/products");
       } else {
-        // Standard: ₦2,000 listing payment required
-        setPendingProductData(productData);
-        setShowPaymentModal(true);
+        // Standard: ₦2,000 listing payment via Paystack
+        try {
+          setPayingListingFee(true);
+          // Create product as draft first to get its ID
+          const created = await createProduct.mutateAsync({ ...productData, status: "draft" as const });
+          const callbackUrl = `${window.location.origin}/payment/callback`;
+          const { data, error } = await supabase.functions.invoke("initialize-payment", {
+            body: {
+              email: user.email,
+              purpose: "listing_fee",
+              userId: user.id,
+              productId: (created as { id?: string })?.id,
+              amount: LISTING_FEE,
+              callbackUrl,
+            },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+            purpose: "listing_fee",
+            userId: user.id,
+            productId: (created as { id?: string })?.id,
+            reference: data.reference,
+            redirect: "/dashboard/products",
+          }));
+          window.location.href = data.authorization_url;
+        } catch (err) {
+          logger.error("Listing fee payment init failed", err);
+          toast.error("Failed to start payment. Please try again.");
+        } finally {
+          setPayingListingFee(false);
+        }
       }
     }
   };
 
-  const handlePaymentComplete = async (paymentReference: string) => {
-    if (!pendingProductData || !user) return;
-
-    try {
-      await createProduct.mutateAsync({
-        vendor_id: user.id,
-        title: (pendingProductData as Record<string, unknown>).title as string,
-        price: (pendingProductData as Record<string, unknown>).price as number,
-        ...(pendingProductData as Record<string, unknown>),
-        status: "draft" as const,
-      });
-      navigate("/dashboard/products");
-    } catch (error) {
-      logger.error("Failed to create product", error);
-    }
-  };
-
-  const isPending = createProduct.isPending || updateProduct.isPending;
+  const isPending = createProduct.isPending || updateProduct.isPending || payingListingFee;
 
   return (
     <DashboardLayout>
@@ -389,18 +400,6 @@ export default function ProductForm() {
           </div>
         </form>
 
-        {/* Payment Modal */}
-        {user && (
-          <PaymentModal
-            open={showPaymentModal}
-            onOpenChange={setShowPaymentModal}
-            onPaymentComplete={handlePaymentComplete}
-            vendorId={user.id}
-            amount={LISTING_FEE}
-            title="Product Listing Fee"
-            description={`Pay ${formatCurrency(LISTING_FEE)} to list "${formData.title}"`}
-          />
-        )}
       </div>
     </DashboardLayout>
   );
