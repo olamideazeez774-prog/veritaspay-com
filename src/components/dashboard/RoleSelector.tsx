@@ -54,57 +54,58 @@ export function RoleSelector() {
     
     setIsSubmitting(true);
     try {
-      const rolesToInsert = selectedRoles.map((role) => ({
-        user_id: user.id,
-        role: role as "vendor" | "affiliate",
-      }));
+      // DO NOT assign roles or change vendor_plan before payment.
+      // The role + plan are activated only after Paystack confirms the payment
+      // (see supabase/functions/_shared/verify-payment.ts).
+      const callbackUrl = `${window.location.origin}/payment/callback`;
 
-      const { error } = await supabase.from("user_roles").insert(rolesToInsert);
-
-      if (error) throw error;
-
+      // Each selected role becomes its own payment intent so partial failures
+      // never accidentally activate a role the user didn't pay for.
+      const intents: Array<{ purpose: "vendor_onboarding" | "affiliate_membership"; amount: number; metadata: Record<string, unknown> }> = [];
       if (selectedRoles.includes("vendor")) {
-        await supabase.from("profiles").update({
-          vendor_plan: vendorPlan,
-          onboarding_balance_due: vendorPlan === "starter" ? VENDOR_STARTER_DEFERRED : 0,
-        }).eq("id", user.id);
-      }
-
-      toast.success("Roles assigned successfully!");
-      await refreshProfile();
-
-      // Calculate upfront fee due now
-      let upfront = 0;
-      let purpose: "vendor_onboarding" | "affiliate_membership" | null = null;
-      if (selectedRoles.includes("vendor")) {
-        upfront += vendorPlan === "starter" ? VENDOR_STARTER_UPFRONT : VENDOR_REGISTRATION_FEE;
-        purpose = "vendor_onboarding";
+        intents.push({
+          purpose: "vendor_onboarding",
+          amount: vendorPlan === "starter" ? VENDOR_STARTER_UPFRONT : VENDOR_REGISTRATION_FEE,
+          metadata: {
+            vendor_plan: vendorPlan,
+            onboarding_balance_due: vendorPlan === "starter" ? VENDOR_STARTER_DEFERRED : 0,
+          },
+        });
       }
       if (selectedRoles.includes("affiliate")) {
-        upfront += AFFILIATE_REGISTRATION_FEE;
-        if (!purpose) purpose = "affiliate_membership";
+        intents.push({
+          purpose: "affiliate_membership",
+          amount: AFFILIATE_REGISTRATION_FEE,
+          metadata: {},
+        });
       }
 
-      if (upfront > 0 && purpose) {
-        try {
-          const callbackUrl = `${window.location.origin}/payment/callback`;
-          const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
-            body: { email: user.email, purpose, userId: user.id, amount: upfront, callbackUrl },
-          });
-          if (payErr) throw payErr;
-          if (data?.error) throw new Error(data.error);
-          sessionStorage.setItem("payment_purpose_context", JSON.stringify({
-            purpose, userId: user.id, reference: data.reference, redirect: "/dashboard",
-          }));
-          window.location.href = data.authorization_url;
-          return;
-        } catch (e) {
-          toast.error("Could not start payment. You can pay later from Settings.");
-        }
+      // Handle one at a time. Start with the first; remaining intents are
+      // queued so the callback page can pick them up after the first verifies.
+      const [first, ...rest] = intents;
+      if (!first) {
+        toast.error("Please choose a role.");
+        return;
       }
+
+      const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
+        body: { email: user.email, purpose: first.purpose, userId: user.id, amount: first.amount, callbackUrl, metadata: first.metadata },
+      });
+      if (payErr) throw payErr;
+      if (data?.error) throw new Error(data.error);
+
+      sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+        purpose: first.purpose,
+        userId: user.id,
+        reference: data.reference,
+        redirect: "/dashboard",
+        queue: rest.map((r) => ({ ...r, email: user.email, userId: user.id })),
+      }));
+      window.location.href = data.authorization_url;
+      return;
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message);
+      toast.error(err.message || "Could not start payment.");
     } finally {
       setIsSubmitting(false);
     }
