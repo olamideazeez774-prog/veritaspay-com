@@ -38,7 +38,7 @@ const roles = [
 ];
 
 export function RoleSelector() {
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [vendorPlan, setVendorPlan] = useState<"standard" | "starter">("standard");
   const [isSubmitting, setIsSubmitting] = useState(false);
