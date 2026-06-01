@@ -1,10 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
+const ALLOWED_PURPOSES = new Set([
+  "sale",
+  "verification",
+  "listing_fee",
+  "vendor_onboarding",
+  "affiliate_membership",
+  "premium_upgrade",
+  "subscription",
+]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: buildCorsHeaders(req) });
   }
+
+  const respond = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+    });
 
   try {
     const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
@@ -12,61 +28,88 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     if (!PAYSTACK_SECRET_KEY) {
-      return new Response(JSON.stringify({ error: "Payment gateway not configured" }), {
-        status: 503,
-        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-      });
+      return respond({ error: "Payment gateway not configured" }, 503);
     }
 
-    const { email, productId, affiliateCode, buyerName, callbackUrl, couponCode, purpose, userId, amount } = await req.json();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    if (!email) {
-      return new Response(JSON.stringify({ error: "Missing email" }), {
-        status: 400,
-        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-      });
+    const {
+      email,
+      productId,
+      affiliateCode,
+      buyerName,
+      callbackUrl,
+      couponCode,
+      purpose,
+      userId,
+      amount,
+      metadata: clientMetadata = {},
+    } = await req.json();
+
+    if (!email) return respond({ error: "Missing email" }, 400);
+
+    const purposeKey = purpose || "sale";
+    if (!ALLOWED_PURPOSES.has(purposeKey)) {
+      return respond({ error: `Unsupported purpose: ${purposeKey}` }, 400);
     }
 
-    // Non-sale purposes: amount-based init, no product lookup
-    if (purpose && purpose !== "sale") {
+    // --------- NON-SALE FLOWS ---------
+    if (purposeKey !== "sale") {
       if (!userId || !amount || amount <= 0) {
-        return new Response(JSON.stringify({ error: "Missing userId/amount for purpose: " + purpose }), {
-          status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-        });
+        return respond({ error: `Missing userId/amount for ${purposeKey}` }, 400);
       }
-      const reference = `MV-${purpose.toUpperCase().slice(0,3)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+      const reference = `MV-${purposeKey.toUpperCase().slice(0, 4)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+      // 1. Persist PENDING payment intent FIRST (source of truth)
+      const { error: insertErr } = await supabase.from("pending_payments").insert({
+        user_id: userId,
+        email,
+        purpose: purposeKey,
+        reference,
+        expected_amount: amount,
+        status: "pending",
+        metadata: { ...clientMetadata, product_id: productId || null },
+      });
+      if (insertErr) {
+        console.error("pending_payments insert failed", insertErr);
+        return respond({ error: "Could not record payment intent" }, 500);
+      }
+
+      // 2. Open Paystack checkout
       const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
-        headers: { Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           amount: Math.round(amount * 100),
           reference,
           callback_url: callbackUrl || undefined,
-          metadata: { purpose, user_id: userId, product_id: productId || null },
+          metadata: { purpose: purposeKey, user_id: userId, product_id: productId || null, ...clientMetadata },
         }),
       });
       const data = await paystackRes.json();
       if (!paystackRes.ok || !data.status) {
-        return new Response(JSON.stringify({ error: data.message || "Init failed" }), {
-          status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-        });
+        await supabase
+          .from("pending_payments")
+          .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: data?.message || "init failed" })
+          .eq("reference", reference);
+        return respond({ error: data?.message || "Init failed" }, 400);
       }
-      return new Response(JSON.stringify({
-        reference, amount, purpose,
+
+      return respond({
+        reference,
+        amount,
+        purpose: purposeKey,
         authorization_url: data.data.authorization_url,
         access_code: data.data.access_code,
-      }), { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } });
-    }
-
-    if (!productId) {
-      return new Response(JSON.stringify({ error: "Missing productId" }), {
-        status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
-    // SECURITY: Resolve actual price server-side. NEVER trust client-supplied amount.
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // --------- SALE FLOW ---------
+    if (!productId) return respond({ error: "Missing productId" }, 400);
+
+    // Resolve price server-side
     const { data: product, error: productError } = await supabase
       .from("products")
       .select("id, price, vendor_id, status, is_approved, title")
@@ -76,15 +119,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (productError || !product) {
-      return new Response(JSON.stringify({ error: "Product not found or unavailable" }), {
-        status: 404,
-        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-      });
+      return respond({ error: "Product not found or unavailable" }, 404);
     }
 
     let finalPrice = Number(product.price);
 
-    // Apply coupon discount server-side if provided
     if (couponCode) {
       const { data: coupon } = await supabase
         .from("vendor_coupons")
@@ -108,28 +147,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (finalPrice <= 0) {
-      return new Response(JSON.stringify({ error: "Invalid product price" }), {
-        status: 400,
-        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
+    if (finalPrice <= 0) return respond({ error: "Invalid product price" }, 400);
 
-    // Initialize Paystack transaction
     const reference = `MV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    
+
+    // Persist pending intent for sales too (uniform audit trail)
+    await supabase.from("pending_payments").insert({
+      user_id: userId || product.vendor_id, // sales may be guest checkout; still track
+      email,
+      purpose: "sale",
+      reference,
+      expected_amount: finalPrice,
+      status: "pending",
+      metadata: {
+        product_id: productId,
+        affiliate_code: affiliateCode || null,
+        buyer_name: buyerName || null,
+        coupon_code: couponCode || null,
+      },
+    });
+
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
-        amount: Math.round(finalPrice * 100), // server-resolved price in kobo
+        amount: Math.round(finalPrice * 100),
         reference,
         callback_url: callbackUrl || undefined,
         metadata: {
+          purpose: "sale",
           product_id: productId,
           affiliate_code: affiliateCode || null,
           buyer_name: buyerName || null,
@@ -140,28 +187,22 @@ Deno.serve(async (req) => {
     });
 
     const paystackData = await paystackRes.json();
-
     if (!paystackRes.ok || !paystackData.status) {
-      console.error("Paystack error:", paystackData);
-      return new Response(JSON.stringify({ error: paystackData.message || "Payment initialization failed" }), {
-        status: 400,
-        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-      });
+      await supabase
+        .from("pending_payments")
+        .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: paystackData?.message || "init failed" })
+        .eq("reference", reference);
+      return respond({ error: paystackData?.message || "Payment initialization failed" }, 400);
     }
 
-    return new Response(JSON.stringify({
+    return respond({
       reference,
       amount: finalPrice,
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,
-    }), {
-      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error initializing payment:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-    });
+    console.error("initialize-payment error:", error);
+    return respond({ error: "Internal server error" }, 500);
   }
 });

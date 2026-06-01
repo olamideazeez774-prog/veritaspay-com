@@ -384,13 +384,9 @@ export default function SettingsPage() {
                           if (!user) return;
                           setApplyingVerification(true);
                           try {
-                            // Insert request row (idempotent best-effort)
-                            await supabase.from("verification_requests").insert({
-                              user_id: user.id,
-                              path: "paid",
-                              status: "pending",
-                            });
-                            // Fetch fee
+                            // Do NOT create the verification_requests row yet — it must only
+                            // exist after Paystack confirms the payment (handled in the
+                            // paystack-callback / paystack-webhook edge functions).
                             const { data: feeRow } = await supabase
                               .from("platform_settings")
                               .select("value")
