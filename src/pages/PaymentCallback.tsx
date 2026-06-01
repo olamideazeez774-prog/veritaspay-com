@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CheckoutContext {
   productId: string;
@@ -23,6 +24,7 @@ interface CheckoutContext {
 export default function PaymentCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your payment...");
   const [saleId, setSaleId] = useState<string | null>(null);
@@ -45,13 +47,44 @@ export default function PaymentCallback() {
         // Purpose-aware: check for non-sale flow first
         const purposeCtxJson = sessionStorage.getItem("payment_purpose_context");
         if (purposeCtxJson) {
-          const ctx = JSON.parse(purposeCtxJson) as { purpose: string; userId: string; productId?: string; reference: string; redirect?: string };
+          const ctx = JSON.parse(purposeCtxJson) as {
+            purpose: string;
+            userId: string;
+            productId?: string;
+            reference: string;
+            redirect?: string;
+            queue?: Array<{ purpose: string; amount: number; metadata?: Record<string, unknown>; email: string; userId: string }>;
+          };
           const { data, error } = await supabase.functions.invoke("paystack-callback", {
             body: { reference: reference || ctx.reference, purpose: ctx.purpose, userId: ctx.userId, productId: ctx.productId },
           });
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
           sessionStorage.removeItem("payment_purpose_context");
+          // Refresh profile so newly-activated role/plan is reflected immediately
+          try { await refreshProfile?.(); } catch { /* noop */ }
+
+          // If there are queued follow-up intents (e.g. user selected both
+          // vendor + affiliate), start the next one before redirecting.
+          if (Array.isArray(ctx.queue) && ctx.queue.length > 0) {
+            const [next, ...rest] = ctx.queue;
+            const callbackUrl = `${window.location.origin}/payment/callback`;
+            const initRes = await supabase.functions.invoke("initialize-payment", {
+              body: { email: next.email, purpose: next.purpose, userId: next.userId, amount: next.amount, callbackUrl, metadata: next.metadata },
+            });
+            if (!initRes.error && initRes.data?.authorization_url) {
+              sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+                purpose: next.purpose,
+                userId: next.userId,
+                reference: initRes.data.reference,
+                redirect: ctx.redirect || "/dashboard",
+                queue: rest,
+              }));
+              window.location.href = initRes.data.authorization_url;
+              return;
+            }
+          }
+
           setStatus("success");
           setMessage("Payment confirmed!");
           toast.success("Payment confirmed!");
@@ -134,7 +167,7 @@ export default function PaymentCallback() {
     };
 
     processCallback();
-  }, [reference, navigate]);
+  }, [reference, navigate, refreshProfile]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
