@@ -791,6 +791,54 @@ export type Database = {
           },
         ]
       }
+      pending_payments: {
+        Row: {
+          created_at: string
+          email: string
+          expected_amount: number
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          metadata: Json
+          purpose: string
+          reference: string
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expected_amount: number
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          purpose: string
+          reference: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expected_amount?: number
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          purpose?: string
+          reference?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       platform_referrals: {
         Row: {
           commission_amount: number | null
