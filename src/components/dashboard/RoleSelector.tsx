@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
+import { useAllFeatureFlags } from "@/hooks/useFeatureFlag";
 import {
   VENDOR_REGISTRATION_FEE,
   VENDOR_STARTER_UPFRONT,
@@ -39,9 +40,16 @@ const roles = [
 
 export function RoleSelector() {
   const { user } = useAuth();
+  const { flags } = useAllFeatureFlags();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [vendorPlan, setVendorPlan] = useState<"standard" | "starter">("standard");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const visibleRoles = roles.filter((r) => {
+    if (r.id === "vendor" && flags.vendor_onboarding?.enabled === false) return false;
+    if (r.id === "affiliate" && flags.affiliate_rewards?.enabled === false) return false;
+    return true;
+  });
 
   const toggleRole = (roleId: string) => {
     setSelectedRoles((prev) =>
@@ -125,7 +133,7 @@ export function RoleSelector() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {roles.map((role) => {
+        {visibleRoles.map((role) => {
           const isSelected = selectedRoles.includes(role.id);
           return (
             <motion.button

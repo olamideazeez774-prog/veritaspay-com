@@ -55,11 +55,36 @@ export default function PaymentCallback() {
             redirect?: string;
             queue?: Array<{ purpose: string; amount: number; metadata?: Record<string, unknown>; email: string; userId: string }>;
           };
-          const { data, error } = await supabase.functions.invoke("paystack-callback", {
-            body: { reference: reference || ctx.reference, purpose: ctx.purpose, userId: ctx.userId, productId: ctx.productId },
-          });
-          if (error) throw error;
-          if (data?.error) throw new Error(data.error);
+          const useRef = reference || ctx.reference;
+          let data: { error?: string; redirect?: string } | null = null;
+          let lastErr: unknown = null;
+          // Try callback verification, then fall back to polling pending_payments
+          // (handles the race where the webhook verified faster than the browser).
+          try {
+            const res = await supabase.functions.invoke("paystack-callback", {
+              body: { reference: useRef, purpose: ctx.purpose, userId: ctx.userId, productId: ctx.productId },
+            });
+            if (res.error) lastErr = res.error;
+            else if (res.data?.error) lastErr = new Error(res.data.error);
+            else data = res.data;
+          } catch (e) { lastErr = e; }
+
+          if (!data) {
+            // Poll pending_payments up to 12s for webhook-verified state
+            for (let i = 0; i < 6; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              const { data: row } = await supabase
+                .from("pending_payments")
+                .select("status, purpose")
+                .eq("reference", useRef)
+                .maybeSingle();
+              if (row?.status === "verified") { data = { redirect: ctx.redirect }; break; }
+              if (row?.status === "failed" || row?.status === "expired") {
+                throw new Error("Payment was not completed. Please try again.");
+              }
+            }
+            if (!data) throw lastErr instanceof Error ? lastErr : new Error("Verification timed out. If you were charged, refresh in a minute.");
+          }
           sessionStorage.removeItem("payment_purpose_context");
           // Refresh profile so newly-activated role/plan is reflected immediately
           try { await refreshProfile?.(); } catch { /* noop */ }
