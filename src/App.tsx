@@ -294,7 +294,7 @@ const App = () => (
                 path="/dashboard/ai-assistant"
                 element={
                   <ProtectedRoute>
-                    <AIAssistantPage />
+                    <FeatureFlagRoute flag="ai_modules"><AIAssistantPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { RoleSelector } from "@/components/dashboard/RoleSelector";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { FeatureGate } from "@/components/FeatureGate";
 
 export default function Dashboard() {
   const { user, roles, isVendor, isAffiliate } = useAuth();
@@ -90,6 +91,7 @@ export default function Dashboard() {
 
         {/* Daily Digest */}
         {latestDigest && (
+          <FeatureGate flag="daily_digest">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
               <CardHeader className="pb-2">
@@ -107,6 +109,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
+          </FeatureGate>
         )}
 
         {/* Vendor Stats */}
