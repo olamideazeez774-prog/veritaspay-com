@@ -67,6 +67,7 @@ const adminNavItems: NavItem[] = [
   { title: "Users", href: "/vp-admin-x7k9/users", icon: Users },
   { title: "Products", href: "/vp-admin-x7k9/products", icon: Package },
   { title: "Listing Payments", href: "/vp-admin-x7k9/listing-payments", icon: CreditCard, featureFlag: "listing_fees" },
+  { title: "Pending Payments", href: "/vp-admin-x7k9/pending-payments", icon: CreditCard },
   { title: "Payouts", href: "/vp-admin-x7k9/payouts", icon: CreditCard },
 ];
 
@@ -303,10 +304,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className={cn(
-        "flex-1 min-w-0 transition-all duration-300 lg:pt-0 pt-14 pb-20 lg:pb-0",
+        "flex-1 min-w-0 overflow-x-hidden transition-all duration-300 lg:pt-0 pt-14 pb-20 lg:pb-0",
         sidebarOpen ? "lg:ml-[260px]" : "lg:ml-[72px]"
       )}>
-        <div className="container-wide py-6 lg:py-8 min-w-0 max-w-full">{children}</div>
+        <div className="container-wide py-6 lg:py-8 min-w-0 max-w-full overflow-x-hidden">{children}</div>
       </main>
 
       {/* Bottom Navigation Bar (mobile only) - hidden when sidebar is open */}

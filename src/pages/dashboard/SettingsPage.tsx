@@ -173,7 +173,7 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase.from("verification_requests").insert({
         user_id: user.id,
-        path: "earned",
+        path: "gold_rank",
         status: "pending",
       });
       if (error) {
