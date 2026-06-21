@@ -1610,6 +1610,10 @@ export type Database = {
         Returns: number
       }
       dismiss_ai_alert: { Args: { alert_id: string }; Returns: undefined }
+      expire_stale_pending_payments: {
+        Args: { _older_than_minutes?: number }
+        Returns: Json
+      }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_profile_referral_code: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
