@@ -1,125 +1,91 @@
-# Mirvyn Launch-Blocker Fix Plan
+# Pre-Launch Hardening Plan (June 15)
 
-This plan groups every issue you reported into 9 focused workstreams. Each ships in a single pass so the UI, DB and edge functions stay in sync.
+Goal: ship Mirvyn with zero known issues. Audit every route, every paid action, every admin tool, every mobile breakpoint. When a feature flag is OFF, the feature must not exist in the UI at all (no menu entry, no card, no button, no banner).
 
----
+## 1. Feature-flag UI gating (true "doesn't exist" mode)
 
-## 1. Financial calculations (HIGH PRIORITY)
+Today flags only block route access and a few menu items. We will make flags fully erase the feature.
 
-**Problem:** Vendor/admin dashboards show wrong totals; affiliate commission shown as ₦22,500 on a ₦25,000/60% sale (should be ₦15,000); "Your earnings" sums all balance buckets twice.
+Scope:
+- Centralize gating in `useFeatureFlag` + add a `<FeatureGate flag="...">` component used inline anywhere a flag-controlled UI fragment appears (buttons, cards, sections, banners).
+- Sweep every page and hide UI when the flag is off, not just disable behavior:
+  - `listing_fees`: hide all listing-fee CTAs/badges on `ProductForm`, vendor dashboard, admin sidebar entry, Listing Payments page link, listing-fee tooltips. When OFF, products are created without payment step.
+  - `platform_fees`: hide platform-fee columns in `VendorSales`, wallet breakdowns, admin analytics charts referencing platform fee.
+  - `withdrawal_fees`: hide fee preview row on `PayoutsPage`, admin payout cards.
+  - `promo_campaigns`: hide `AffiliateToolkit` campaigns tab + admin promo materials section affected pieces.
+  - `ai_modules`: hide AI Assistant page route + sidebar entry, AI Copilot admin link, AI insights cards on vendor/affiliate dashboards, Intelligence menu, AI optimization settings tab in Settings.
+  - `commission_boosts`: hide boost badges/UI in affiliate stats, commission rule "boost" controls in admin.
+  - `vendor_onboarding`: hide vendor option from `RoleSelector`.
+  - `affiliate_rewards`: hide reward banners, leaderboard reward tags.
+  - `ranking_algorithm`: hide rank widgets on dashboards, marketplace sort-by-rank.
+  - `experiments`: hide admin experiments link (already routed).
+  - `affiliate_toolkit`: hide sidebar entry + dashboard quick link.
+  - `certificates`: hide Certificates sidebar, dashboard CTA, rank certificate banners.
+  - `daily_digest`: hide Daily Digest sidebar + notification CTA.
+  - `leaderboard`: hide leaderboard widgets on Dashboard, sidebar entries (vendor/affiliate/admin).
+- Admin sidebar: filter `adminNavItems` against flags exactly the same as `navItems`.
+- Marketplace + landing pages: gate any leaderboard/certificate badges shown to anonymous users.
 
-**Fix:**
+## 2. Paystack / paid-action airgap audit
 
-- Audit `src/hooks/useStats.ts` (`useVendorStats`, `useAffiliateStats`) and `src/hooks/useWallet.ts`. Stop double-counting `pending + cleared + withdrawable` (cleared already moves into withdrawable).
-- Fix `VendorSales.tsx` "Your Earnings" stat to use `wallet.total_earned` only.
-- Verify `process-sale` edge function uses `commission_percent_snapshot` from the product at checkout time and writes the correct `affiliate_commission`, `vendor_earnings`, `platform_fee` per the corrected formula:
-  - `affiliate_commission = total_amount * commission_percent / 100`
-  - `platform_fee = total_amount * platform_fee_percent / 100` (10% standard, 15% waiver)
-  - `vendor_earnings = total_amount - affiliate_commission - platform_fee`
-- Backfill any existing miscomputed sales via a one-off SQL update (insert tool).
-- Same fix applied to `AdminDashboard` aggregates.
+The webhook + verifier exists; complete the loop and verify every paid surface routes through it.
 
-## 2. Mobile responsiveness overflow (sales, intelligence, rankings, products, admin dashboard, vendor dashboard icons)
+- Confirm every paid surface uses `initialize-payment` with the correct `purpose` and renders the Paystack `authorization_url` (no inline activation). Surfaces: vendor onboarding, affiliate onboarding, product listing fee, verification badge, premium upgrade, future subscriptions, sale checkout.
+- `PaymentCallback.tsx`: on failure show retry + return; on success poll `pending_payments.status` until `verified` (handles race where browser is faster than webhook) then `refreshProfile()` and route via the purpose redirect map.
+- Add a server-side `cleanup-stale-payments` cron job: any `pending_payments` older than 30 min in `pending` status is marked `expired` and never activates.
+- Add an idempotency guard already present (verified → noop); add the same guard in `process-sale` keyed on `payment_reference` to prevent duplicate sales.
+- Verify `paystack-webhook` HMAC + `pending_payments` row are written BEFORE the Paystack init call (already correct in code; add unit-style log assertions in callback).
+- Wire Paystack dashboard webhook URL into the deployment guide so launch checklist is explicit.
+- Add a small "Pending Payments" admin table page so admins can see/refund stuck payments.
 
-**Problem:** Numbers overflow `StatCard` boxes; tables overflow viewport on <768px.
+## 3. Mobile responsiveness sweep (target: 320–414 CSS px)
 
-**Fix:**
+Audit every page at 384px and fix overflow:
+- Admin: `AdminProducts`, `AdminUsers`, `AdminPayouts`, `AdminListingPayments`, `AdminFraudDashboard`, `AdminCommissionRules`, `AdminFeatureFlags`, `AdminRevenueControls`, `AdminAICopilot`, `AdminLogbook`, `AdminMessaging`, `AdminPromoMaterials`, `AdminRankings`, `AdminLeaderboard`, `AdminAnalytics`, `AdminVerificationRequests` — convert any `<table>` wider than viewport to card list <768px; wrap remaining tables in `overflow-x-auto` with explicit `min-w-0` on parents.
+- Vendor: `VendorSales`, `VendorProducts`, `VendorAnnouncements`, `VendorToolkit`, `ProductForm` — fix stat-card icon overflow and empty-state digit wrapping.
+- Affiliate: `AffiliateStats`, `AffiliateAnalytics`, `AffiliateLinks`, `AffiliateReferrals`, `AffiliateToolkit` — same treatment.
+- Shared: `WalletPage`, `PayoutsPage`, `SettingsPage`, `InboxPage`, `DailyDigestPage`, `LeaderboardPage`, `CertificatesPage`.
+- Add a shared `<ResponsiveTable>` helper (mobile card / desktop table) to avoid one-off fixes.
 
-- `src/components/ui/stat-card.tsx`: add `truncate`, `min-w-0`, `text-balance`, scale down value font on mobile (`text-xl sm:text-2xl`), wrap icon in `shrink-0`.
-- All admin tables (`AdminProducts`, `AdminRankings`, `AdminUsers`, `VendorSales`, `AffiliateAnalytics`): add the existing table-to-card pattern <768px (already used elsewhere) so rows stack as cards.
-- `AffiliateToolkit`: re-grid to `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` with consistent card heights and spacing.
+## 4. Admin tooling correctness pass
 
-## 3. Verification badge — paid path
+- `AdminVerificationRequests`: approve/reject buttons must update `verification_requests.status`, write notification, and on approve set `profiles.is_verified = true`. Confirm RLS + service-side update path.
+- `AdminUsers`: ban/suspend/verify/premium/message/fraud-flag actions confirmed wired (recent RLS fix). Add toast + optimistic refetch on each.
+- `AdminFeatureFlags`: writing to `platform_settings.feature_flags` invalidates `["feature-flags"]` query everywhere; persistence verified across reload.
+- `AdminRevenueControls`: sliders persist to `platform_settings` keys (`withdrawal_min`, `platform_fee_default`, `verification_fee`, etc.) and are read on the relevant flows.
+- `AdminCommissionRules`: rules editor writes to `commission_rules`; `process-sale` reads same table.
+- `AdminFraudDashboard`: list, filter, resolve actions on `fraud_events`. Verify resolve writes `status='resolved'` and audit log.
+- `AdminPromoMaterials`: upload/edit/delete works against `promo_materials` + `avatars` bucket.
+- `AdminAICopilot`: mobile rebuild verified; tabs scrollable on 320px.
 
-**Problem:** Paid path opens no payment flow; admin approve fails ("failed to update requests").
+## 5. Functional + data correctness
 
-**Fix:**
+- Referral `?ref=` capture (URL → localStorage → `signUp({ data: { referral_code }})`) verified end-to-end with a manual test in the plan checklist.
+- Daily digest generator handles users with zero activity (still produces an "empty week" digest).
+- Leaderboard query handles ties and excludes admins.
+- Vendor announcements form exposes brand_name / expires_at / banner_url / link_url and validates URLs.
+- Onboarding flow asks for `brand_name` for vendors (stored in `profiles.brand_name`).
+- `useFeatureFlag` returns `enabled: true` while loading to prevent UI flicker that hides features briefly.
 
-- `SettingsPage.tsx`: when user picks "paid path", open `PaymentModal` (Paystack init via `initialize-payment` with `purpose=verification`, ₦ amount from `platform_settings`).
-- New `paystack-callback` branch handles purpose `verification` → marks `verification_requests.payment_reference` and `status='pending_review'`.
-- Fix `AdminVerificationRequests` update mutation: it currently fails because the row update also writes `updated_at` which doesn't exist on the table — remove that field, and on approve also update `profiles.is_verified=true`.
+## 6. Final QA checklist (must pass before publishing)
 
-## 4. Certificate signature false-warning
+1. Run `supabase--linter` — no high/critical findings.
+2. Run `security--run_security_scan` — no exposed PII/RLS gaps.
+3. Manual smoke: register w/ ref → vendor onboarding pay → list product pay → buyer checkout → vendor sees sale → wallet pending → clear-earnings cron → withdraw → admin approves payout.
+4. Toggle each flag OFF in admin → reload → confirm no UI for that feature anywhere.
+5. Visit every route at 384×704 and confirm no horizontal scroll.
 
-**Problem:** Certificates page shows "signature not configured" even though admin signed.
+## Technical notes
 
-**Fix:** `CertificatesPage.tsx` reads `platform_settings.admin_signature` but RLS hides it from non-admins. Replace with a public-safe boolean setting `admin_signature_configured` (true/false), updated by a trigger whenever `admin_signature` changes. Read that flag client-side instead.
+- New file: `src/components/FeatureGate.tsx` — thin wrapper around `useFeatureFlag` that renders `null` when off (and optional `fallback`).
+- New file: `src/components/ui/responsive-table.tsx` — props `{ columns, rows, mobileCard }` to standardize the table→card pattern.
+- New edge function: `cleanup-stale-payments` (scheduled via pg_cron every 10 min).
+- New admin page: `src/pages/admin/AdminPendingPayments.tsx` listing `pending_payments` with filters.
+- Migration: add `expired` to `pending_payments.status` allowed values; add index on `(status, created_at)`.
+- No changes to `process-sale` business logic; only add `payment_reference` idempotency guard.
 
-## 5. Vendor announcements
+## Out of scope
 
-**Problem:** No vendor name/brand shown, no expiry, no banner image, no URL field; onboarding never collects brand name.
-
-**Fix:**
-
-- Migration: add `brand_name text`, `business_url text` to `profiles`; add `expires_at timestamptz`, `banner_url text`, `link_url text` to `vendor_announcements`.
-- `OnboardingFlow`: vendor step asks for brand name (saved to `profiles.brand_name`).
-- `VendorAnnouncements` form: add expiry date picker, banner upload (avatars bucket), link URL field.
-- Announcements list (affiliate side): show vendor avatar, brand name, expiry badge, banner image, click-through link.
-- Filter out expired announcements in `useAnnouncements`.
-
-## 6. Referral tracking broken
-
-**Problem:** Signing up via `?ref=CODE` link doesn't record referral; manual code entry says "invalid".
-
-**Fix:**
-
-- `Register.tsx`: read `?ref=` and persist to `localStorage` AND pass into `signUp` metadata.
-- After signup completion, `handle_new_user` trigger reads metadata and writes `profiles.referred_by` + `platform_referrals` row.
-- Manual code entry: validate against `profiles.referral_code` OR `affiliate_referral_codes.referral_code` (currently only checks one); use `.maybeSingle()`.
-
-## 7. Admin user management actions
-
-**Problem:** Only role add/remove works; ban/suspend/verify/premium/message/fraud-flag are dead buttons.
-
-**Fix:** `AdminUsers.tsx` — wire each button to mutations:
-
-- Ban → `profiles.is_banned=true`
-- Suspend → `profiles.suspended_until = now()+7d`
-- Verify → `profiles.is_verified=true` (+ insert certificate-eligible audit)
-- Premium → `profiles.vendor_tier='premium'`
-- Send message → insert `user_messages` row
-- Fraud flag → insert `fraud_events` row
-- Add `ProtectedRoute`/middleware to block banned/suspended users at login.
-
-## 8. Leaderboard, AI copilot, fraud, commission rules, revenue/AI, feature flags, materials
-
-- **Leaderboard:** create `/dashboard/leaderboard` (affiliate + vendor views) showing ranked tables with the user's row highlighted; reuse `useLeaderboard` and ensure it computes by sales/commission for the period.
-- **AI Copilot (`AdminAICopilot`):** rebuild as mobile-first card stack; make `ai-autonomous-scheduler` actually take non-financial actions (not limited to auto-approve clean products, auto-send digests, auto-flag fraud) and only NOTIFY admin for financial actions.
-- **Fraud monitor:** finish UI — list `fraud_events`, allow resolve/hold-commission actions, link to user.
-- **Commission rules page:** sync default values to current monetary model (10%/15% platform, ₦4,000 affiliate fee, ₦2,000 listing, ₦8,500/₦3,000 onboarding, withdrawal 2/3%).
-- **Revenue & AI controls:** make sliders actually write to `platform_settings` and have `process-sale`/`process-payouts` read them at runtime.
-- **Feature flags:** verify the `FeatureFlagRoute` guard is wired into ALL flagged routes and that hidden features don't render menu entries when off.
-- **Materials page:** repurpose as "Promo Asset Library" — admin uploads banners/copy/swipe files that vendors+affiliates can browse and download from their toolkits.
-
-## 9. Payment flows (vendor listing fee + onboarding fee)
-
-**Problem:** Both flows incomplete — modal opens but nothing happens / no callback verification.
-
-**Fix:**
-
-- `ProductForm` listing-fee modal: call `initialize-payment` with `purpose=listing_fee`, redirect to Paystack, on callback `paystack-callback` inserts `product_listing_payments` row + flips product to `pending_review`.
-- Vendor onboarding: same pattern with `purpose=vendor_onboarding`, deducts from `profiles.onboarding_balance_due` (Plan B) or marks plan paid (Plan A).
-- Affiliate ₦4,000 membership: `purpose=affiliate_membership`, sets `profiles.affiliate_membership_expires_at`.
-- All purposes handled centrally in `paystack-callback`.
-
-## 10. Daily digest
-
-**Fix:** `generate-daily-digest` cron is configured but never ran for users with no recent activity. Trigger it for ALL active vendors/affiliates daily, not just those with sales. Verify the function inserts to `daily_digests` with proper `digest_type` and that `Dashboard.tsx` reads `latestDigest` (already does).
-
----
-
-## Technical execution order
-
-1. Migrations: announcement fields, profiles brand_name/membership, signature_configured flag/trigger, backfill sales.
-2. Edge functions: `process-sale` math fix, `paystack-callback` purpose router, `ai-autonomous-scheduler` autonomy upgrade, `generate-daily-digest` universal run.
-3. Hooks: `useStats`, `useWallet`, `useAnnouncements`, `useReferrals`.
-4. UI: StatCard, all overflow tables, OnboardingFlow, SettingsPage, CertificatesPage, VendorAnnouncements, Register, AdminUsers, AdminVerificationRequests, AdminAICopilot, AdminFraudDashboard, AdminCommissionRules, AdminRevenueControls, AdminFeatureFlags, AffiliateToolkit, leaderboard pages.
-5. Re-run Supabase linter; QA each flow.
-
-## Risks
-
-- Backfilling sales math will change historical wallet balances — will log every adjustment to `system_logs`.
-- Signature-configured flag requires admins to re-save signature once to populate.
-- Adding required brand_name to onboarding doesn't retroactively fill existing vendors — they'll be prompted on next dashboard visit.
-
-Approve to proceed and I'll execute all 10 workstreams in one go.
+- New features beyond what already exists.
+- Redesign of any page (only overflow / gating fixes).
+- Migration to a different payment provider.
