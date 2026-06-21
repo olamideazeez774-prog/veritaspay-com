@@ -50,6 +50,7 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts").then(m =>
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers").then(m => ({ default: m.default })));
 const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts").then(m => ({ default: m.default })));
 const AdminListingPayments = lazy(() => import("./pages/admin/AdminListingPayments").then(m => ({ default: m.default })));
+const AdminPendingPayments = lazy(() => import("./pages/admin/AdminPendingPayments").then(m => ({ default: m.default })));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics").then(m => ({ default: m.default })));
 const AdminLogbook = lazy(() => import("./pages/admin/AdminLogbook").then(m => ({ default: m.default })));
 const AdminCommissionRules = lazy(() => import("./pages/admin/AdminCommissionRules").then(m => ({ default: m.default })));
@@ -344,6 +345,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <FeatureFlagRoute flag="listing_fees"><AdminListingPayments /></FeatureFlagRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vp-admin-x7k9/pending-payments"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminPendingPayments />
                   </ProtectedRoute>
                 }
               />
