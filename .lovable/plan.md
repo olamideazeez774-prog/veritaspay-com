@@ -1,110 +1,60 @@
-# Mirvyn — Pre-Launch Audit + Roadmap v2 PDF
+# Mirvyn Backend Migration Dossier (PDF)
 
-Two independent workstreams. I'll do the audit first (touches code), then regenerate the PDF (touches only `/mnt/documents`).
+Produce a single, exhaustive PDF that documents the entire current backend so an external AI coding agent can detach Mirvyn from Lovable Cloud and stand it up on a self-hosted Supabase instance — including moving the existing live data.
 
----
+## What the PDF will contain
 
-## Part 1 — Codebase audit & hardening
+**1. Executive overview**
+- What the backend is (Postgres + Auth + Storage + 15 edge functions + cron), what is Lovable-specific and must be replaced, what is portable as-is.
+- Migration risk register and recommended order of operations.
 
-Goal: no reachable security or logic issue. Zero client-side feature activation. Every paid feature gated on webhook-verified `pending_payments.status = 'verified'`.
+**2. Complete database reference**
+- All 34 tables: every column with type, nullability, default, and plain-English purpose.
+- All 6 enum types with values.
+- Every primary key, foreign key, unique constraint, and index.
+- All 44 database functions with full source and what each one does.
+- All 73 triggers: table, timing, event, function.
+- Every RLS policy per table (command, roles, USING/WITH CHECK expression) plus GRANT matrix per role.
+- pg_cron jobs and their schedules/payloads.
 
-### 1.1 Static + security sweep
-- Run `security--run_security_scan` and `supabase--linter` in parallel.
-- `rg` sweeps for known anti-patterns:
-  - client-side "activate on success" writes (`.update({... status: 'active'`, `is_verified: true`, `vendor_tier: 'premium'`) originating outside edge functions.
-  - direct `supabase.from('profiles').update` on privileged columns from client.
-  - any remaining `payment_success = true` short-circuits in `PaymentCallback`, `RoleSelector`, `SettingsPage`, `ProductForm`.
-  - `.single()` vs `.maybeSingle()` on external lookups.
-  - `verify_jwt` mismatches vs `config.toml`.
-  - `console.log` of secrets, `service_role` usage in client bundle.
-- Check every edge function for: CORS on all responses (including errors), input validation, idempotency guard on webhook, amount verification against `expected_amount`.
+**3. One-file bootstrap SQL**
+- A single ordered `schema.sql` (extensions → enums → tables → grants → RLS → policies → functions → triggers → cron) that recreates the backend from empty on self-hosted Supabase, with the Lovable-specific bits called out.
 
-### 1.2 Payment flow airtightness (per user's rule #19)
-Verify each paid surface routes through:
-`initialize-payment` → `pending_payments (pending)` → Paystack → `paystack-webhook` → `verify-payment` shared → activate feature + audit log + notification.
+**4. Data migration runbook (existing data)**
+- Export order and FK-safe restore sequence for all tables.
+- `auth.users` migration: preserving user IDs so `profiles`, `wallets`, `user_roles`, `sales`, and `affiliate_links` keep pointing at the right accounts; password hash handling; what breaks if IDs change.
+- Storage bucket (`avatars`) file migration and re-pointing `avatar_url`.
+- Trigger-disable/re-enable strategy so restore doesn't fire notification/logging triggers.
+- Post-import verification queries (row counts, wallet balance reconciliation, orphan-FK checks).
 
-Surfaces to re-verify end-to-end:
-- Vendor onboarding (both A ₦8,500 and B ₦3,000 + 5-sale deduction — the B model is new; flag as roadmap-only, not blocking).
-- Affiliate membership.
-- Product listing fee.
-- Verification badge.
-- Sales checkout.
-- Any premium upgrade path.
+**5. Edge functions reference**
+For each of the 15 functions: purpose, invocation path (client / webhook / cron), `verify_jwt` setting, request/response shape, secrets used, tables written, and side effects. Grouped by domain: payments (initialize-payment, paystack-callback, paystack-webhook, process-sale, process-refund, cleanup-stale-payments), money movement (process-payouts, clear-earnings), AI (ai-insights, ai-autonomous-scheduler, generate-daily-digest, fraud-detection), delivery/misc (get-delivery, track-click, send-email), plus `_shared`.
 
-Idempotency check: webhook re-delivery must be a no-op. Confirm `verified_at IS NOT NULL` short-circuit exists in `paystack-webhook` and `verify-payment`.
+**6. Frontend ↔ backend wiring**
+- Every client integration point: the generated Supabase client, env vars, the 53 files that touch the DB, the 11 `functions.invoke` call sites, storage usage, realtime subscriptions.
+- Exactly which files must change (`.env`, `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`) and how to regenerate types against the new instance.
 
-### 1.3 Feature-flag "does not exist" enforcement
-Sweep for any flagged feature still rendering when flag is off:
-- Sidebar/nav items, dashboard cards, admin nav, route registrations, mobile bottom nav.
-- Confirm `<FeatureGate>` / `<FeatureFlagRoute>` wraps every flagged surface. Add missing ones.
+**7. Money & business logic spec**
+- The full monetary model as implemented (listing fees, onboarding fees, affiliate membership, 10%/15% platform fee, 2%/3% withdrawal fees, ₦2,500 minimum, earning states pending → cleared → withdrawable, payout hold and fund reservation) so nothing is lost in translation.
+- Payment verification architecture: pending payment record → reference → Paystack → signature-verified webhook → idempotent amount check → activation.
 
-### 1.4 RLS + GRANT audit
-- Confirm `pending_payments`, `product_listing_payments`, `verification_requests`, `user_roles`, `profiles.admin_notes` policies match intent.
-- Ensure `service_role` GRANT exists on every table the edge functions touch.
+**8. Secrets & configuration matrix**
+- Every secret the backend reads, what it is for, and where the self-hosted replacement value comes from.
+- Lovable-only dependencies and their replacements: `LOVABLE_API_KEY` / Lovable AI Gateway, auto-generated client and types, `supabase/config.toml` handling, auth settings (providers, email confirmation, HIBP), self-hosted Auth/Storage/pg_cron/pg_net enablement.
 
-### 1.5 UX / button audit
-Playwright pass (headless) across:
-- `/` → CTA buttons render, no console errors.
-- `/register`, `/login` (unauth) → forms submit-ready.
-- Marketplace → product cards clickable, checkout modal opens.
-- Dashboard (authenticated via injected session) → sidebar links resolve, no 404, no unhandled promise rejections in console.
-- Admin routes at `/vp-admin-x7k9` → guarded.
+**9. AI gateway swap (provider-agnostic)**
+- Exact locations of every gateway call, the request/response shape used, and the minimal diff to point them at any OpenAI-compatible endpoint (base URL, auth header, model id) — written so DeepSeek, OpenAI, Gemini, or a local model can be dropped in.
+- Feature-flag path to keep AI surfaces dark during the cutover.
 
-Any issue found gets fixed in the same turn, minimal blast radius, then re-verified.
+**10. Cutover checklist & verification plan**
+- Step-by-step sequence, DNS/URL and Paystack webhook re-pointing, smoke tests per flow (signup, referral capture, listing payment, checkout, delivery, withdrawal, admin approval), rollback plan.
 
-### 1.6 Deliverable
-Short written report: what was scanned, what was found, what was fixed, what remains (with severity). No hand-wave "looks good" — every claim tied to a file/line or a passed check.
+**11. Appendices**
+- Migration file inventory (39 files) and which are superseded.
+- Known warnings carried over (function `search_path`, public `avatars` bucket listing, SECURITY DEFINER execute grants) with fixes.
 
----
+## Technical approach
 
-## Part 2 — Roadmap PDF v2 (fully integrated rewrite)
+Read the live schema, policies, grants, indexes, function bodies, trigger definitions, and cron jobs directly from the database; read all edge function sources and the client call sites from the repo. Generate the PDF with a Python/ReportLab script into `/mnt/documents/`, then render every page to an image and inspect each one for clipped tables, overflowing code blocks, and broken layout before delivering. Also emit the bootstrap `schema.sql` as a companion file so it can be applied verbatim.
 
-**Not an appendix.** The existing 25-page blueprint is rewritten so the 19 architectural updates read as if they were in the original vision.
-
-### 2.1 Structural changes to the document
-
-Old section → new treatment:
-
-| Old | New |
-|---|---|
-| "Selar vs Mirvyn" framing dominant | Repositioned: Mirvyn = **Africa's Growth Network**. Selar comparison becomes one chapter, not the spine. |
-| 4 strategic pillars (varied) | **5 pillars: Community · Distribution · Trust · Intelligence · Depth** — every feature mapped to a pillar. |
-| Monetary tables (old fees) | Rewritten with: affiliate membership ~₦350/mo (₦4,000/yr), vendor onboarding A/B, listing standard vs waiver (15%), withdrawal 3%/2%, Paystack Transfers auto-payout, monthly PDF/CSV statements. |
-| "Marketplace of affiliates" | Renamed **Mirvyn Elite Network** (a.k.a. Verified Affiliate Network) — with full profile schema, vendor discovery flow. |
-| Campaigns section | Rewritten around **Campaign Escrow** + **Campaign Bonus Engine** (tiered cycle rewards). |
-| Retention section | Rewritten around **Social Network feed**, **Vendor Communities**, **Follow System**, **Live Events**, **Weekly Challenges**. |
-| Trust section | Rewritten around **Mirvyn Score** (public reputation), verification tiers. |
-| AI section | Split into **Discovery Engine**, **AI Business Coach**, **Content Studio**, **Product Intelligence**. |
-| Payment architecture blurb | Promoted to a full **Payment Verification Architecture** chapter enforcing pending → webhook → verify → activate. Diagram included. |
-| Roadmap timeline | Rewritten 30/90/180/365 with the new features slotted into the correct phase. |
-
-New required visuals:
-- **Network-effect flywheel diagram** (matplotlib, circular flow).
-- **Payment verification sequence diagram** (matplotlib/reportlab shapes).
-- **Pillar map** (5 pillars → features table).
-- **Monetary logic table** (single canonical source of truth).
-- **Elite Network profile schema** (mock profile card rendered).
-
-### 2.2 Generation approach
-- Rewrite the ReportLab script (`/tmp/mirvyn_roadmap_v2.py`), not patch the old one — cleaner than surgical edits across 25 pages.
-- Brand tokens preserved: Playfair Display headings, Inter body, Teal Blue / Brick Red / Teal Grey / Void Black.
-- Register DejaVu Sans for any ₦ / accented content so glyphs render.
-- Output → `/mnt/documents/Mirvyn_Roadmap_v2.pdf` (leave v1 in place).
-
-### 2.3 QA (mandatory per skill/pdf)
-- `pdftoppm` every page to JPEG at 150 dpi.
-- View each page image, hunt for: overflow, clipped tables, black-box glyphs (₦, subscripts), overlapping shapes on the flywheel/sequence diagrams, wrong section ordering.
-- Iterate until a full pass finds nothing new.
-- Deliver with `<presentation-artifact>` tag + a short summary of what was checked.
-
----
-
-## Order of operations
-1. Kick off Part 1 (audit) — parallel scans + rg sweeps first, then targeted fixes.
-2. In the same session, once fixes are stable, run Part 2 (PDF rewrite + QA).
-3. Final message: audit summary + artifact tag for the new PDF.
-
-## Out of scope
-- Actually building any of the roadmap features (Social feed, Elite Network, Escrow, etc.). Those are documented, not implemented.
-- Migrating existing fee data (₦2,000/6mo → ₦4,000/yr) — no live subscribers yet per prior context; flag as a data migration to run at cutover if needed.
-- Any change to `src/integrations/supabase/client.ts`, `types.ts`, or `.env` (auto-generated).
+No application code is modified — this is documentation only.
