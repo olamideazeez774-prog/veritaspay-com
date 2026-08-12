@@ -13,7 +13,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { generatePremiumCertificatePDF } from "@/lib/certificateGenerator";
+import { generatePremiumCertificatePDF, generateEarningCertificatePDF } from "@/lib/certificateGenerator";
 import { logger } from "@/lib/logger";
 
 interface AffiliateRank {
@@ -24,6 +24,7 @@ interface AffiliateRank {
   commission_boost_percent: number;
   badge_color: string;
   sort_order: number;
+  description: string | null;
 }
 
 interface Certificate {
@@ -32,16 +33,26 @@ interface Certificate {
   certificate_hash: string;
   issued_at: string;
   metadata: Record<string, unknown> | null;
+  cert_type: string;
+  threshold_amount: number | null;
 }
 
 const RANK_ICONS: Record<string, string> = {
   Bronze: "🥉",
   Silver: "🥈",
   Gold: "🏅",
-  Diamond: "💎",
   Platinum: "⬡",
+  Diamond: "💎",
+  Sapphire: "🔷",
   Elite: "👑",
+  Icon: "⭐",
 };
+
+const EARNING_MILESTONES = [100000, 250000, 500000, 1000000];
+
+type Milestone =
+  | { kind: "rank"; threshold: number; rank: AffiliateRank }
+  | { kind: "earning"; threshold: number };
 
 export default function CertificatesPage() {
   const { user, profile, isAdmin } = useAuth();
@@ -114,38 +125,17 @@ export default function CertificatesPage() {
 
   const canClaim = isAdmin || signatureConfigured;
 
-  const { data: ceoName } = useQuery({
-    queryKey: ["ceo-name"],
-    queryFn: async () => {
-      // Get the first admin's name for signing
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin")
-        .limit(1);
-      if (adminRoles?.[0]) {
-        const { data: adminProfile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", adminRoles[0].user_id)
-          .single();
-        return adminProfile?.full_name || PLATFORM_NAME;
-      }
-      return PLATFORM_NAME;
-    },
-  });
-
   const totalEarned = isAdmin ? 999999999 : (wallet?.total_earned || 0);
   const currentRank = ranks?.filter((r) => totalEarned >= r.min_earnings).pop();
   const nextRank = isAdmin ? null : ranks?.find((r) => totalEarned < r.min_earnings);
 
-  const handleClaimCertificate = async (rankName: string) => {
+  const handleClaimCertificate = async (rank: AffiliateRank) => {
     if (!user) return;
     if (!isAdmin && !signatureConfigured) {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
-    const hash = `VP-${rankName.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
+    const hash = `VP-${rank.rank_name.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
 
     const metadata = {
       full_name: profile?.full_name || "",
@@ -154,11 +144,14 @@ export default function CertificatesPage() {
       milestone_date: new Date().toISOString(),
       platform_name: PLATFORM_NAME,
       avatar_url: profile?.avatar_url || "",
+      rank_description: rank.description || "",
     };
 
     const { error } = await supabase.from("certificates").insert([{
       user_id: user.id,
-      rank_name: rankName,
+      rank_name: rank.rank_name,
+      cert_type: "rank",
+      threshold_amount: rank.min_earnings,
       certificate_hash: hash,
       metadata: metadata,
     }]);
@@ -167,7 +160,40 @@ export default function CertificatesPage() {
       if (error.code === "23505") toast.info("Certificate already claimed!");
       else toast.error("Failed to claim certificate");
     } else {
-      toast.success(`${rankName} certificate claimed!`);
+      toast.success(`${rank.rank_name} certificate claimed!`);
+      refetchCerts();
+    }
+  };
+
+  const handleClaimEarningCertificate = async (amount: number) => {
+    if (!user) return;
+    if (!isAdmin && !signatureConfigured) {
+      toast.error("Certificates are not yet available. Admin signature is required.");
+      return;
+    }
+    const hash = `VP-EARN-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
+
+    const { error } = await supabase.from("certificates").insert([{
+      user_id: user.id,
+      rank_name: `Earning ${formatCurrency(amount)}`,
+      cert_type: "earning",
+      threshold_amount: amount,
+      certificate_hash: hash,
+      metadata: {
+        full_name: profile?.full_name || "",
+        email: profile?.email || "",
+        total_commission: amount,
+        milestone_date: new Date().toISOString(),
+        platform_name: PLATFORM_NAME,
+        avatar_url: profile?.avatar_url || "",
+      },
+    }]);
+
+    if (error) {
+      if (error.code === "23505") toast.info("Certificate already claimed!");
+      else toast.error("Failed to claim certificate");
+    } else {
+      toast.success(`${formatCurrency(amount)} earning certificate claimed!`);
       refetchCerts();
     }
   };
@@ -175,6 +201,19 @@ export default function CertificatesPage() {
   const handleDownloadCert = async (cert: Certificate) => {
     try {
       const meta = cert.metadata as Record<string, unknown> | null;
+      if (cert.cert_type === "earning") {
+        await generateEarningCertificatePDF({
+          fullName: (meta?.full_name as string) || profile?.full_name || "User",
+          amount: Number(cert.threshold_amount ?? meta?.total_commission ?? 0),
+          certificateHash: cert.certificate_hash,
+          issuedAt: cert.issued_at,
+          milestoneDate: (meta?.milestone_date as string) || cert.issued_at,
+          avatarUrl: (meta?.avatar_url as string) || profile?.avatar_url,
+          adminSignatureUrl: adminSignature,
+        });
+        toast.success("Certificate downloaded!");
+        return;
+      }
       await generatePremiumCertificatePDF({
         rankName: cert.rank_name,
         fullName: (meta?.full_name as string) || profile?.full_name || "User",
@@ -184,7 +223,10 @@ export default function CertificatesPage() {
         milestoneDate: (meta?.milestone_date as string) || cert.issued_at,
         avatarUrl: (meta?.avatar_url as string) || profile?.avatar_url,
         adminSignatureUrl: adminSignature,
-        ceoName: ceoName || PLATFORM_NAME,
+        rankDescription:
+          (meta?.rank_description as string) ||
+          ranks?.find((r) => r.rank_name === cert.rank_name)?.description ||
+          null,
       });
       toast.success("Certificate downloaded!");
     } catch (err) {
@@ -203,17 +245,37 @@ export default function CertificatesPage() {
     );
   }
 
-  const claimedHashes = new Set(certificates?.map((c) => c.rank_name) || []);
+  const claimedRanks = new Set(
+    (certificates || []).filter((c) => c.cert_type !== "earning").map((c) => c.rank_name)
+  );
+  const claimedEarnings = new Set(
+    (certificates || [])
+      .filter((c) => c.cert_type === "earning")
+      .map((c) => Number(c.threshold_amount))
+  );
+
+  const milestones: Milestone[] = [
+    ...(ranks || []).map((rank) => ({ kind: "rank" as const, threshold: rank.min_earnings, rank })),
+    ...EARNING_MILESTONES.map((threshold) => ({ kind: "earning" as const, threshold })),
+  ].sort((a, b) => a.threshold - b.threshold);
+
+  const unlockedCount = milestones.filter((m) => totalEarned >= m.threshold).length;
+  const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Award className="h-7 w-7 text-primary" />
-            Rank Ladder & Certificates
-          </h1>
-          <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Award className="h-7 w-7 text-primary" />
+              Rank Ladder & Certificates
+            </h1>
+            <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {pad(unlockedCount)}/{pad(milestones.length)} Unlocked
+          </Badge>
         </div>
 
         {!canClaim && (
@@ -233,6 +295,9 @@ export default function CertificatesPage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold">{isAdmin ? "👑 Elite (Admin)" : (currentRank ? `${RANK_ICONS[currentRank.rank_name] || ""} ${currentRank.rank_name}` : "Unranked")}</h2>
+                {currentRank?.description && (
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xl">{currentRank.description}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Total earned: {isAdmin ? "∞" : formatCurrency(totalEarned)}</p>
                 {nextRank && (
                   <p className="text-sm text-muted-foreground">
@@ -240,22 +305,51 @@ export default function CertificatesPage() {
                   </p>
                 )}
               </div>
-              {currentRank && (
-                <div className="flex flex-wrap gap-2">
-                  <Badge>{currentRank.fee_discount_percent}% fee discount</Badge>
-                  <Badge variant="secondary">+{currentRank.commission_boost_percent}% commission</Badge>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Rank Ladder */}
+        {/* Milestone roadmap */}
         <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
-          {ranks?.map((rank) => {
-            const achieved = totalEarned >= rank.min_earnings;
-            const claimed = claimedHashes.has(rank.rank_name);
-            const progress = Math.min((totalEarned / rank.min_earnings) * 100, 100);
+          {milestones.map((milestone) => {
+            const achieved = totalEarned >= milestone.threshold;
+            const progress = Math.min((totalEarned / milestone.threshold) * 100, 100);
+
+            if (milestone.kind === "earning") {
+              const earningClaimed = claimedEarnings.has(milestone.threshold);
+              return (
+                <motion.div key={`earning-${milestone.threshold}`} variants={staggerItem}>
+                  <Card className={`border-dashed ${achieved ? "border-primary/25" : "opacity-70"}`}>
+                    <CardContent className="p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <Award className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {formatCurrency(milestone.threshold)} Earning Milestone
+                        </p>
+                        {!achieved && (
+                          <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full rounded-full bg-primary/70 transition-all w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {achieved && !earningClaimed && (
+                          <Button size="sm" variant="outline" onClick={() => handleClaimEarningCertificate(milestone.threshold)} disabled={!canClaim} className="min-h-[44px]">
+                            <Award className="h-4 w-4 mr-1" />Claim
+                          </Button>
+                        )}
+                        {achieved && earningClaimed && <Badge variant="outline">Claimed ✓</Badge>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            }
+
+            const rank = milestone.rank;
+            const claimed = claimedRanks.has(rank.rank_name);
             const icon = RANK_ICONS[rank.rank_name] || "🏅";
 
             return (
@@ -271,6 +365,9 @@ export default function CertificatesPage() {
                         <p className="font-semibold">{icon} {rank.rank_name}</p>
                         {achieved && <Shield className="h-4 w-4 text-success" />}
                       </div>
+                      {rank.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{rank.description}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(rank.min_earnings)} earnings required
                       </p>
@@ -282,7 +379,7 @@ export default function CertificatesPage() {
                     </div>
                     <div className="flex gap-2">
                       {achieved && !claimed && (
-                        <Button size="sm" onClick={() => handleClaimCertificate(rank.rank_name)} disabled={!canClaim} className="min-h-[44px]">
+                        <Button size="sm" onClick={() => handleClaimCertificate(rank)} disabled={!canClaim} className="min-h-[44px]">
                           <Award className="h-4 w-4 mr-1" />Claim
                         </Button>
                       )}

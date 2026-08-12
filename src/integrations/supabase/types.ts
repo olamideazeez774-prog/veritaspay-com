@@ -107,6 +107,7 @@ export type Database = {
           badge_color: string
           commission_boost_percent: number
           created_at: string
+          description: string | null
           fee_discount_percent: number
           id: string
           min_earnings: number
@@ -117,6 +118,7 @@ export type Database = {
           badge_color?: string
           commission_boost_percent?: number
           created_at?: string
+          description?: string | null
           fee_discount_percent?: number
           id?: string
           min_earnings?: number
@@ -127,6 +129,7 @@ export type Database = {
           badge_color?: string
           commission_boost_percent?: number
           created_at?: string
+          description?: string | null
           fee_discount_percent?: number
           id?: string
           min_earnings?: number
@@ -397,29 +400,35 @@ export type Database = {
       }
       certificates: {
         Row: {
+          cert_type: string
           certificate_hash: string
           id: string
           issued_at: string
           metadata: Json | null
           rank_name: string
+          threshold_amount: number | null
           user_id: string
           verified_count: number
         }
         Insert: {
+          cert_type?: string
           certificate_hash: string
           id?: string
           issued_at?: string
           metadata?: Json | null
           rank_name: string
+          threshold_amount?: number | null
           user_id: string
           verified_count?: number
         }
         Update: {
+          cert_type?: string
           certificate_hash?: string
           id?: string
           issued_at?: string
           metadata?: Json | null
           rank_name?: string
+          threshold_amount?: number | null
           user_id?: string
           verified_count?: number
         }

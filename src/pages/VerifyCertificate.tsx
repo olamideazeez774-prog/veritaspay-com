@@ -10,7 +10,8 @@ import { PLATFORM_NAME } from "@/lib/constants";
 import { formatDate, formatCurrency } from "@/lib/format";
 
 const RANK_ICONS: Record<string, string> = {
-  Bronze: "🥉", Silver: "🥈", Gold: "🏅", Diamond: "💎", Platinum: "⬡", Elite: "👑",
+  Bronze: "🥉", Silver: "🥈", Gold: "🏅", Platinum: "⬡", Diamond: "💎",
+  Sapphire: "🔷", Elite: "👑", Icon: "⭐",
 };
 
 export default function VerifyCertificate() {
