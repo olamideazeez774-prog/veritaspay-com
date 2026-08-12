@@ -125,38 +125,17 @@ export default function CertificatesPage() {
 
   const canClaim = isAdmin || signatureConfigured;
 
-  const { data: ceoName } = useQuery({
-    queryKey: ["ceo-name"],
-    queryFn: async () => {
-      // Get the first admin's name for signing
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin")
-        .limit(1);
-      if (adminRoles?.[0]) {
-        const { data: adminProfile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", adminRoles[0].user_id)
-          .single();
-        return adminProfile?.full_name || PLATFORM_NAME;
-      }
-      return PLATFORM_NAME;
-    },
-  });
-
   const totalEarned = isAdmin ? 999999999 : (wallet?.total_earned || 0);
   const currentRank = ranks?.filter((r) => totalEarned >= r.min_earnings).pop();
   const nextRank = isAdmin ? null : ranks?.find((r) => totalEarned < r.min_earnings);
 
-  const handleClaimCertificate = async (rankName: string) => {
+  const handleClaimCertificate = async (rank: AffiliateRank) => {
     if (!user) return;
     if (!isAdmin && !signatureConfigured) {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
-    const hash = `VP-${rankName.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
+    const hash = `VP-${rank.rank_name.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
 
     const metadata = {
       full_name: profile?.full_name || "",
@@ -165,11 +144,14 @@ export default function CertificatesPage() {
       milestone_date: new Date().toISOString(),
       platform_name: PLATFORM_NAME,
       avatar_url: profile?.avatar_url || "",
+      rank_description: rank.description || "",
     };
 
     const { error } = await supabase.from("certificates").insert([{
       user_id: user.id,
-      rank_name: rankName,
+      rank_name: rank.rank_name,
+      cert_type: "rank",
+      threshold_amount: rank.min_earnings,
       certificate_hash: hash,
       metadata: metadata,
     }]);
@@ -178,7 +160,40 @@ export default function CertificatesPage() {
       if (error.code === "23505") toast.info("Certificate already claimed!");
       else toast.error("Failed to claim certificate");
     } else {
-      toast.success(`${rankName} certificate claimed!`);
+      toast.success(`${rank.rank_name} certificate claimed!`);
+      refetchCerts();
+    }
+  };
+
+  const handleClaimEarningCertificate = async (amount: number) => {
+    if (!user) return;
+    if (!isAdmin && !signatureConfigured) {
+      toast.error("Certificates are not yet available. Admin signature is required.");
+      return;
+    }
+    const hash = `VP-EARN-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
+
+    const { error } = await supabase.from("certificates").insert([{
+      user_id: user.id,
+      rank_name: `Earning ${formatCurrency(amount)}`,
+      cert_type: "earning",
+      threshold_amount: amount,
+      certificate_hash: hash,
+      metadata: {
+        full_name: profile?.full_name || "",
+        email: profile?.email || "",
+        total_commission: amount,
+        milestone_date: new Date().toISOString(),
+        platform_name: PLATFORM_NAME,
+        avatar_url: profile?.avatar_url || "",
+      },
+    }]);
+
+    if (error) {
+      if (error.code === "23505") toast.info("Certificate already claimed!");
+      else toast.error("Failed to claim certificate");
+    } else {
+      toast.success(`${formatCurrency(amount)} earning certificate claimed!`);
       refetchCerts();
     }
   };
@@ -186,6 +201,19 @@ export default function CertificatesPage() {
   const handleDownloadCert = async (cert: Certificate) => {
     try {
       const meta = cert.metadata as Record<string, unknown> | null;
+      if (cert.cert_type === "earning") {
+        await generateEarningCertificatePDF({
+          fullName: (meta?.full_name as string) || profile?.full_name || "User",
+          amount: Number(cert.threshold_amount ?? meta?.total_commission ?? 0),
+          certificateHash: cert.certificate_hash,
+          issuedAt: cert.issued_at,
+          milestoneDate: (meta?.milestone_date as string) || cert.issued_at,
+          avatarUrl: (meta?.avatar_url as string) || profile?.avatar_url,
+          adminSignatureUrl: adminSignature,
+        });
+        toast.success("Certificate downloaded!");
+        return;
+      }
       await generatePremiumCertificatePDF({
         rankName: cert.rank_name,
         fullName: (meta?.full_name as string) || profile?.full_name || "User",
@@ -195,7 +223,10 @@ export default function CertificatesPage() {
         milestoneDate: (meta?.milestone_date as string) || cert.issued_at,
         avatarUrl: (meta?.avatar_url as string) || profile?.avatar_url,
         adminSignatureUrl: adminSignature,
-        ceoName: ceoName || PLATFORM_NAME,
+        rankDescription:
+          (meta?.rank_description as string) ||
+          ranks?.find((r) => r.rank_name === cert.rank_name)?.description ||
+          null,
       });
       toast.success("Certificate downloaded!");
     } catch (err) {
