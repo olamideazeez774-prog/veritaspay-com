@@ -666,11 +666,11 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   doc.text(design.subtitleText.toUpperCase(), cx, titleY + 9, { align: "center" });
   doc.setCharSpace(0);
 
-  // ======== LAYER 12: "This certifies that" ========
+  // ======== LAYER 12: PRESENTATION LINE ========
   setTextCol(doc, design.textMuted);
   doc.setFontSize(7.5);
   doc.setCharSpace(3);
-  doc.text("THIS CERTIFIES THAT", cx, titleY + 22, { align: "center" });
+  doc.text("THIS CERTIFICATE IS PROUDLY PRESENTED TO", cx, titleY + 22, { align: "center" });
   doc.setCharSpace(0);
 
   // ======== LAYER 13: RECIPIENT NAME (large script) ========
@@ -700,7 +700,7 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   setTextCol(doc, design.textTitle);
   doc.setFont("times", "bold");
   doc.setFontSize(22);
-  const rankTitle = `${data.rankName} Tier Affiliate`;
+  const rankTitle = design.rankIcon ? `${design.rankIcon} ${data.rankName}` : data.rankName;
   doc.text(rankTitle, cx, nameY + 25, { align: "center" });
 
   // ======== LAYER 16: BODY DESCRIPTION ========
@@ -722,7 +722,9 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   doc.setFont("times", "italic");
   doc.setFontSize(9);
   setTextCol(doc, design.textMuted);
-  const bodyText = `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}, demonstrating outstanding results and unwavering commitment to platform excellence.`;
+  const bodyText = data.rankDescription?.trim()
+    ? data.rankDescription.trim()
+    : `For achieving exceptional performance and generating verified revenue on ${PLATFORM_NAME}.`;
   const bodyLines = doc.splitTextToSize(bodyText, 200);
   const bodyStartY = nameY + 37;
   const lineHeight = 4.5;
@@ -780,10 +782,10 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
     }
   }
 
-  const sigName = data.ceoName || "Platform CEO";
+  const sigName = SIGNATURE_NAME;
   setTextCol(doc, design.textBody);
   doc.setFont("times", "italic");
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.text(sigName, 225, bottomY, { align: "center" });
 
   // Signature underline
@@ -797,7 +799,7 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   doc.setFont("helvetica", "normal");
   doc.setFontSize(5.5);
   doc.setCharSpace(2.5);
-  doc.text("CHIEF EXECUTIVE OFFICER", 225, bottomY + 8, { align: "center" });
+  doc.text("AUTHORIZED SIGNATORY", 225, bottomY + 8, { align: "center" });
   doc.setCharSpace(0);
 
   // ======== LAYER 19: FOOTER ========
