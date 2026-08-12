@@ -13,7 +13,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { generatePremiumCertificatePDF } from "@/lib/certificateGenerator";
+import { generatePremiumCertificatePDF, generateEarningCertificatePDF } from "@/lib/certificateGenerator";
 import { logger } from "@/lib/logger";
 
 interface AffiliateRank {
@@ -24,6 +24,7 @@ interface AffiliateRank {
   commission_boost_percent: number;
   badge_color: string;
   sort_order: number;
+  description: string | null;
 }
 
 interface Certificate {
@@ -32,16 +33,26 @@ interface Certificate {
   certificate_hash: string;
   issued_at: string;
   metadata: Record<string, unknown> | null;
+  cert_type: string;
+  threshold_amount: number | null;
 }
 
 const RANK_ICONS: Record<string, string> = {
   Bronze: "🥉",
   Silver: "🥈",
   Gold: "🏅",
-  Diamond: "💎",
   Platinum: "⬡",
+  Diamond: "💎",
+  Sapphire: "🔷",
   Elite: "👑",
+  Icon: "⭐",
 };
+
+const EARNING_MILESTONES = [100000, 250000, 500000, 1000000];
+
+type Milestone =
+  | { kind: "rank"; threshold: number; rank: AffiliateRank }
+  | { kind: "earning"; threshold: number };
 
 export default function CertificatesPage() {
   const { user, profile, isAdmin } = useAuth();
