@@ -565,7 +565,20 @@ export interface CertificateData {
   avatarUrl?: string | null;
   adminSignatureUrl?: string | null;
   ceoName?: string;
+  rankDescription?: string | null;
 }
+
+export interface EarningCertificateData {
+  fullName: string;
+  amount: number;
+  certificateHash: string;
+  issuedAt: string;
+  milestoneDate: string;
+  avatarUrl?: string | null;
+  adminSignatureUrl?: string | null;
+}
+
+const SIGNATURE_NAME = `${PLATFORM_NAME.toUpperCase()} MANAGEMENT`;
 
 export async function generatePremiumCertificatePDF(data: CertificateData): Promise<void> {
   const { default: jsPDF } = await import("jspdf");
