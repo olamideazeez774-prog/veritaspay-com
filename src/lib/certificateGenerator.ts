@@ -853,3 +853,187 @@ export async function generatePremiumCertificatePDF(data: CertificateData): Prom
   // ======== SAVE ========
   doc.save(`${PLATFORM_NAME}-${data.rankName}-Certificate.pdf`);
 }
+
+export async function generateEarningCertificatePDF(data: EarningCertificateData): Promise<void> {
+  const { default: jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" }) as unknown as JSPDFExtended;
+  const GState = doc.GState;
+
+  const design = RANK_DESIGNS.Earning;
+  const cx = 297 / 2;
+
+  drawBackground(doc, design);
+  drawPaperTexture(doc, design);
+  drawAmbientGlows(doc, design);
+  drawIvoryWave(doc, design);
+  drawCornerOrnaments(doc, design);
+  drawSideFlourishes(doc, design);
+
+  setDraw(doc, design.borderColor);
+  doc.setGState(new GState({ opacity: 0.4 }));
+  doc.setLineWidth(1.0);
+  doc.rect(10, 10, 277, 190);
+  doc.setGState(new GState({ opacity: 0.2 }));
+  doc.setLineWidth(0.4);
+  doc.rect(13, 13, 271, 184);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  try {
+    if (typeof window !== "undefined") {
+      doc.addImage(`${window.location.origin}/pwa-192x192.png`, "PNG", 15, 12, 14, 14);
+    }
+  } catch (err) {
+    logger.error("Failed to load platform icon for certificate", err);
+    setTextCol(doc, design.textSubtitle);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(PLATFORM_NAME, 22, 20);
+  }
+
+  drawStarBadge(doc, cx, 30, 11, design);
+
+  const titleY = 58;
+  setTextCol(doc, design.textTitle);
+  doc.setFont("times", "bold");
+  doc.setFontSize(38);
+  doc.setCharSpace(3);
+  doc.text("CERTIFICATE", cx, titleY, { align: "center" });
+  doc.setCharSpace(0);
+
+  setTextCol(doc, design.textSubtitle);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setCharSpace(5);
+  doc.text(design.subtitleText.toUpperCase(), cx, titleY + 9, { align: "center" });
+  doc.setCharSpace(0);
+
+  setTextCol(doc, design.textMuted);
+  doc.setFontSize(7.5);
+  doc.setCharSpace(3);
+  doc.text("THIS CERTIFICATE IS PROUDLY PRESENTED TO", cx, titleY + 22, { align: "center" });
+  doc.setCharSpace(0);
+
+  const nameY = titleY + 35;
+  setTextCol(doc, design.textBody);
+  doc.setFont("times", "bolditalic");
+  doc.setFontSize(34);
+  doc.text(data.fullName, cx, nameY, { align: "center" });
+
+  const nameW = doc.getTextWidth(data.fullName);
+  setDraw(doc, design.accentPrimary);
+  doc.setGState(new GState({ opacity: 0.3 }));
+  doc.setLineWidth(0.4);
+  doc.line(cx - nameW / 2 - 10, nameY + 3, cx + nameW / 2 + 10, nameY + 3);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  setTextCol(doc, design.textMuted);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setCharSpace(2.2);
+  doc.text("FOR DEMONSTRATING EXCEPTIONAL DEDICATION AND CONSISTENCY IN EARNING", cx, nameY + 14, { align: "center" });
+  doc.setCharSpace(0);
+
+  setTextCol(doc, design.textTitle);
+  doc.setFont("times", "bold");
+  doc.setFontSize(22);
+  doc.text(formatCurrency(data.amount), cx, nameY + 25, { align: "center" });
+
+  drawAccentDivider(doc, nameY + 31, design);
+
+  doc.setFont("times", "italic");
+  doc.setFontSize(9);
+  setTextCol(doc, design.textMuted);
+  const bodyText = `Awarded in recognition of verified earnings reached through sustained effort and disciplined selling on ${PLATFORM_NAME}.`;
+  const bodyLines = doc.splitTextToSize(bodyText, 200);
+  const bodyStartY = nameY + 37;
+  bodyLines.forEach((line: string, index: number) => {
+    doc.text(line, cx, bodyStartY + 3 + index * 4.5, { align: "center" });
+  });
+
+  const bottomY = 174;
+
+  setTextCol(doc, design.textBody);
+  doc.setFont("times", "italic");
+  doc.setFontSize(14);
+  doc.text(formatDate(data.milestoneDate), 70, bottomY, { align: "center" });
+
+  setDraw(doc, design.accentPrimary);
+  doc.setGState(new GState({ opacity: 0.4 }));
+  doc.setLineWidth(0.3);
+  doc.line(38, bottomY + 3, 102, bottomY + 3);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  setTextCol(doc, design.textMuted);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.5);
+  doc.setCharSpace(2.5);
+  doc.text("DATE", 70, bottomY + 8, { align: "center" });
+  doc.setCharSpace(0);
+
+  drawOfficialSeal(doc, cx, bottomY - 2, design);
+
+  if (data.adminSignatureUrl) {
+    try {
+      doc.addImage(data.adminSignatureUrl, "PNG", 198, bottomY - 20, 54, 17);
+    } catch (err) {
+      logger.error("Failed to load admin signature for certificate", err);
+    }
+  }
+
+  setTextCol(doc, design.textBody);
+  doc.setFont("times", "italic");
+  doc.setFontSize(13);
+  doc.text(SIGNATURE_NAME, 225, bottomY, { align: "center" });
+
+  setDraw(doc, design.accentPrimary);
+  doc.setGState(new GState({ opacity: 0.4 }));
+  doc.setLineWidth(0.3);
+  doc.line(193, bottomY + 3, 257, bottomY + 3);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  setTextCol(doc, design.textMuted);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.5);
+  doc.setCharSpace(2.5);
+  doc.text("AUTHORIZED SIGNATORY", 225, bottomY + 8, { align: "center" });
+  doc.setCharSpace(0);
+
+  doc.setFont("courier", "normal");
+  doc.setFontSize(5.5);
+  setTextCol(doc, design.textMuted);
+  doc.setGState(new GState({ opacity: 0.45 }));
+  doc.setCharSpace(1.5);
+  doc.text(`CERTIFICATE ID: ${data.certificateHash}`, cx, 197, { align: "center" });
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const verifyText = `ISSUE DATE: ${formatDate(data.issuedAt)}  •  VERIFY: ${origin}/verify-certificate/${data.certificateHash}`;
+  doc.text(doc.splitTextToSize(verifyText, 270), cx, 201, { align: "center", maxWidth: 270 });
+  doc.setCharSpace(0);
+  doc.setGState(new GState({ opacity: 1 }));
+
+  if (data.avatarUrl) {
+    try {
+      const photoCx = 268;
+      const photoCy = 26;
+      const photoR = 11;
+      doc.saveGraphicsState();
+      doc.circle(photoCx, photoCy, photoR, null);
+      doc.clip();
+      doc.addImage(data.avatarUrl, "JPEG", photoCx - photoR, photoCy - photoR, photoR * 2, photoR * 2);
+      doc.restoreGraphicsState();
+
+      setDraw(doc, design.accentPrimary);
+      doc.setLineWidth(1.2);
+      doc.circle(photoCx, photoCy, photoR);
+
+      doc.setGState(new GState({ opacity: 0.15 }));
+      setDraw(doc, design.accentGlow);
+      doc.setLineWidth(0.6);
+      doc.circle(photoCx, photoCy, photoR + 2);
+      doc.setGState(new GState({ opacity: 1 }));
+    } catch (err) {
+      logger.error("Failed to load avatar for certificate", err);
+    }
+  }
+
+  doc.save(`${PLATFORM_NAME}-Earning-${formatCurrency(data.amount)}-Certificate.pdf`);
+}
