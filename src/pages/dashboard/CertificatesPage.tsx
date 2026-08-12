@@ -245,17 +245,37 @@ export default function CertificatesPage() {
     );
   }
 
-  const claimedHashes = new Set(certificates?.map((c) => c.rank_name) || []);
+  const claimedRanks = new Set(
+    (certificates || []).filter((c) => c.cert_type !== "earning").map((c) => c.rank_name)
+  );
+  const claimedEarnings = new Set(
+    (certificates || [])
+      .filter((c) => c.cert_type === "earning")
+      .map((c) => Number(c.threshold_amount))
+  );
+
+  const milestones: Milestone[] = [
+    ...(ranks || []).map((rank) => ({ kind: "rank" as const, threshold: rank.min_earnings, rank })),
+    ...EARNING_MILESTONES.map((threshold) => ({ kind: "earning" as const, threshold })),
+  ].sort((a, b) => a.threshold - b.threshold);
+
+  const unlockedCount = milestones.filter((m) => totalEarned >= m.threshold).length;
+  const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Award className="h-7 w-7 text-primary" />
-            Rank Ladder & Certificates
-          </h1>
-          <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Award className="h-7 w-7 text-primary" />
+              Rank Ladder & Certificates
+            </h1>
+            <p className="text-muted-foreground text-sm">Track your progress and claim achievement certificates</p>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {pad(unlockedCount)}/{pad(milestones.length)} Unlocked
+          </Badge>
         </div>
 
         {!canClaim && (
@@ -275,6 +295,9 @@ export default function CertificatesPage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold">{isAdmin ? "👑 Elite (Admin)" : (currentRank ? `${RANK_ICONS[currentRank.rank_name] || ""} ${currentRank.rank_name}` : "Unranked")}</h2>
+                {currentRank?.description && (
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xl">{currentRank.description}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Total earned: {isAdmin ? "∞" : formatCurrency(totalEarned)}</p>
                 {nextRank && (
                   <p className="text-sm text-muted-foreground">
@@ -282,22 +305,51 @@ export default function CertificatesPage() {
                   </p>
                 )}
               </div>
-              {currentRank && (
-                <div className="flex flex-wrap gap-2">
-                  <Badge>{currentRank.fee_discount_percent}% fee discount</Badge>
-                  <Badge variant="secondary">+{currentRank.commission_boost_percent}% commission</Badge>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Rank Ladder */}
+        {/* Milestone roadmap */}
         <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
-          {ranks?.map((rank) => {
-            const achieved = totalEarned >= rank.min_earnings;
-            const claimed = claimedHashes.has(rank.rank_name);
-            const progress = Math.min((totalEarned / rank.min_earnings) * 100, 100);
+          {milestones.map((milestone) => {
+            const achieved = totalEarned >= milestone.threshold;
+            const progress = Math.min((totalEarned / milestone.threshold) * 100, 100);
+
+            if (milestone.kind === "earning") {
+              const earningClaimed = claimedEarnings.has(milestone.threshold);
+              return (
+                <motion.div key={`earning-${milestone.threshold}`} variants={staggerItem}>
+                  <Card className={`border-dashed ${achieved ? "border-primary/25" : "opacity-70"}`}>
+                    <CardContent className="p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <Award className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {formatCurrency(milestone.threshold)} Earning Milestone
+                        </p>
+                        {!achieved && (
+                          <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full rounded-full bg-primary/70 transition-all w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {achieved && !earningClaimed && (
+                          <Button size="sm" variant="outline" onClick={() => handleClaimEarningCertificate(milestone.threshold)} disabled={!canClaim} className="min-h-[44px]">
+                            <Award className="h-4 w-4 mr-1" />Claim
+                          </Button>
+                        )}
+                        {achieved && earningClaimed && <Badge variant="outline">Claimed ✓</Badge>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            }
+
+            const rank = milestone.rank;
+            const claimed = claimedRanks.has(rank.rank_name);
             const icon = RANK_ICONS[rank.rank_name] || "🏅";
 
             return (
@@ -313,6 +365,9 @@ export default function CertificatesPage() {
                         <p className="font-semibold">{icon} {rank.rank_name}</p>
                         {achieved && <Shield className="h-4 w-4 text-success" />}
                       </div>
+                      {rank.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{rank.description}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(rank.min_earnings)} earnings required
                       </p>
@@ -324,7 +379,7 @@ export default function CertificatesPage() {
                     </div>
                     <div className="flex gap-2">
                       {achieved && !claimed && (
-                        <Button size="sm" onClick={() => handleClaimCertificate(rank.rank_name)} disabled={!canClaim} className="min-h-[44px]">
+                        <Button size="sm" onClick={() => handleClaimCertificate(rank)} disabled={!canClaim} className="min-h-[44px]">
                           <Award className="h-4 w-4 mr-1" />Claim
                         </Button>
                       )}
