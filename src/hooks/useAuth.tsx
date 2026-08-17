@@ -80,47 +80,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    
+
+    const hydrateSession = async (nextSession: Session | null) => {
+      if (!isMounted) return;
+
+      setIsLoading(true);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setProfile(null);
+      setRoles([]);
+
+      if (nextSession?.user) {
+        await Promise.all([
+          fetchProfile(nextSession.user.id),
+          fetchRoles(nextSession.user.id),
+        ]);
+      }
+
+      if (isMounted) setIsLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
-        if (!isMounted) return;
-        
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          Promise.all([
-            fetchProfile(newSession.user.id),
-            fetchRoles(newSession.user.id)
-          ]).catch((err) => {
-            logger.error("Failed to fetch user data", err);
-          });
-        } else {
-          setProfile(null);
-          setRoles([]);
-        }
-
-        setIsLoading(false);
+        void hydrateSession(newSession);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      if (!isMounted) return;
-      
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-
-      if (existingSession?.user) {
-        Promise.all([
-          fetchProfile(existingSession.user.id),
-          fetchRoles(existingSession.user.id)
-        ]).catch((err) => {
-          logger.error("Failed to fetch user data", err);
-        });
-      }
-
-      setIsLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session: existingSession } }) => hydrateSession(existingSession))
+      .catch((err) => {
+        logger.error("Failed to restore auth session", err);
+        if (isMounted) setIsLoading(false);
+      });
 
     return () => {
       isMounted = false;

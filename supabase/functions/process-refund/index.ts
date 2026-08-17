@@ -1,14 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAuthenticatedUser, authFailureResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-function-secret, x-cron-secret",
 };
 
 interface RefundRequest {
   saleId: string;
   reason?: string;
-  requestedBy: string; // user ID of admin or vendor initiating refund
+  requestedBy?: string; // ignored; requester identity is derived from the verified JWT
 }
 
 Deno.serve(async (req) => {
@@ -20,12 +21,15 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const requester = await getAuthenticatedUser(req, supabase);
+    if (!requester) return authFailureResponse(corsHeaders);
+    const requesterId = requester.id;
 
-    const { saleId, reason, requestedBy }: RefundRequest = await req.json();
+    const { saleId, reason }: RefundRequest = await req.json();
 
-    if (!saleId || !requestedBy) {
+    if (!saleId) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: saleId and requestedBy" }),
+        JSON.stringify({ error: "Missing required field: saleId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -71,10 +75,10 @@ Deno.serve(async (req) => {
     const { data: requesterRoles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", requestedBy);
+      .eq("user_id", requesterId);
 
     const isAdmin = requesterRoles?.some(r => r.role === "admin");
-    const isVendor = requesterRoles?.some(r => r.role === "vendor") && sale.vendor_id === requestedBy;
+    const isVendor = requesterRoles?.some(r => r.role === "vendor") && sale.vendor_id === requesterId;
 
     if (!isAdmin && !isVendor) {
       return new Response(
@@ -92,16 +96,25 @@ Deno.serve(async (req) => {
     };
 
     // 1. Update sale status to refunded
-    const { error: updateSaleError } = await supabase
+    const { data: updatedSale, error: updateSaleError } = await supabase
       .from("sales")
       .update({
         status: "refunded",
         updated_at: now.toISOString(),
       })
-      .eq("id", saleId);
+        .eq("id", saleId)
+      .eq("status", "completed")
+      .select("id")
+      .maybeSingle();
 
     if (updateSaleError) {
       throw new Error(`Failed to update sale status: ${updateSaleError.message}`);
+    }
+    if (!updatedSale) {
+      return new Response(
+        JSON.stringify({ error: "Sale was already refunded or is not refundable" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     refundResults.saleUpdated = true;
@@ -183,14 +196,14 @@ Deno.serve(async (req) => {
     await supabase.from("system_logs").insert({
       event_type: "refund_processed",
       severity: "info",
-      user_id: requestedBy,
+      user_id: requesterId,
       related_id: saleId,
       related_type: "sale",
       description: `Refund processed for sale ${saleId}. Reason: ${reason || "Not specified"}`,
       metadata: {
         sale_id: saleId,
         reason,
-        requested_by: requestedBy,
+        requested_by: requesterId,
         total_amount: sale.total_amount,
         results: refundResults,
       },

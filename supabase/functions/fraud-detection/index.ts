@@ -5,6 +5,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type FraudAnalysis = {
+  timestamp: string;
+  affiliate?: {
+    recent_sales_1h: number;
+    daily_sales: number;
+    total_historical_clicks: number;
+    total_historical_conversions: number;
+    historical_conversion_rate: number;
+    previous_fraud_flags_24h: number;
+    rapid_conversion_suspicious: boolean;
+    high_daily_volume: boolean;
+    has_previous_flags: boolean;
+  };
+  self_referral?: { same_email: boolean; similar_email: boolean };
+  ip_analysis?: {
+    recent_clicks_analyzed: number;
+    unique_ips: number;
+    ip_repetition_rate: number;
+    suspicious_ip_clustering: boolean;
+  };
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +40,7 @@ Deno.serve(async (req) => {
     const { saleId, affiliateId, affiliateEmail, buyerEmail, productId } = await req.json();
 
     // Build fraud detection data
-    const fraudData: Record<string, any> = {
+    const fraudData: FraudAnalysis = {
       timestamp: new Date().toISOString(),
     };
 
@@ -63,7 +85,7 @@ Deno.serve(async (req) => {
         daily_sales: dailySales || 0,
         total_historical_clicks: totalClicks,
         total_historical_conversions: totalConversions,
-        historical_conversion_rate: historicalRate.toFixed(2),
+        historical_conversion_rate: Number(historicalRate.toFixed(2)),
         previous_fraud_flags_24h: previousFlags || 0,
         rapid_conversion_suspicious: (recentSales || 0) > 10,
         high_daily_volume: (dailySales || 0) > 50,
@@ -94,14 +116,14 @@ Deno.serve(async (req) => {
       fraudData.ip_analysis = {
         recent_clicks_analyzed: recentClicks.length,
         unique_ips: uniqueIps,
-        ip_repetition_rate: ipRepetitionRate.toFixed(2),
+        ip_repetition_rate: Number(ipRepetitionRate.toFixed(2)),
         suspicious_ip_clustering: ipRepetitionRate > 80, // >80% repetition is suspicious
       };
     }
 
     // Calculate overall fraud score (0-100)
     let fraudScore = 0;
-    let riskFactors: string[] = [];
+    const riskFactors: string[] = [];
 
     if (fraudData.affiliate) {
       if (fraudData.affiliate.rapid_conversion_suspicious) {

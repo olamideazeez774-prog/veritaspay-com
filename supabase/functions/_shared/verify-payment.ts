@@ -105,7 +105,7 @@ export async function verifyAndActivate(
       if (productId) {
         await supabase
           .from("products")
-          .update({ status: "active" })
+          .update({ status: "pending_review" })
           .eq("id", productId)
           .eq("vendor_id", userId)
           .eq("status", "draft");

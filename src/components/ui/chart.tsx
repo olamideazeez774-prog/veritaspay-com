@@ -73,7 +73,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
       const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
       if (color) {
         // Only allow valid CSS color values (hex, rgb, rgba, hsl, named colors)
-        const sanitizedColor = color.replace(/[<>\"']/g, '');
+        const sanitizedColor = color.replace(/[<>"']/g, '');
         const cssVarName = `--color-${key}`;
         
         // Apply to specific theme context

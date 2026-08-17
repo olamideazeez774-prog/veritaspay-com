@@ -233,7 +233,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <Link to="/dashboard/settings"
             className={cn("flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent", !sidebarOpen && "justify-center")}>
             <Avatar className="h-9 w-9">
-              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name ? `${profile.full_name} avatar` : "Profile avatar"} />
               <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm">
                 {getInitials(profile?.full_name)}
               </AvatarFallback>

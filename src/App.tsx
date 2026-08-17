@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { VercelAnalytics } from "@/components/vercel-analytics";
 import { VercelSpeedInsights } from "@/components/vercel-speed-insights";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import { PUBLIC_INFO_ROUTES } from "@/lib/siteRoutes";
 
 // Public pages - lazy loaded for code splitting
 const Index = lazy(() => import("./pages/Index").then(m => ({ default: m.default })));
@@ -24,6 +25,7 @@ const AdminVerificationRequests = lazy(() => import("./pages/admin/AdminVerifica
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 const Marketplace = lazy(() => import("./pages/Marketplace").then(m => ({ default: m.default })));
 const About = lazy(() => import("./pages/About").then(m => ({ default: m.default })));
+const InfoPage = lazy(() => import("./pages/InfoPage").then(m => ({ default: m.default })));
 const ProductDetail = lazy(() => import("./pages/ProductDetail").then(m => ({ default: m.default })));
 const Checkout = lazy(() => import("./pages/Checkout").then(m => ({ default: m.default })));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess").then(m => ({ default: m.default })));
@@ -33,6 +35,7 @@ const DeliveryPage = lazy(() => import("./pages/DeliveryPage").then(m => ({ defa
 
 // Dashboard pages - lazy loaded
 const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.default })));
+const AlertsPage = lazy(() => import("./pages/dashboard/AlertsPage").then(m => ({ default: m.default })));
 const VendorProducts = lazy(() => import("./pages/dashboard/VendorProducts").then(m => ({ default: m.default })));
 const ProductForm = lazy(() => import("./pages/dashboard/ProductForm").then(m => ({ default: m.default })));
 const VendorSales = lazy(() => import("./pages/dashboard/VendorSales").then(m => ({ default: m.default })));
@@ -120,6 +123,9 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/about" element={<About />} />
+                  {PUBLIC_INFO_ROUTES.map((path) => (
+                    <Route key={path} path={path} element={<InfoPage />} />
+                  ))}
                   <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/ref/:code" element={<ProductDetail />} />
               <Route path="/checkout/:productId" element={<Checkout />} />
@@ -135,6 +141,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/alerts"
+                element={
+                  <ProtectedRoute>
+                    <FeatureFlagRoute flag="ai_modules"><AlertsPage /></FeatureFlagRoute>
                   </ProtectedRoute>
                 }
               />

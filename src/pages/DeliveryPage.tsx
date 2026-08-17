@@ -45,25 +45,19 @@ export default function DeliveryPage() {
   const [data, setData] = useState<DeliveryData | null>(null);
 
   const token = searchParams.get("token");
-  const saleId = searchParams.get("sale");
-  const email = searchParams.get("email");
 
   useEffect(() => {
     const fetchDelivery = async () => {
       try {
-        // Must have either token OR (sale + email)
-        if (!token && (!saleId || !email)) {
-          setError("Invalid access link. Please use the link from your email.");
+        // Delivery links are bearer tokens generated server-side after payment.
+        if (!token) {
+          setError("Invalid access link. Please use the secure link from your receipt email.");
           setLoading(false);
           return;
         }
 
         const { data: deliveryData, error: deliveryError } = await supabase.functions.invoke("get-delivery", {
-          body: {
-            token: token || undefined,
-            saleId: saleId || undefined,
-            email: email || undefined,
-          },
+          body: { token },
         });
 
         if (deliveryError) {
@@ -84,7 +78,7 @@ export default function DeliveryPage() {
     };
 
     fetchDelivery();
-  }, [token, saleId, email]);
+  }, [token]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
