@@ -1,13 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authFailureResponse, isTrustedInternalRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-function-secret, x-cron-secret",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  if (!isTrustedInternalRequest(req)) {
+    return authFailureResponse(corsHeaders, "Internal authorization required");
   }
 
   try {

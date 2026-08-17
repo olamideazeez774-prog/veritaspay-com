@@ -1,16 +1,22 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { PLATFORM_NAME } from "@/lib/constants";
-import { Twitter, Linkedin, Github, Mail } from "lucide-react";
+import { Github, Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/lib/siteRoutes";
 
 const footerLinks = FOOTER_LINKS;
 
 const socialLinks = [
-  { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-  { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-  { icon: Github, href: "https://github.com", label: "GitHub" },
-  { icon: Mail, href: "mailto:hello@afficore.com", label: "Email" },
+  {
+    icon: Github,
+    href: "https://github.com/olamideazeez774-prog/veritaspay-com",
+    label: "Mirvyn source repository",
+  },
+  {
+    icon: Mail,
+    href: "https://www.mirvyn.app/contact",
+    label: "Contact Mirvyn",
+  },
 ];
 
 export function Footer() {

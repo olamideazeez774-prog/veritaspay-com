@@ -34,7 +34,7 @@ export function HowItWorksSection() {
   const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 
   return (
-    <section ref={containerRef} className="py-24 bg-muted/30">
+    <section id="how-it-works" ref={containerRef} className="py-24 bg-muted/30 scroll-mt-20">
       <div className="container">
         {/* Section Header */}
         <motion.div

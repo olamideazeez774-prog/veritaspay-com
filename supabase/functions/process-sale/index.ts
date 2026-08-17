@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authFailureResponse, isTrustedInternalRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!isTrustedInternalRequest(req)) {
+    return authFailureResponse(corsHeaders, "Internal authorization required");
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,12 +41,50 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const normalizedBuyerEmail = buyerEmail.trim().toLowerCase();
+    const { data: pendingPayment, error: pendingPaymentError } = await supabase
+      .from("pending_payments")
+      .select("reference, purpose, status, email, metadata")
+      .eq("reference", paymentReference)
+      .maybeSingle();
+
+    if (pendingPaymentError || !pendingPayment || pendingPayment.purpose !== "sale") {
+      return new Response(JSON.stringify({ error: "Payment reference is not authorized for sale processing" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const pendingMetadata = (pendingPayment.metadata || {}) as Record<string, unknown>;
+    const pendingProductId = typeof pendingMetadata.product_id === "string" ? pendingMetadata.product_id : null;
+    const pendingBuyerEmail = typeof pendingPayment.email === "string" ? pendingPayment.email.trim().toLowerCase() : null;
+    if (pendingProductId && pendingProductId !== productId) {
+      return new Response(JSON.stringify({ error: "Payment does not match the requested product" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (pendingBuyerEmail && pendingBuyerEmail !== normalizedBuyerEmail) {
+      return new Response(JSON.stringify({ error: "Payment does not match the requested buyer" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { data: existingSale } = await supabase
+      .from("sales")
+      .select("id")
+      .eq("payment_reference", paymentReference)
+      .maybeSingle();
+    if (existingSale) {
+      return new Response(JSON.stringify({ success: true, alreadyProcessed: true, saleId: existingSale.id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (pendingPayment.status !== "pending") {
+      return new Response(JSON.stringify({ error: "Payment is not in a processable state" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // RATE LIMITING: Max 5 sales per email per hour (prevent abuse)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count: recentPurchases } = await supabase
       .from("sales")
       .select("id", { count: "exact", head: true })
-      .eq("buyer_email", buyerEmail.toLowerCase())
+      .eq("buyer_email", normalizedBuyerEmail)
       .gte("created_at", oneHourAgo);
 
     if (recentPurchases && recentPurchases > 5) {
@@ -105,7 +148,7 @@ Deno.serve(async (req) => {
           const { data: affiliateProfile } = await supabase
             .from("profiles").select("email").eq("id", affiliateLink.affiliate_id).single();
 
-          if (affiliateProfile?.email?.toLowerCase() === buyerEmail.toLowerCase()) {
+          if (affiliateProfile?.email?.toLowerCase() === normalizedBuyerEmail) {
             console.warn("Self-referral blocked: buyer is the affiliate");
             await supabase.from("fraud_events").insert({
               event_type: "self_referral", severity: "high", user_id: affiliateLink.affiliate_id,
@@ -223,6 +266,7 @@ Deno.serve(async (req) => {
 
     const refundEligibleUntil = new Date();
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
+    const deliveryAccessToken = crypto.randomUUID();
 
     // ======== CREATE SALE ========
     // Paystack has already been verified by paystack-callback before this function is called,
@@ -232,12 +276,13 @@ Deno.serve(async (req) => {
       .from("sales")
       .insert({
         product_id: productId, vendor_id: product.vendor_id, affiliate_id: affiliateId,
-        second_tier_affiliate_id: secondTierAffiliateId, buyer_email: buyerEmail,
+        second_tier_affiliate_id: secondTierAffiliateId, buyer_email: normalizedBuyerEmail,
         total_amount: totalAmount, platform_fee: platformFee,
         affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission,
         vendor_earnings: vendorEarnings, commission_percent_snapshot: commissionPercent,
         platform_fee_percent_snapshot: platformFeePercent, status: "completed",
         refund_eligible_until: refundEligibleUntil.toISOString(),
+        delivery_access_token: deliveryAccessToken,
         payment_reference: paymentReference, payment_gateway: paymentGateway,
       })
       .select().single();
@@ -288,11 +333,11 @@ Deno.serve(async (req) => {
       // Build delivery URL (will be generated when sale status becomes completed)
       // For now, the token will be generated by the trigger when admin marks it complete
       const baseUrl = Deno.env.get("SITE_URL") || "https://mirvyn.com";
-      const deliveryUrl = `${baseUrl}/delivery?sale=${sale.id}&email=${encodeURIComponent(buyerEmail)}`;
+      const deliveryUrl = `${baseUrl}/delivery?token=${encodeURIComponent(deliveryAccessToken)}`;
 
       await supabase.functions.invoke("send-email", {
         body: {
-          to: buyerEmail,
+          to: normalizedBuyerEmail,
           subject: `Receipt: ${product.title} — Mirvyn`,
           html: `<h2>Thank you for your purchase!</h2>
 <p>Hi ${buyerName || "there"},</p>

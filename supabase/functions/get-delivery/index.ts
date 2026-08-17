@@ -16,26 +16,22 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { token, saleId, email } = await req.json();
+    const { token } = await req.json();
 
-    if (!token && (!saleId || !email)) {
+    if (typeof token !== "string" || token.length < 32 || token.length > 128) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields. Provide token OR (saleId + email)" }),
+        JSON.stringify({ error: "Invalid or missing delivery access token" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build query - fetch sale first, then product separately
-    let query = supabase
+    // Delivery links are bearer credentials. Never fall back to predictable sale IDs
+    // plus email addresses, which are not sufficient proof of purchase ownership.
+    const query = supabase
       .from("sales")
-      .select("*")
-      .eq("status", "completed");
-
-    if (token) {
-      query = query.eq("delivery_access_token", token);
-    } else {
-      query = query.eq("id", saleId).eq("buyer_email", email.toLowerCase().trim());
-    }
+      .select("id, buyer_email, total_amount, created_at, payment_reference, delivery_access_token, delivery_method, delivered_at, refund_eligible_until, access_count, product_id")
+      .eq("status", "completed")
+      .eq("delivery_access_token", token);
 
     const { data: sale, error: saleError } = await query.single();
 
@@ -80,8 +76,12 @@ Deno.serve(async (req) => {
           totalAmount: sale.total_amount,
           createdAt: sale.created_at,
           paymentReference: sale.payment_reference,
+          deliveryToken: sale.delivery_access_token,
+          deliveryMethod: sale.delivery_method,
+          deliveredAt: sale.delivered_at,
           refundEligibleUntil: sale.refund_eligible_until,
           refundEligible,
+          accessCount: sale.access_count || 0,
         },
         product: product ? {
           id: product.id,

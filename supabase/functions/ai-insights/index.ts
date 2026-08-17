@@ -1,15 +1,67 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authFailureResponse, forbiddenResponse, getAuthenticatedUser, isTrustedInternalRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-function-secret, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, data } = await req.json();
+    const rawBody = await req.text();
+    if (rawBody.length > 32 * 1024) {
+      return new Response(JSON.stringify({ error: "Request payload is too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let parsedBody: { type?: unknown; data?: unknown };
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (typeof parsedBody.type !== "string" || !parsedBody.data || typeof parsedBody.data !== "object") {
+      return new Response(JSON.stringify({ error: "Invalid insight request" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const type = parsedBody.type;
+    const data = parsedBody.data as Record<string, unknown>;
+    if (JSON.stringify(data).length > 16 * 1024) {
+      return new Response(JSON.stringify({ error: "Insight data is too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const trustedInternal = isTrustedInternalRequest(req);
+    const authenticatedUser = trustedInternal ? null : await getAuthenticatedUser(req, supabase);
+    if (!trustedInternal && !authenticatedUser) return authFailureResponse(corsHeaders);
+
+    if (type === "platform_advisory" && !trustedInternal) {
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", authenticatedUser!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!adminRole) return forbiddenResponse(corsHeaders, "Admin authorization required");
+    }
+
+    const headlines = Array.isArray(data.headlines)
+      ? data.headlines.filter((headline): headline is string => typeof headline === "string").slice(0, 20)
+      : [];
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -55,15 +107,15 @@ serve(async (req) => {
         break;
       case "caption_generator":
         systemPrompt = "You are a social media marketing expert for affiliate marketers. Create compelling, conversion-focused captions.";
-        userPrompt = `Create 3 social media captions for promoting this product on ${data.platform || "Instagram"}:\n\nProduct: ${data.product_name}\nDescription: ${data.description || "N/A"}\n\nFor each caption include: the caption text, relevant hashtags, and a call-to-action. Make them authentic, engaging, and optimized for ${data.platform || "Instagram"}.`;
+        userPrompt = `Create 3 social media captions for promoting this product on ${String(data.platform || "Instagram")}:\n\nProduct: ${String(data.product_name || "") }\nDescription: ${String(data.description || "N/A")}\n\nFor each caption include: the caption text, relevant hashtags, and a call-to-action. Make them authentic, engaging, and optimized for ${String(data.platform || "Instagram")}.`;
         break;
       case "headline_tester":
         systemPrompt = "You are a conversion rate optimization expert. Score and rank headline variants based on psychological principles of persuasion, clarity, urgency, and emotional appeal.";
-        userPrompt = `Score and rank these headline variants from best to worst:\n\n${(data.headlines || []).map((h: string, i: number) => `${i + 1}. "${h}"`).join("\n")}\n\nFor each headline provide:\n- Score (0-100)\n- Strengths\n- Weaknesses\n- Suggested improvement\n\nThen declare the winner and explain why.`;
+        userPrompt = `Score and rank these headline variants from best to worst:\n\n${headlines.map((h, i) => `${i + 1}. "${h}"`).join("\\n")}\n\nFor each headline provide:\n- Score (0-100)\n- Strengths\n- Weaknesses\n- Suggested improvement\n\nThen declare the winner and explain why.`;
         break;
       case "best_product_today":
         systemPrompt = "You are an affiliate marketing strategist. Analyze available products and recommend the best one to promote right now based on commission potential, market appeal, and timing.";
-        userPrompt = `Analyze these products and recommend the best one to promote today:\n\n${JSON.stringify(data.products)}\n\nConsider: commission percentage, price point appeal, market demand, and promotional angles. Recommend the top pick with specific promotion strategies.`;
+        userPrompt = `Analyze these products and recommend the best one to promote today:\n\n${JSON.stringify(data.products || [])}\n\nConsider: commission percentage, price point appeal, market demand, and promotional angles. Recommend the top pick with specific promotion strategies.`;
         break;
       default:
         return new Response(JSON.stringify({ error: "Unknown insight type" }), {

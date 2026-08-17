@@ -46,11 +46,11 @@ describe("ROI calculator economics", () => {
     const monthlySales = 50;
     const grossRevenue = price * monthlySales;
     const platformFees = grossRevenue * (platformFeePercent / 100);
-    const affiliatePayouts = ((price - price * (platformFeePercent / 100)) * (commissionPercent / 100)) * monthlySales;
+    const affiliatePayouts = grossRevenue * (commissionPercent / 100);
 
     expect(grossRevenue).toBe(500_000);
     expect(platformFees).toBe(50_000);
-    expect(affiliatePayouts).toBe(135_000);
-    expect(grossRevenue - platformFees - affiliatePayouts).toBe(315_000);
+    expect(affiliatePayouts).toBe(150_000);
+    expect(grossRevenue - platformFees - affiliatePayouts).toBe(300_000);
   });
 });

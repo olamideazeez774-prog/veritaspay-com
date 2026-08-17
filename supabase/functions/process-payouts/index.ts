@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authFailureResponse, isTrustedInternalRequest } from "../_shared/auth.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-function-secret, x-cron-secret",
+  "Access-Control-Allow-Methods": "POST,OPTIONS",
+};
 
 // Resolve a Paystack bank code from a bank name. Falls back to looking up via Paystack API.
 async function resolveBankCode(secret: string, bankName: string): Promise<string | null> {
@@ -18,7 +25,10 @@ async function resolveBankCode(secret: string, bankName: string): Promise<string
   }
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (!isTrustedInternalRequest(req)) return authFailureResponse(corsHeaders, "Internal authorization required");
+
   const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY");
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -46,6 +56,20 @@ Deno.serve(async (_req) => {
 
   for (const p of due ?? []) {
     try {
+      // Claim the request atomically before touching Paystack. A second scheduler run
+      // must not be able to submit a duplicate transfer for the same payout.
+      const { data: claimedPayout, error: claimError } = await supabase
+        .from("payout_requests")
+        .update({ status: "processing", auto_processed: true })
+        .eq("id", p.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimError || !claimedPayout) {
+        results.push({ id: p.id, ok: false, reason: "already-claimed" });
+        continue;
+      }
+
       // 1. Resolve bank code
       const bankCode = await resolveBankCode(PAYSTACK_SECRET, p.bank_name ?? "");
       if (!bankCode) {
@@ -77,9 +101,7 @@ Deno.serve(async (_req) => {
         continue;
       }
 
-      // 3. Mark processing then initiate transfer
-      await supabase.from("payout_requests").update({ status: "processing", auto_processed: true }).eq("id", p.id);
-
+      // 3. Initiate transfer only after the payout has been claimed
       const netKobo = Math.round(Number(p.net_amount) * 100);
       const xferRes = await fetch("https://api.paystack.co/transfer", {
         method: "POST",

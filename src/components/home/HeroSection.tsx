@@ -130,12 +130,15 @@ export function HeroSection() {
             </Link>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
+                asChild
                 size="lg"
                 variant="outline"
                 className="gap-2 h-12 px-8 text-base glass hover:bg-primary/5"
               >
-                <Play className="h-4 w-4" />
-                Watch Demo
+                <a href="#how-it-works" aria-label="See how Mirvyn works">
+                  <Play className="h-4 w-4" />
+                  Watch Demo
+                </a>
               </Button>
             </motion.div>
           </motion.div>

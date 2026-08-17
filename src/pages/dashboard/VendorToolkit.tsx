@@ -40,9 +40,8 @@ export default function VendorToolkit() {
 
   const monthlyRevenue = roiInputs.price * roiInputs.monthlySales;
   const platformFeeAmt = (monthlyRevenue * roiInputs.platformFee) / 100;
-  const afterPlatform = monthlyRevenue - platformFeeAmt;
-  const affiliatePayouts = (afterPlatform * roiInputs.commissionPercent) / 100;
-  const vendorNet = afterPlatform - affiliatePayouts;
+  const affiliatePayouts = (monthlyRevenue * roiInputs.commissionPercent) / 100;
+  const vendorNet = monthlyRevenue - platformFeeAmt - affiliatePayouts;
 
   // ======== COUPONS ========
   const [showCouponDialog, setShowCouponDialog] = useState(false);

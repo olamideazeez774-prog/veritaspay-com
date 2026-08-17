@@ -107,7 +107,7 @@ export default function CertificatesPage() {
         .maybeSingle();
       return (data?.value as Record<string, string>)?.url || null;
     },
-    enabled: !!user && !!isAdmin,
+    enabled: !!user,
   });
 
   // Public flag: non-admins use this to know whether the platform signature is configured
@@ -123,7 +123,7 @@ export default function CertificatesPage() {
     },
   });
 
-  const canClaim = isAdmin || signatureConfigured;
+  const canClaim = isAdmin || Boolean(signatureConfigured && adminSignature);
 
   const totalEarned = isAdmin ? 999999999 : (wallet?.total_earned || 0);
   const currentRank = ranks?.filter((r) => totalEarned >= r.min_earnings).pop();
@@ -131,7 +131,7 @@ export default function CertificatesPage() {
 
   const handleClaimCertificate = async (rank: AffiliateRank) => {
     if (!user) return;
-    if (!isAdmin && !signatureConfigured) {
+    if (!isAdmin && (!signatureConfigured || !adminSignature)) {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
@@ -167,7 +167,7 @@ export default function CertificatesPage() {
 
   const handleClaimEarningCertificate = async (amount: number) => {
     if (!user) return;
-    if (!isAdmin && !signatureConfigured) {
+    if (!isAdmin && (!signatureConfigured || !adminSignature)) {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
@@ -200,6 +200,10 @@ export default function CertificatesPage() {
 
   const handleDownloadCert = async (cert: Certificate) => {
     try {
+      if (!isAdmin && !adminSignature) {
+        toast.error("Certificate downloads are unavailable until the platform signature is published.");
+        return;
+      }
       const meta = cert.metadata as Record<string, unknown> | null;
       if (cert.cert_type === "earning") {
         await generateEarningCertificatePDF({
