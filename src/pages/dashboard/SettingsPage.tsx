@@ -272,7 +272,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name ? `${profile.full_name} avatar` : "Profile avatar"} />
                     <AvatarFallback className="text-xl bg-primary/10 text-primary">{initials}</AvatarFallback>
                   </Avatar>
                   <input

@@ -39,8 +39,9 @@ export default function AdminFraudDashboard() {
   const handleAIAnalysis = async () => {
     if (!selected) return;
     setAiResult("Analyzing...");
+    const analysisData: Record<string, unknown> = Object.fromEntries(Object.entries(selected));
     aiInsight.mutate(
-      { type: "fraud_scoring", data: selected as any },
+      { type: "fraud_scoring", data: analysisData },
       { onSuccess: (result) => setAiResult(result), onError: () => setAiResult("Analysis failed.") }
     );
   };

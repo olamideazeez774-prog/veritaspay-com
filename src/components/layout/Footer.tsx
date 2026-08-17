@@ -2,27 +2,9 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { Twitter, Linkedin, Github, Mail } from "lucide-react";
+import { FOOTER_LINKS } from "@/lib/siteRoutes";
 
-const footerLinks = {
-  product: [
-    { label: "Marketplace", href: "/marketplace" },
-    { label: "For Vendors", href: "/register?role=vendor" },
-    { label: "For Affiliates", href: "/register?role=affiliate" },
-    { label: "Pricing", href: "/pricing" },
-  ],
-  company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
-  ],
-  legal: [
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Cookie Policy", href: "/cookies" },
-    { label: "Refund Policy", href: "/refunds" },
-  ],
-};
+const footerLinks = FOOTER_LINKS;
 
 const socialLinks = [
   { icon: Twitter, href: "https://twitter.com", label: "Twitter" },

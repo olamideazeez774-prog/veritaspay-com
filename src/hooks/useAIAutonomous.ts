@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DEFAULT_AI_OPTIMIZATION_SETTINGS,
+  mergeAIOptimizationSettings,
+  type AIOptimizationSettings,
+} from "@/lib/aiSettings";
+
+export { DEFAULT_AI_OPTIMIZATION_SETTINGS, type AIOptimizationSettings } from "@/lib/aiSettings";
 
 export interface AIContentCalendarItem {
   id: string;
@@ -34,18 +41,6 @@ export interface AISmartAlert {
   created_at: string;
 }
 
-export interface AIOptimizationSettings {
-  auto_generate_captions: boolean;
-  auto_schedule_posts: boolean;
-  content_frequency: "daily" | "weekly" | "monthly";
-  preferred_platforms: string[];
-  smart_alerts_enabled: boolean;
-  alert_min_severity: "low" | "medium" | "high";
-  auto_optimize_commissions: boolean;
-  auto_adjust_prices: boolean;
-  preferred_posting_times: string[];
-  timezone: string;
-}
 
 // Hook to fetch user's content calendar
 export function useAIContentCalendar(status?: string) {
@@ -110,13 +105,17 @@ export function useAIOptimizationSettings() {
   return useQuery({
     queryKey: ["ai-optimization-settings"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from("ai_optimization_settings")
         .select("*")
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (error) throw error;
-      return data as AIOptimizationSettings;
+      return mergeAIOptimizationSettings(data);
     },
   });
 }
@@ -127,10 +126,12 @@ export function useUpdateAIOptimizationSettings() {
 
   return useMutation({
     mutationFn: async (settings: Partial<AIOptimizationSettings>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from("ai_optimization_settings")
-        .update(settings)
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .upsert({ user_id: user.id, ...settings }, { onConflict: "user_id" })
         .select()
         .single();
 

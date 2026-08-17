@@ -39,7 +39,7 @@ export default function VerifyCertificate() {
     enabled: !!hash,
   });
 
-  const metadata = cert?.metadata as Record<string, any> | null;
+  const metadata = cert?.metadata as Record<string, unknown> | null;
   const affiliateName = cert?.profile?.full_name || (metadata?.full_name as string) || "Unknown";
   const avatarUrl = cert?.profile?.avatar_url || (metadata?.avatar_url as string);
   const rankIcon = RANK_ICONS[cert?.rank_name || ""] || "🏅";
@@ -67,7 +67,7 @@ export default function VerifyCertificate() {
                 {avatarUrl && (
                   <div className="flex justify-center">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={avatarUrl} />
+                      <AvatarImage src={avatarUrl} alt={`${affiliateName} avatar`} />
                       <AvatarFallback>{affiliateName[0]}</AvatarFallback>
                     </Avatar>
                   </div>
