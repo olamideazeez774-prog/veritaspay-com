@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2, UserPlus } from "lucide-react";
+import { ArrowRight, Link2, Loader2, Store, UserPlus } from "lucide-react";
 import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferrals";
 
 const REF_STORAGE_KEY = "vp_referral_code";
@@ -135,14 +135,23 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-hero p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Link to="/" className="mb-4 inline-block">
-            <span className="text-2xl font-bold text-gradient-primary">{PLATFORM_NAME}</span>
-          </Link>
+    <div className="min-h-screen bg-gradient-hero px-4 py-8 sm:flex sm:items-center sm:py-12">
+      <div className="mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-[1fr_440px] lg:items-center">
+        <section className="hidden lg:block">
+          <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold text-gradient-primary"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">M</span>{PLATFORM_NAME}</Link>
+          <p className="mt-10 text-sm font-semibold uppercase tracking-[0.18em] text-primary">Start with your goal</p>
+          <h1 className="mt-3 max-w-xl font-serif text-5xl font-bold leading-tight">One account. A clear path to your next win.</h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">Create your account, then choose whether you want to sell digital products or earn by promoting products you trust.</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-primary/20 bg-card/70 p-4"><Store className="h-5 w-5 text-primary" /><p className="mt-3 font-semibold">Sell</p><p className="mt-1 text-sm leading-5 text-muted-foreground">Register free and build your product shelf.</p></div>
+            <div className="rounded-2xl border border-accent/20 bg-card/70 p-4"><Link2 className="h-5 w-5 text-accent" /><p className="mt-3 font-semibold">Promote</p><p className="mt-1 text-sm leading-5 text-muted-foreground">Find products and earn from tracked links.</p></div>
+          </div>
+        </section>
+        <Card className="w-full">
+        <CardHeader className="text-center sm:text-left">
+          <Link to="/" className="mb-3 inline-block lg:hidden"><span className="text-2xl font-bold text-gradient-primary">{PLATFORM_NAME}</span></Link>
           <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>Join as a vendor or affiliate</CardDescription>
+          <CardDescription>It takes about a minute. You choose your path next.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -220,7 +229,7 @@ export default function Register() {
               ) : (
                 <UserPlus className="mr-2 h-4 w-4" />
               )}
-              Create Account
+              Create my account <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
@@ -230,7 +239,8 @@ export default function Register() {
             </p>
           </CardFooter>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
