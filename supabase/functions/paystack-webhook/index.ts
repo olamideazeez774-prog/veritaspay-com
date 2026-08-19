@@ -25,9 +25,21 @@ Deno.serve(async (req) => {
 
     const event = JSON.parse(raw);
     const reference: string | undefined = event?.data?.reference;
-    if (!reference) return new Response("ok", { status: 200 });
-
+    const refundReference: string | undefined = event?.data?.refund_reference || (event?.data?.id ? String(event.data.id) : undefined);
+    const refundTransactionReference: string | undefined = event?.data?.transaction_reference || event?.data?.transaction?.reference;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    if (event.event?.startsWith("refund.")) {
+      if (refundTransactionReference) {
+        await supabase.from("pending_payments").update({
+          refund_status: event.event.slice("refund.".length),
+          refund_reference: refundReference || null,
+        }).eq("reference", refundTransactionReference);
+      }
+      return new Response("ok", { status: 200 });
+    }
+
+    if (!reference) return new Response("ok", { status: 200 });
 
     if (event.event === "charge.success") {
       const result = await verifyAndActivate(supabase, PAYSTACK_SECRET_KEY, reference);

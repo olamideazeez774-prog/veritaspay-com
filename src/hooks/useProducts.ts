@@ -78,6 +78,7 @@ export function useCreateProduct() {
           status: product.status,
           affiliate_enabled: product.affiliate_enabled,
           listing_model: product.listing_model,
+          payment_processing_fee_bearer: product.payment_processing_fee_bearer || "vendor",
         })
         .select()
         .single();

@@ -50,6 +50,7 @@ export default function ProductForm() {
     status: "draft" as ProductStatus,
     affiliate_enabled: true,
     listing_model: "standard" as "standard" | "waiver",
+    payment_processing_fee_bearer: "vendor" as "customer" | "vendor" | "split_50_50",
   });
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function ProductForm() {
         status: existingProduct.status,
         affiliate_enabled: existingProduct.affiliate_enabled,
         listing_model: ((existingProduct as unknown as { listing_model?: "standard" | "waiver" }).listing_model) || "standard",
+        payment_processing_fee_bearer: ((existingProduct as unknown as { payment_processing_fee_bearer?: "customer" | "vendor" | "split_50_50" }).payment_processing_fee_bearer) || "vendor",
       });
     }
   }, [existingProduct]);
@@ -96,6 +98,7 @@ export default function ProductForm() {
       status: formData.status,
       affiliate_enabled: formData.affiliate_enabled,
       listing_model: formData.listing_model,
+      payment_processing_fee_bearer: formData.payment_processing_fee_bearer,
     };
 
     if (isEditing && id) {
@@ -232,6 +235,40 @@ export default function ProductForm() {
                     </Select>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Payment Processing Fee */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Processing Fee</CardTitle>
+                <CardDescription>Choose who bears the Paystack processing fee for this product.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Select
+                  value={formData.payment_processing_fee_bearer}
+                  onValueChange={(value: "customer" | "vendor" | "split_50_50") =>
+                    setFormData({ ...formData, payment_processing_fee_bearer: value })
+                  }
+                >
+                  <SelectTrigger aria-label="Payment processing fee bearer">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer — added to the checkout amount</SelectItem>
+                    <SelectItem value="vendor">Vendor — deducted from vendor earnings</SelectItem>
+                    <SelectItem value="split_50_50">Split 50/50 — half added to customer, half deducted from vendor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The selection applies regardless of who physically completes the Paystack payment. Affiliate commission is calculated independently from the product amount.
+                </p>
               </CardContent>
             </Card>
           </motion.div>

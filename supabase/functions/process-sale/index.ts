@@ -15,6 +15,10 @@ interface ProcessSaleRequest {
   paymentReference: string;
   paymentGateway?: string;
   couponCode?: string;
+  requiredAmountKobo?: number;
+  receivedAmountKobo?: number;
+  paystackFeeKobo?: number;
+  paystackTransactionId?: number | null;
 }
 
 Deno.serve(async (req) => {
@@ -34,6 +38,7 @@ Deno.serve(async (req) => {
     const {
       productId, buyerEmail, buyerName, affiliateCode, paymentReference,
       paymentGateway = "paystack", couponCode,
+      requiredAmountKobo, receivedAmountKobo, paystackFeeKobo, paystackTransactionId,
     }: ProcessSaleRequest = await req.json();
 
     if (!productId || !buyerEmail || !paymentReference) {
@@ -44,7 +49,7 @@ Deno.serve(async (req) => {
     const normalizedBuyerEmail = buyerEmail.trim().toLowerCase();
     const { data: pendingPayment, error: pendingPaymentError } = await supabase
       .from("pending_payments")
-      .select("reference, purpose, status, email, metadata")
+      .select("reference, purpose, status, email, metadata, expected_amount_kobo, customer_processing_fee_kobo, vendor_processing_fee_kobo, paystack_fee_kobo")
       .eq("reference", paymentReference)
       .maybeSingle();
 
@@ -225,7 +230,18 @@ Deno.serve(async (req) => {
     const affiliateCommission = affiliateId
       ? Math.round((totalAmount * commissionPercent) / 100)
       : 0;
-    let vendorEarnings = Math.max(0, totalAmount - platformFee - affiliateCommission);
+    const paymentProcessingFeeBearer = pendingMetadata.payment_processing_fee_bearer === "customer" || pendingMetadata.payment_processing_fee_bearer === "split_50_50"
+      ? pendingMetadata.payment_processing_fee_bearer
+      : "vendor";
+    const verifiedPaystackFeeKobo = Math.max(0, Number(paystackFeeKobo ?? pendingPayment.paystack_fee_kobo ?? 0));
+    const estimatedCustomerFeeKobo = Math.max(0, Number(pendingPayment.customer_processing_fee_kobo ?? 0));
+    const customerProcessingFeeKobo = paymentProcessingFeeBearer === "customer"
+      ? verifiedPaystackFeeKobo
+      : paymentProcessingFeeBearer === "split_50_50"
+        ? Math.min(estimatedCustomerFeeKobo, verifiedPaystackFeeKobo)
+        : 0;
+    const vendorProcessingFeeKobo = Math.max(0, verifiedPaystackFeeKobo - customerProcessingFeeKobo);
+    let vendorEarnings = Math.max(0, totalAmount - platformFee - affiliateCommission - (vendorProcessingFeeKobo / 100));
 
     // ======== STARTER PLAN ONBOARDING DEDUCTION ========
     // Vendors on the Starter plan (₦3k upfront + ₦5,500 deferred) have ₦1,100 deducted
@@ -284,6 +300,13 @@ Deno.serve(async (req) => {
         refund_eligible_until: refundEligibleUntil.toISOString(),
         delivery_access_token: deliveryAccessToken,
         payment_reference: paymentReference, payment_gateway: paymentGateway,
+        payment_processing_fee_bearer: paymentProcessingFeeBearer,
+        required_amount_kobo: Number(requiredAmountKobo ?? pendingPayment.expected_amount_kobo ?? 0),
+        received_amount_kobo: Number(receivedAmountKobo ?? pendingPayment.received_amount_kobo ?? 0),
+        paystack_transaction_id: paystackTransactionId ?? null,
+        paystack_fee_kobo: verifiedPaystackFeeKobo,
+        customer_processing_fee_kobo: customerProcessingFeeKobo,
+        vendor_processing_fee_kobo: vendorProcessingFeeKobo,
       })
       .select().single();
 
@@ -376,6 +399,10 @@ ${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee"
           affiliate_commission: affiliateCommission,
           second_tier_commission: secondTierCommission,
           vendor_earnings: vendorEarnings, commission_applied: commissionPercent,
+          payment_processing_fee_bearer: paymentProcessingFeeBearer,
+          paystack_fee: verifiedPaystackFeeKobo / 100,
+          customer_processing_fee: customerProcessingFeeKobo / 100,
+          vendor_processing_fee: vendorProcessingFeeKobo / 100,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

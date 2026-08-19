@@ -13,6 +13,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { toast } from "sonner";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
+import { previewPaymentFee, type PaymentFeeBearer } from "@/lib/paymentProcessingFee";
 
 export default function Checkout() {
   const { productId } = useParams();
@@ -111,6 +112,8 @@ export default function Checkout() {
 
   const discount = getDiscount();
   const finalPrice = product ? Math.max(0, product.price - discount) : 0;
+  const feeBearer: PaymentFeeBearer = product?.payment_processing_fee_bearer || "vendor";
+  const feePreview = previewPaymentFee(finalPrice, feeBearer);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,13 +144,15 @@ export default function Checkout() {
       if (paymentData?.error) throw new Error(paymentData.error);
 
       // Step 2: Store checkout context for after payment
-      const checkoutContext = {
-        productId: product.id,
+        const checkoutContext = {
+          productId: product.id,
         buyerEmail: formData.email,
         buyerName: formData.name,
         affiliateCode: affiliateCode || null,
         couponCode: couponApplied?.code || null,
         finalPrice: finalPrice,
+        requiredAmount: paymentData.amount,
+        paymentProcessingFeeBearer: paymentData.payment_processing_fee_bearer || feeBearer,
         paymentReference: paymentData.reference,
         timestamp: Date.now(),
       };
@@ -284,7 +289,7 @@ export default function Checkout() {
                     {isProcessing ? (
                       <><LoadingSpinner size="sm" className="mr-2" />Processing...</>
                     ) : (
-                      <><Lock className="mr-2 h-4 w-4" />Pay {formatCurrency(finalPrice)}</>
+                      <><Lock className="mr-2 h-4 w-4" />Pay {formatCurrency(feePreview.requiredAmount)}</>
                     )}
                   </Button>
                 </form>
@@ -312,10 +317,10 @@ export default function Checkout() {
                 </div>
 
                 <div className="py-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>{formatCurrency(product.price)}</span>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatCurrency(product.price)}</span>
+                </div>
                   {couponApplied && discount > 0 && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Discount ({couponApplied.code})</span>
@@ -328,16 +333,25 @@ export default function Checkout() {
                       <span className="font-mono text-xs">{affiliateCode}</span>
                     </div>
                   )}
+                  {feePreview.customerProcessingFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Payment processing fee</span>
+                      <span>{formatCurrency(feePreview.customerProcessingFee)}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {feeBearer === "customer" ? "You bear the Paystack processing fee." : feeBearer === "split_50_50" ? "The Paystack processing fee is shared equally." : "The vendor bears the Paystack processing fee."}
+                  </p>
                 </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
-                    <span className="font-semibold">Total</span>
+                    <span className="font-semibold">Total to Pay</span>
                     <div className="text-right">
                       {discount > 0 && (
                         <span className="text-sm text-muted-foreground line-through mr-2">{formatCurrency(product.price)}</span>
                       )}
-                      <span className="text-xl font-bold text-primary">{formatCurrency(finalPrice)}</span>
+                      <span className="text-xl font-bold text-primary">{formatCurrency(feePreview.requiredAmount)}</span>
                     </div>
                   </div>
                 </div>

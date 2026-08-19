@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { calculatePaymentFeeBreakdown, type PaymentFeeBearer } from "../_shared/payment-fees.ts";
 
 const ALLOWED_PURPOSES = new Set([
   "sale",
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
     // Resolve price server-side
     const { data: product, error: productError } = await supabase
       .from("products")
-      .select("id, price, vendor_id, status, is_approved, title")
+      .select("id, price, vendor_id, status, is_approved, title, payment_processing_fee_bearer")
       .eq("id", productId)
       .eq("status", "active")
       .eq("is_approved", true)
@@ -149,6 +150,12 @@ Deno.serve(async (req) => {
 
     if (finalPrice <= 0) return respond({ error: "Invalid product price" }, 400);
 
+    const feeBearer: PaymentFeeBearer = product.payment_processing_fee_bearer === "customer" || product.payment_processing_fee_bearer === "split_50_50"
+      ? product.payment_processing_fee_bearer
+      : "vendor";
+    const feeBreakdown = calculatePaymentFeeBreakdown(Math.round(finalPrice * 100), feeBearer);
+    const requiredAmount = feeBreakdown.requiredAmountKobo / 100;
+
     const reference = `MV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
     // Persist pending intent for sales too (uniform audit trail)
@@ -157,32 +164,42 @@ Deno.serve(async (req) => {
       email,
       purpose: "sale",
       reference,
-      expected_amount: finalPrice,
-      status: "pending",
-      metadata: {
-        product_id: productId,
-        affiliate_code: affiliateCode || null,
-        buyer_name: buyerName || null,
-        coupon_code: couponCode || null,
-      },
+        expected_amount: requiredAmount,
+        expected_amount_kobo: feeBreakdown.requiredAmountKobo,
+        customer_processing_fee_kobo: feeBreakdown.customerProcessingFeeKobo,
+        vendor_processing_fee_kobo: feeBreakdown.vendorProcessingFeeKobo,
+        status: "pending",
+        metadata: {
+          product_id: productId,
+          affiliate_code: affiliateCode || null,
+          buyer_name: buyerName || null,
+          coupon_code: couponCode || null,
+          product_amount_kobo: feeBreakdown.productAmountKobo,
+          payment_processing_fee_bearer: feeBearer,
+          estimated_paystack_fee_kobo: feeBreakdown.estimatedPaystackFeeKobo,
+        },
     });
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        email,
-        amount: Math.round(finalPrice * 100),
-        reference,
-        callback_url: callbackUrl || undefined,
-        metadata: {
-          purpose: "sale",
-          product_id: productId,
-          affiliate_code: affiliateCode || null,
-          buyer_name: buyerName || null,
-          coupon_code: couponCode || null,
-          server_amount: finalPrice,
-        },
+          email,
+          amount: feeBreakdown.requiredAmountKobo,
+          reference,
+          callback_url: callbackUrl || undefined,
+          channels: ["card", "bank", "ussd"],
+          bearer: "account",
+          metadata: {
+            purpose: "sale",
+            product_id: productId,
+            affiliate_code: affiliateCode || null,
+            buyer_name: buyerName || null,
+            coupon_code: couponCode || null,
+            server_amount: finalPrice,
+            required_amount_kobo: feeBreakdown.requiredAmountKobo,
+            payment_processing_fee_bearer: feeBearer,
+          },
       }),
     });
 
@@ -197,7 +214,11 @@ Deno.serve(async (req) => {
 
     return respond({
       reference,
-      amount: finalPrice,
+      amount: requiredAmount,
+      product_amount: finalPrice,
+      payment_processing_fee_bearer: feeBearer,
+      customer_processing_fee: feeBreakdown.customerProcessingFeeKobo / 100,
+      estimated_paystack_fee: feeBreakdown.estimatedPaystackFeeKobo / 100,
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,
     });
