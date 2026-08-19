@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet, Transaction, PayoutRequest } from "@/types/database";
 import { toast } from "sonner";
-import { WITHDRAWAL_FEE_PERCENT_MIN, WITHDRAWAL_FEE_PERCENT_MAX, WITHDRAWAL_FEE_TIER_THRESHOLD } from "@/lib/constants";
+import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
+import { getWithdrawalFee, getWithdrawalNetAmount } from "@/lib/withdrawalFees";
 
 export function useWallet(userId?: string) {
   return useQuery({
@@ -70,11 +71,11 @@ export function useCreatePayoutRequest() {
   
   return useMutation({
     mutationFn: async (request: { user_id: string; wallet_id: string; amount: number; bank_name?: string; account_number?: string; account_name?: string }) => {
-      const feePercent = request.amount >= WITHDRAWAL_FEE_TIER_THRESHOLD
-        ? WITHDRAWAL_FEE_PERCENT_MIN
-        : WITHDRAWAL_FEE_PERCENT_MAX;
-      const feeAmount = Math.round(request.amount * feePercent / 100);
-      const netAmount = Math.max(0, request.amount - feeAmount);
+      if (request.amount < MIN_WITHDRAWAL_AMOUNT) {
+        throw new Error(`Minimum withdrawal amount is ₦${MIN_WITHDRAWAL_AMOUNT.toLocaleString()}`);
+      }
+      const feeAmount = getWithdrawalFee(request.amount);
+      const netAmount = getWithdrawalNetAmount(request.amount);
       const { data, error } = await supabase
         .from("payout_requests")
         .insert({

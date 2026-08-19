@@ -17,11 +17,12 @@ const pages: Record<string, InfoPageContent> = {
   "/pricing": {
     eyebrow: "Simple, transparent pricing",
     title: "Choose the way you want to grow",
-    intro: "Start selling and promoting digital products with no monthly subscription. Mirvyn makes platform fees visible before you commit.",
+    intro: "Transparent pricing for creators, vendors, and affiliates. No vendor registration fee and no hidden transaction charges.",
     sections: [
-      { heading: "Zero Upfront", body: "List products without an upfront listing fee. A 15% platform fee is applied to completed sales." },
-      { heading: "Standard Listing", body: "Pay the recommended ₦2,000 listing fee and receive a lower 10% platform fee on completed sales." },
-      { heading: "Affiliate earnings", body: "Vendors choose commission rates for eligible products, and affiliates see their expected earnings before generating a link." },
+      { heading: "Free vendor registration", body: "Create a vendor account at no cost. Each course has a fixed one-time ₦2,000 listing fee." },
+      { heading: "5% platform commission", body: "Mirvyn earns 5% on every successful sale. The platform commission is shown clearly in the sale economics." },
+      { heading: "Affiliate membership", body: "Affiliate access is ₦350 per month. Affiliates can promote products, track performance, and earn commissions." },
+      { heading: "Withdrawals", body: "The minimum withdrawal is ₦3,500. MIRVYN withdrawal fees range from ₦50 to ₦500 by withdrawal amount, and the exact fee is shown before confirmation." },
     ],
     cta: { label: "Start selling free", href: "/register?role=vendor" },
   },

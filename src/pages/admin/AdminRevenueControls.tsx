@@ -35,19 +35,19 @@ interface PlatformSettings {
 }
 
 const DEFAULT_SETTINGS: PlatformSettings = {
-  default_platform_fee: 10,
-  default_commission: 30,
-  min_withdrawal: 5000,
-  featured_listing_fee: 10000,
-  sponsored_slot_fee: 25000,
+  default_platform_fee: 5,
+  default_commission: 50,
+  min_withdrawal: 3500,
+  featured_listing_fee: 0,
+  sponsored_slot_fee: 0,
   payout_cycle_days: 7,
   auto_payout_enabled: false,
   processing_buffer_fee: 0,
   withdrawal_fee_percent: 0,
   withdrawal_flat_fee: 0,
-  verification_badge_fee: 5000,
-  premium_vendor_fee_reduction: 3,
-  premium_vendor_monthly_cost: 15000,
+  verification_badge_fee: 0,
+  premium_vendor_fee_reduction: 0,
+  premium_vendor_monthly_cost: 0,
   ai_fraud_detection: true,
   ai_affiliate_coaching: true,
   ai_product_matching: true,
@@ -158,8 +158,9 @@ export default function AdminRevenueControls() {
               <NumberField label="Default Platform Fee (%)" fieldKey="default_platform_fee" />
               <NumberField label="Default Commission (%)" fieldKey="default_commission" />
               <NumberField label="Min Withdrawal (₦)" fieldKey="min_withdrawal" />
-              <NumberField label="Featured Listing Fee (₦)" fieldKey="featured_listing_fee" />
-              <NumberField label="Sponsored Slot Fee (₦)" fieldKey="sponsored_slot_fee" />
+              <div className="rounded-lg border p-3 text-sm text-muted-foreground sm:col-span-2">
+                Current model: vendor registration is free and course listing is a fixed ₦2,000 one-time fee. Featured, sponsored, and other unapproved listing charges are disabled.
+              </div>
               <NumberField label="Payout Cycle (days)" fieldKey="payout_cycle_days" />
             </div>
             <ToggleField label="Auto-process payouts" desc="Automatically process payouts on cycle" fieldKey="auto_payout_enabled" />
@@ -168,18 +169,22 @@ export default function AdminRevenueControls() {
           <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
             <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><Percent className="h-5 w-5 text-primary" />Micro & Maintenance Fees</h2>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <NumberField label="Processing Buffer Fee (₦)" fieldKey="processing_buffer_fee" />
-              <NumberField label="Withdrawal Fee (%)" fieldKey="withdrawal_fee_percent" />
-              <NumberField label="Withdrawal Flat Fee (₦)" fieldKey="withdrawal_flat_fee" />
-              <NumberField label="Verification Badge Fee (₦)" fieldKey="verification_badge_fee" />
+              <div className="rounded-lg border p-3 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
+                MIRVYN does not absorb Paystack fees or add hidden transaction charges. Only the disclosed 5% platform commission and fixed withdrawal fee tiers apply.
+              </div>
+              <div className="rounded-lg border p-3 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
+                Fixed MIRVYN withdrawal fees: ₦50 (₦3,500–₦9,999), ₦100 (₦10,000–₦20,000), ₦150 (₦20,001–₦50,000), ₦200 (₦50,001–₦100,000), ₦300 (₦100,001–₦500,000), ₦400 (₦500,001–₦1,000,000), and ₦500 above ₦1,000,000.
+              </div>
+
             </div>
           </motion.div>
 
           <motion.div variants={staggerItem} className="glass-card p-4 sm:p-6 space-y-6">
             <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Vendor Tier Configuration</h2>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-              <NumberField label="Premium Fee Reduction (%)" fieldKey="premium_vendor_fee_reduction" />
-              <NumberField label="Premium Monthly Cost (₦)" fieldKey="premium_vendor_monthly_cost" />
+              <div className="rounded-lg border p-3 text-sm text-muted-foreground sm:col-span-2">
+                Vendor registration is free. Future premium vendor plans are roadmap items and do not change the current 5% platform commission.
+              </div>
             </div>
             <ToggleField label="Transparent Ledger" desc="Show full fee breakdown to vendors and affiliates" fieldKey="transparent_ledger_enabled" />
           </motion.div>

@@ -3,7 +3,7 @@
 export type AppRole = "admin" | "vendor" | "affiliate";
 
 export type ProductStatus = "draft" | "active" | "paused" | "pending_review";
-export type PaymentFeeBearer = "customer" | "vendor" | "split_50_50";
+export type PaymentFeeBearer = "vendor" | "vendor_affiliate_split_50_50";
 
 export type SaleStatus = "pending" | "completed" | "refunded";
 
@@ -109,6 +109,7 @@ export interface Sale {
   paystack_transaction_id: number | null;
   paystack_fee_kobo: number;
   customer_processing_fee_kobo: number;
+  affiliate_processing_fee_kobo: number;
   vendor_processing_fee_kobo: number;
   second_tier_affiliate_id: string | null;
   second_tier_commission: number | null;

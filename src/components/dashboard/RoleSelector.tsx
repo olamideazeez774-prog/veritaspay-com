@@ -9,9 +9,6 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { useAllFeatureFlags } from "@/hooks/useFeatureFlag";
 import {
-  VENDOR_REGISTRATION_FEE,
-  VENDOR_STARTER_UPFRONT,
-  VENDOR_STARTER_DEFERRED,
   AFFILIATE_REGISTRATION_FEE,
   AFFILIATE_DISPLAY_MONTHLY,
 } from "@/lib/constants";
@@ -20,20 +17,20 @@ const roles = [
   {
     id: "vendor",
     title: "Become a Vendor",
-    description: "Sell digital products with two flexible onboarding plans.",
+    description: "Register for free, list courses for ₦2,000 each, and earn through the affiliate network.",
     icon: Package,
-    fee: VENDOR_REGISTRATION_FEE,
-    feeLabel: `Standard ${VENDOR_REGISTRATION_FEE} or Starter ${VENDOR_STARTER_UPFRONT} now + ${VENDOR_STARTER_DEFERRED} from first 5 sales`,
-    platformFee: "10% platform fee on sales",
+    fee: 0,
+    feeLabel: "Free vendor registration",
+    platformFee: "5% platform commission per sale",
     features: ["List unlimited products", "Set commission rates (50%+)", "Track sales & earnings"],
   },
   {
     id: "affiliate",
     title: "Become an Affiliate",
-    description: `Just ₦${AFFILIATE_DISPLAY_MONTHLY}/month, billed annually. Promote products and earn commissions.`,
+    description: `₦${AFFILIATE_DISPLAY_MONTHLY}/month. Promote products and earn commissions.`,
     icon: Link2,
     fee: AFFILIATE_REGISTRATION_FEE,
-    feeLabel: `₦${AFFILIATE_DISPLAY_MONTHLY}/mo billed annually (${formatCurrency(AFFILIATE_REGISTRATION_FEE)}/yr)`,
+    feeLabel: `₦${AFFILIATE_DISPLAY_MONTHLY}/month`,
     features: ["Generate affiliate links", "Track clicks & conversions", "Earn 50%+ commission per sale"],
   },
 ];
@@ -42,7 +39,6 @@ export function RoleSelector() {
   const { user } = useAuth();
   const { flags } = useAllFeatureFlags();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [vendorPlan, setVendorPlan] = useState<"standard" | "starter">("standard");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const visibleRoles = roles.filter((r) => {
@@ -62,24 +58,25 @@ export function RoleSelector() {
     
     setIsSubmitting(true);
     try {
-      // DO NOT assign roles or change vendor_plan before payment.
-      // The role + plan are activated only after Paystack confirms the payment
-      // (see supabase/functions/_shared/verify-payment.ts).
+      // Vendor registration is free and may activate immediately. Affiliate membership remains payment-gated.
       const callbackUrl = `${window.location.origin}/payment/callback`;
 
       // Each selected role becomes its own payment intent so partial failures
       // never accidentally activate a role the user didn't pay for.
-      const intents: Array<{ purpose: "vendor_onboarding" | "affiliate_membership"; amount: number; metadata: Record<string, unknown> }> = [];
       if (selectedRoles.includes("vendor")) {
-        intents.push({
-          purpose: "vendor_onboarding",
-          amount: vendorPlan === "starter" ? VENDOR_STARTER_UPFRONT : VENDOR_REGISTRATION_FEE,
-          metadata: {
-            vendor_plan: vendorPlan,
-            onboarding_balance_due: vendorPlan === "starter" ? VENDOR_STARTER_DEFERRED : 0,
-          },
-        });
+        const { data: existingVendorRole } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("role", "vendor")
+          .maybeSingle();
+        if (!existingVendorRole) {
+          const { error: roleError } = await supabase.from("user_roles").insert({ user_id: user.id, role: "vendor" });
+          if (roleError) throw roleError;
+        }
       }
+
+      const intents: Array<{ purpose: "affiliate_membership"; amount: number; metadata: Record<string, unknown> }> = [];
       if (selectedRoles.includes("affiliate")) {
         intents.push({
           purpose: "affiliate_membership",
@@ -88,11 +85,11 @@ export function RoleSelector() {
         });
       }
 
-      // Handle one at a time. Start with the first; remaining intents are
-      // queued so the callback page can pick them up after the first verifies.
+      // Affiliate membership is the only paid role setup. Vendor registration is already complete if selected.
       const [first, ...rest] = intents;
       if (!first) {
-        toast.error("Please choose a role.");
+        toast.success(selectedRoles.includes("vendor") ? "Vendor account activated for free." : "Role setup complete.");
+        window.location.href = "/dashboard";
         return;
       }
 
@@ -188,30 +185,7 @@ export function RoleSelector() {
         })}
       </div>
 
-      {selectedRoles.includes("vendor") && (
-        <div className="mt-6 rounded-xl border border-border p-4">
-          <p className="mb-3 text-sm font-semibold">Choose your vendor plan</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {([
-              { id: "standard", title: "Growth Plan", desc: `${formatCurrency(VENDOR_REGISTRATION_FEE)} upfront + 10% per sale` },
-              { id: "starter", title: "Starter Plan", desc: `${formatCurrency(VENDOR_STARTER_UPFRONT)} now + ${formatCurrency(VENDOR_STARTER_DEFERRED)} from your first 5 sales + 10% per sale` },
-            ] as const).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setVendorPlan(p.id)}
-                className={cn(
-                  "rounded-lg border-2 p-3 text-left text-sm transition-all",
-                  vendorPlan === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                )}
-              >
-                <p className="font-semibold">{p.title}</p>
-                <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       <div className="mt-6 flex justify-center">
         <Button

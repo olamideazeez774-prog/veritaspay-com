@@ -14,11 +14,9 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import {
   MIN_WITHDRAWAL_AMOUNT,
-  WITHDRAWAL_FEE_PERCENT_MIN,
-  WITHDRAWAL_FEE_PERCENT_MAX,
-  WITHDRAWAL_FEE_TIER_THRESHOLD,
   PAYOUT_HOLD_HOURS,
 } from "@/lib/constants";
+import { getWithdrawalFee, getWithdrawalNetAmount } from "@/lib/withdrawalFees";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -39,22 +37,9 @@ export default function PayoutsPage() {
     account_name: "",
   });
 
-  // Fee settings are handled via constants for now
-
-  // Calculate withdrawal fee based on amount (2% - 4% sliding scale)
-  // Higher amounts get lower percentage fees
   const amount = parseFloat(formData.amount) || 0;
-  // Tiered withdrawal fee: < ₦20,000 = 3%, ≥ ₦20,000 = 2%
-  const getWithdrawalFeePercent = (amt: number): number => {
-    if (isAdmin || !withdrawalFeesEnabled) return 0;
-    return amt >= WITHDRAWAL_FEE_TIER_THRESHOLD
-      ? WITHDRAWAL_FEE_PERCENT_MIN
-      : WITHDRAWAL_FEE_PERCENT_MAX;
-  };
-
-  const withdrawalFeePercent = getWithdrawalFeePercent(amount);
-  const feeAmount = isAdmin || !withdrawalFeesEnabled ? 0 : Math.round(amount * withdrawalFeePercent / 100);
-  const netAmount = Math.max(0, amount - feeAmount);
+  const feeAmount = isAdmin || !withdrawalFeesEnabled ? 0 : getWithdrawalFee(amount);
+  const netAmount = isAdmin || !withdrawalFeesEnabled ? amount : getWithdrawalNetAmount(amount);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,19 +137,19 @@ export default function PayoutsPage() {
                     </div>
                     <Input id="amount" type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} max={wallet?.withdrawable_balance} min={MIN_WITHDRAWAL_AMOUNT} step="0.01" required />
                     <p className="text-xs text-muted-foreground">
-                      Fee: 3% under {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)} · 2% from {formatCurrency(WITHDRAWAL_FEE_TIER_THRESHOLD)}+. Auto-paid via Paystack after a {PAYOUT_HOLD_HOURS}h fraud-review hold.
+                      Withdrawal fee: ₦50–₦500 based on amount. Auto-paid via Paystack after a {PAYOUT_HOLD_HOURS}h fraud-review hold.
                     </p>
                   </div>
 
                   {/* Fee breakdown */}
-                  {amount >= MIN_WITHDRAWAL_AMOUNT && withdrawalFeePercent > 0 && !isAdmin && (
+                  {amount >= MIN_WITHDRAWAL_AMOUNT && feeAmount > 0 && !isAdmin && (
                     <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
                       <div className="flex items-center gap-1 text-muted-foreground mb-2">
                         <Info className="h-4 w-4" aria-hidden="true" />
                         <span className="font-medium">Fee Breakdown</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Processing fee ({withdrawalFeePercent}%)</span>
+                        <span className="text-muted-foreground">MIRVYN withdrawal fee</span>
                         <span>{formatCurrency(feeAmount)}</span>
                       </div>
                       <div className="flex justify-between border-t pt-1 font-semibold">

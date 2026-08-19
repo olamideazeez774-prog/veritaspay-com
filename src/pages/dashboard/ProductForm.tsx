@@ -22,11 +22,9 @@ import {
   MIN_COMMISSION_PERCENT,
   MAX_COMMISSION_PERCENT,
   PRODUCT_LISTING_FEE_STANDARD,
-  PLATFORM_FEE_WAIVER_PERCENT,
 } from "@/lib/constants";
 import { ProductStatus } from "@/types/database";
 import { toast } from "sonner";
-import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -35,7 +33,6 @@ export default function ProductForm() {
   const { data: existingProduct, isLoading: loadingProduct } = useProduct(id || "");
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
-  const { enabled: listingFeesEnabled } = useFeatureFlag("listing_fees");
 
   const isEditing = !!id;
   const [payingListingFee, setPayingListingFee] = useState(false);
@@ -50,7 +47,7 @@ export default function ProductForm() {
     status: "draft" as ProductStatus,
     affiliate_enabled: true,
     listing_model: "standard" as "standard" | "waiver",
-    payment_processing_fee_bearer: "vendor" as "customer" | "vendor" | "split_50_50",
+    payment_processing_fee_bearer: "vendor" as "vendor" | "vendor_affiliate_split_50_50",
   });
 
   useEffect(() => {
@@ -64,8 +61,8 @@ export default function ProductForm() {
         cover_image_url: existingProduct.cover_image_url || "",
         status: existingProduct.status,
         affiliate_enabled: existingProduct.affiliate_enabled,
-        listing_model: ((existingProduct as unknown as { listing_model?: "standard" | "waiver" }).listing_model) || "standard",
-        payment_processing_fee_bearer: ((existingProduct as unknown as { payment_processing_fee_bearer?: "customer" | "vendor" | "split_50_50" }).payment_processing_fee_bearer) || "vendor",
+        listing_model: "standard",
+        payment_processing_fee_bearer: ((existingProduct as unknown as { payment_processing_fee_bearer?: "vendor" | "vendor_affiliate_split_50_50" }).payment_processing_fee_bearer) || "vendor",
       });
     }
   }, [existingProduct]);
@@ -106,16 +103,8 @@ export default function ProductForm() {
       await updateProduct.mutateAsync({ id, ...productData });
       navigate("/dashboard/products");
     } else {
-      if (!listingFeesEnabled || formData.listing_model === "waiver") {
-        // Zero-upfront option: no payment modal, just create the product (15% fee will be enforced server-side)
-        await createProduct.mutateAsync({
-          ...productData,
-          status: "draft" as const,
-        });
-        navigate("/dashboard/products");
-      } else {
-        // Standard: ₦2,000 listing payment via Paystack
-        try {
+      // Fixed ₦2,000 listing payment via Paystack.
+      try {
           setPayingListingFee(true);
           // Create product as draft first to get its ID
           const created = await createProduct.mutateAsync({ ...productData, status: "draft" as const });
@@ -143,9 +132,8 @@ export default function ProductForm() {
         } catch (err) {
           logger.error("Listing fee payment init failed", err);
           toast.error("Failed to start payment. Please try again.");
-        } finally {
-          setPayingListingFee(false);
-        }
+      } finally {
+        setPayingListingFee(false);
       }
     }
   };
@@ -253,7 +241,7 @@ export default function ProductForm() {
               <CardContent className="space-y-2">
                 <Select
                   value={formData.payment_processing_fee_bearer}
-                  onValueChange={(value: "customer" | "vendor" | "split_50_50") =>
+                  onValueChange={(value: "vendor" | "vendor_affiliate_split_50_50") =>
                     setFormData({ ...formData, payment_processing_fee_bearer: value })
                   }
                 >
@@ -261,13 +249,12 @@ export default function ProductForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="customer">Customer — added to the checkout amount</SelectItem>
-                    <SelectItem value="vendor">Vendor — deducted from vendor earnings</SelectItem>
-                    <SelectItem value="split_50_50">Split 50/50 — half added to customer, half deducted from vendor</SelectItem>
+                    <SelectItem value="vendor">Vendor pays the Paystack processing fee</SelectItem>
+                    <SelectItem value="vendor_affiliate_split_50_50">Vendor shares the Paystack fee 50/50 with the affiliate</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  The selection applies regardless of who physically completes the Paystack payment. Affiliate commission is calculated independently from the product amount.
+                  The selection applies regardless of who physically completes the Paystack payment. MIRVYN never absorbs the Paystack fee, and the platform’s 5% commission remains separate.
                 </p>
               </CardContent>
             </Card>
@@ -377,20 +364,15 @@ export default function ProductForm() {
               <Card>
                 <CardHeader>
                   <CardTitle>Listing Option</CardTitle>
-                  <CardDescription>Choose how you want to pay for this listing</CardDescription>
+                  <CardDescription>Pay the fixed one-time course listing fee of ₦2,000</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {([
                     {
                       id: "standard" as const,
                       title: "Standard Listing",
-                      desc: `Pay ${formatCurrency(PRODUCT_LISTING_FEE_STANDARD)} now · 10% platform fee per sale`,
+                      desc: `Pay ${formatCurrency(PRODUCT_LISTING_FEE_STANDARD)} once per course · 5% platform commission per sale`,
                       recommended: true,
-                    },
-                    {
-                      id: "waiver" as const,
-                      title: "Zero Upfront",
-                      desc: `No listing fee · ${PLATFORM_FEE_WAIVER_PERCENT}% platform fee per sale`,
                     },
                   ]).map((opt) => (
                     <button
@@ -430,7 +412,7 @@ export default function ProductForm() {
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  {listingFeesEnabled && formData.listing_model === "standard" ? "Continue to Payment" : "Create Product"}
+                  Continue to Payment
                 </>
               )}
             </Button>

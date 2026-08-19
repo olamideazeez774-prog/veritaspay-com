@@ -6,7 +6,6 @@ const ALLOWED_PURPOSES = new Set([
   "sale",
   "verification",
   "listing_fee",
-  "vendor_onboarding",
   "affiliate_membership",
   "premium_upgrade",
   "subscription",
@@ -56,8 +55,13 @@ Deno.serve(async (req) => {
 
     // --------- NON-SALE FLOWS ---------
     if (purposeKey !== "sale") {
-      if (!userId || !amount || amount <= 0) {
-        return respond({ error: `Missing userId/amount for ${purposeKey}` }, 400);
+      const canonicalAmount = purposeKey === "listing_fee"
+        ? 2000
+        : purposeKey === "affiliate_membership"
+          ? 350
+          : Number(amount);
+      if (!userId || !Number.isFinite(canonicalAmount) || canonicalAmount <= 0) {
+        return respond({ error: `Missing valid payment amount for ${purposeKey}` }, 400);
       }
 
       const reference = `MV-${purposeKey.toUpperCase().slice(0, 4)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -68,9 +72,10 @@ Deno.serve(async (req) => {
         email,
         purpose: purposeKey,
         reference,
-        expected_amount: amount,
+        expected_amount: canonicalAmount,
+        expected_amount_kobo: Math.round(canonicalAmount * 100),
         status: "pending",
-        metadata: { ...clientMetadata, product_id: productId || null },
+        metadata: { ...clientMetadata, product_id: productId || null, canonical_amount_kobo: Math.round(canonicalAmount * 100) },
       });
       if (insertErr) {
         console.error("pending_payments insert failed", insertErr);
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          amount: Math.round(amount * 100),
+          amount: Math.round(canonicalAmount * 100),
           reference,
           callback_url: callbackUrl || undefined,
           metadata: { purpose: purposeKey, user_id: userId, product_id: productId || null, ...clientMetadata },
@@ -100,7 +105,7 @@ Deno.serve(async (req) => {
 
       return respond({
         reference,
-        amount,
+        amount: canonicalAmount,
         purpose: purposeKey,
         authorization_url: data.data.authorization_url,
         access_code: data.data.access_code,
@@ -150,8 +155,8 @@ Deno.serve(async (req) => {
 
     if (finalPrice <= 0) return respond({ error: "Invalid product price" }, 400);
 
-    const feeBearer: PaymentFeeBearer = product.payment_processing_fee_bearer === "customer" || product.payment_processing_fee_bearer === "split_50_50"
-      ? product.payment_processing_fee_bearer
+    const feeBearer: PaymentFeeBearer = product.payment_processing_fee_bearer === "vendor_affiliate_split_50_50"
+      ? "vendor_affiliate_split_50_50"
       : "vendor";
     const feeBreakdown = calculatePaymentFeeBreakdown(Math.round(finalPrice * 100), feeBearer);
     const requiredAmount = feeBreakdown.requiredAmountKobo / 100;
@@ -168,6 +173,7 @@ Deno.serve(async (req) => {
         expected_amount_kobo: feeBreakdown.requiredAmountKobo,
         customer_processing_fee_kobo: feeBreakdown.customerProcessingFeeKobo,
         vendor_processing_fee_kobo: feeBreakdown.vendorProcessingFeeKobo,
+        affiliate_processing_fee_kobo: feeBreakdown.affiliateProcessingFeeKobo,
         status: "pending",
         metadata: {
           product_id: productId,
@@ -177,6 +183,7 @@ Deno.serve(async (req) => {
           product_amount_kobo: feeBreakdown.productAmountKobo,
           payment_processing_fee_bearer: feeBearer,
           estimated_paystack_fee_kobo: feeBreakdown.estimatedPaystackFeeKobo,
+          affiliate_processing_fee_kobo: feeBreakdown.affiliateProcessingFeeKobo,
         },
     });
 
@@ -218,6 +225,7 @@ Deno.serve(async (req) => {
       product_amount: finalPrice,
       payment_processing_fee_bearer: feeBearer,
       customer_processing_fee: feeBreakdown.customerProcessingFeeKobo / 100,
+      affiliate_processing_fee: feeBreakdown.affiliateProcessingFeeKobo / 100,
       estimated_paystack_fee: feeBreakdown.estimatedPaystackFeeKobo / 100,
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,

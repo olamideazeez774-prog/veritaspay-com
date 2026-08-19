@@ -181,22 +181,8 @@ export async function verifyAndActivate(
           .eq("status", "draft");
       }
     } else if (purpose === "vendor_onboarding") {
-      // Assign vendor role ONLY now
-      const vendorPlan = (metadata.vendor_plan as string) || "standard";
-      const onboardingBalance = Number(metadata.onboarding_balance_due || 0);
-      const { data: hasRole } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("role", "vendor")
-        .maybeSingle();
-      if (!hasRole) {
-        await supabase.from("user_roles").insert({ user_id: userId, role: "vendor" });
-      }
-      await supabase
-        .from("profiles")
-        .update({ vendor_plan: vendorPlan, onboarding_balance_due: onboardingBalance })
-        .eq("id", userId);
+      // Vendor registration is free and is activated directly during onboarding.
+      return { ok: false, status: 400, body: { error: "Vendor registration is free; no vendor onboarding payment is required" } };
     } else if (purpose === "affiliate_membership") {
       const { data: hasRole } = await supabase
         .from("user_roles")
@@ -207,7 +193,9 @@ export async function verifyAndActivate(
       if (!hasRole) {
         await supabase.from("user_roles").insert({ user_id: userId, role: "affiliate" });
       }
-      const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresAtDate = new Date();
+      expiresAtDate.setMonth(expiresAtDate.getMonth() + 1);
+      const expiresAt = expiresAtDate.toISOString();
       await supabase.from("profiles").update({ affiliate_membership_expires_at: expiresAt }).eq("id", userId);
     } else if (purpose === "premium_upgrade") {
       await supabase.from("profiles").update({ vendor_tier: "premium" }).eq("id", userId);
@@ -243,6 +231,7 @@ export async function verifyAndActivate(
               receivedAmountKobo: amountPaidKobo,
               paystackFeeKobo,
               paystackTransactionId,
+              affiliateProcessingFeeKobo: Number(pending.affiliate_processing_fee_kobo || metadata.affiliate_processing_fee_kobo || 0),
             },
           });
         }
