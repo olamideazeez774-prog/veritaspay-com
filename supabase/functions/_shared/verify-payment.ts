@@ -31,9 +31,12 @@ export async function verifyAndActivate(
   if (pendingErr) return { ok: false, status: 500, body: { error: "Could not load pending payment" } };
   if (!pending) return { ok: false, status: 404, body: { error: "No pending payment for reference" } };
 
-  // Idempotency: already verified
+  // Idempotency: verified and amount-mismatch payments are terminal states.
   if (pending.status === "verified") {
     return { ok: true, status: 200, body: { success: true, alreadyVerified: true, purpose: pending.purpose, redirect: redirectFor(pending.purpose) } };
+  }
+  if (pending.status === "amount_mismatch") {
+    return { ok: false, status: 400, body: { error: "Payment amount mismatch — refund is being tracked and no value was delivered", amountMismatch: true, refundStatus: pending.refund_status || "pending" } };
   }
 
   // 2. Verify with Paystack
@@ -49,10 +52,37 @@ export async function verifyAndActivate(
     return { ok: false, status: 400, body: { error: paystackData?.message || "Payment not successful" } };
   }
 
-  // 3. Verify amount matches expected
-  const amountPaidKobo: number = paystackData.data?.amount || 0;
-  const expectedKobo = Math.round(Number(pending.expected_amount) * 100);
-  if (Math.abs(amountPaidKobo - expectedKobo) > 100) {
+  // 3. Verify the exact amount in kobo. Never use a tolerance: a mismatch
+  // must not deliver value, credit wallets, or distribute commissions.
+  const amountPaidKobo = Number(paystackData.data?.amount || 0);
+  const expectedKobo = Number.isFinite(Number(pending.expected_amount_kobo))
+    ? Number(pending.expected_amount_kobo)
+    : Math.round(Number(pending.expected_amount) * 100);
+  const paystackFeeKobo = Number(paystackData.data?.fees || 0);
+  const paystackTransactionId = Number(paystackData.data?.id || 0) || null;
+
+  if (amountPaidKobo !== expectedKobo) {
+    let refundStatus = "not_initiated";
+    let refundReference: string | null = null;
+    try {
+      const refundRes = await fetch("https://api.paystack.co/refund", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${paystackSecret}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transaction: reference,
+          amount: amountPaidKobo,
+          customer_note: "The amount received did not match the required payment amount. Your refund has been submitted to Paystack.",
+          merchant_note: `Amount mismatch for ${reference}: expected ${expectedKobo}, received ${amountPaidKobo}`,
+        }),
+      });
+      const refundData = await refundRes.json();
+      refundStatus = refundData?.data?.status || (refundRes.ok && refundData?.status ? "pending" : "failed");
+      refundReference = refundData?.data?.id ? String(refundData.data.id) : null;
+    } catch (refundError) {
+      console.error("Amount-mismatch refund initiation failed", refundError);
+      refundStatus = "initiation_failed";
+    }
+
     await supabase.from("fraud_events").insert({
       event_type: "payment_amount_mismatch",
       severity: "high",
@@ -61,13 +91,53 @@ export async function verifyAndActivate(
       description: `Expected ${expectedKobo} kobo, paid ${amountPaidKobo} kobo (${pending.purpose})`,
       status: "blocked",
       user_id: pending.user_id,
+      metadata: { expected_amount_kobo: expectedKobo, received_amount_kobo: amountPaidKobo, refund_status: refundStatus, refund_reference: refundReference },
     });
-    await supabase
-      .from("pending_payments")
-      .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: "amount_mismatch" })
-      .eq("reference", reference);
-    return { ok: false, status: 400, body: { error: "Payment amount mismatch — feature not activated" } };
+
+    await supabase.from("pending_payments").update({
+      status: "amount_mismatch",
+      failed_at: new Date().toISOString(),
+      failure_reason: "amount_mismatch",
+      mismatch_reason: `Expected ${expectedKobo} kobo; received ${amountPaidKobo} kobo`,
+      received_amount_kobo: amountPaidKobo,
+      paystack_transaction_id: paystackTransactionId,
+      paystack_fee_kobo: paystackFeeKobo,
+      refund_amount_kobo: amountPaidKobo,
+      refund_reference: refundReference,
+      refund_status: refundStatus,
+    }).eq("reference", reference);
+
+    try {
+      await supabase.functions.invoke("send-email", {
+        body: {
+          to: pending.email,
+          subject: "Payment amount mismatch — Mirvyn",
+          html: `<p>We received ₦${(amountPaidKobo / 100).toLocaleString()} for a payment that required ₦${(expectedKobo / 100).toLocaleString()}.</p><p>Your product was not delivered and no commissions were credited. A refund request has been submitted to Paystack with status <strong>${refundStatus}</strong>. Processing time depends on Paystack and your payment method.</p><p>Payment reference: ${reference}</p>`,
+        },
+      });
+    } catch (notificationError) {
+      console.error("Amount-mismatch notification failed", notificationError);
+    }
+
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        error: "Payment amount mismatch — product delivery and earnings were blocked",
+        amountMismatch: true,
+        expectedAmount: expectedKobo / 100,
+        receivedAmount: amountPaidKobo / 100,
+        refundStatus,
+        refundReference,
+      },
+    };
   }
+
+  await supabase.from("pending_payments").update({
+    received_amount_kobo: amountPaidKobo,
+    paystack_transaction_id: paystackTransactionId,
+    paystack_fee_kobo: paystackFeeKobo,
+  }).eq("reference", reference).eq("status", "pending");
 
   // 4. Activate based on purpose
   const userId = pending.user_id;
@@ -169,6 +239,10 @@ export async function verifyAndActivate(
               couponCode: saleContext?.couponCode || (metadata.coupon_code as string) || null,
               paymentReference: reference,
               paymentGateway: "paystack",
+              requiredAmountKobo: expectedKobo,
+              receivedAmountKobo: amountPaidKobo,
+              paystackFeeKobo,
+              paystackTransactionId,
             },
           });
         }

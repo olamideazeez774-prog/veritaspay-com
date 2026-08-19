@@ -2,7 +2,8 @@
 
 export type AppRole = "admin" | "vendor" | "affiliate";
 
-export type ProductStatus = "draft" | "active" | "paused";
+export type ProductStatus = "draft" | "active" | "paused" | "pending_review";
+export type PaymentFeeBearer = "customer" | "vendor" | "split_50_50";
 
 export type SaleStatus = "pending" | "completed" | "refunded";
 
@@ -44,6 +45,7 @@ export interface Product {
   price: number;
   commission_percent: number;
   platform_fee_percent: number;
+  payment_processing_fee_bearer: PaymentFeeBearer;
   refund_window_days: number;
   cookie_duration_days: number;
   status: ProductStatus;
@@ -101,6 +103,13 @@ export interface Sale {
   refund_eligible_until: string | null;
   payment_reference: string | null;
   payment_gateway: string | null;
+  payment_processing_fee_bearer: PaymentFeeBearer;
+  required_amount_kobo: number | null;
+  received_amount_kobo: number | null;
+  paystack_transaction_id: number | null;
+  paystack_fee_kobo: number;
+  customer_processing_fee_kobo: number;
+  vendor_processing_fee_kobo: number;
   second_tier_affiliate_id: string | null;
   second_tier_commission: number | null;
   created_at: string;

@@ -4,6 +4,7 @@ import {
   DEFAULT_AI_OPTIMIZATION_SETTINGS,
   mergeAIOptimizationSettings,
 } from "@/lib/aiSettings";
+import { previewPaymentFee } from "@/lib/paymentProcessingFee";
 
 describe("public route integrity", () => {
   it("registers every public information destination used by the footer", () => {
@@ -35,6 +36,27 @@ describe("AI optimization settings", () => {
     expect(merged.timezone).toBe("UTC");
     expect(merged.preferred_platforms).toEqual(DEFAULT_AI_OPTIMIZATION_SETTINGS.preferred_platforms);
     expect(merged.preferred_posting_times).toEqual(DEFAULT_AI_OPTIMIZATION_SETTINGS.preferred_posting_times);
+  });
+});
+
+describe("payment processing fee policy", () => {
+  it("adds the estimated Paystack fee only when the customer bears it", () => {
+    const customer = previewPaymentFee(10_000, "customer");
+    const vendor = previewPaymentFee(10_000, "vendor");
+    expect(customer.requiredAmount).toBeGreaterThan(10_000);
+    expect(customer.customerProcessingFee).toBeGreaterThan(0);
+    expect(customer.vendorProcessingFee).toBe(0);
+    expect(vendor.requiredAmount).toBe(10_000);
+    expect(vendor.customerProcessingFee).toBe(0);
+    expect(vendor.vendorProcessingFee).toBeGreaterThan(0);
+  });
+
+  it("splits the estimated fee without reducing affiliate commission", () => {
+    const split = previewPaymentFee(10_000, "split_50_50");
+    expect(split.requiredAmount).toBeGreaterThan(10_000);
+    expect(split.customerProcessingFee).toBeGreaterThan(0);
+    expect(split.vendorProcessingFee).toBeGreaterThan(0);
+    expect(Math.abs(split.customerProcessingFee - split.vendorProcessingFee)).toBeLessThanOrEqual(0.011);
   });
 });
 
