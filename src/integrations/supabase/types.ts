@@ -803,47 +803,77 @@ export type Database = {
       pending_payments: {
         Row: {
           created_at: string
+          customer_processing_fee_kobo: number
           email: string
           expected_amount: number
+          expected_amount_kobo: number | null
           failed_at: string | null
           failure_reason: string | null
           id: string
           metadata: Json
+          mismatch_reason: string | null
+          paystack_fee_kobo: number
+          paystack_transaction_id: number | null
           purpose: string
+          received_amount_kobo: number | null
           reference: string
+          refund_amount_kobo: number | null
+          refund_reference: string | null
+          refund_status: string | null
           status: string
           updated_at: string
           user_id: string
+          vendor_processing_fee_kobo: number
           verified_at: string | null
         }
         Insert: {
           created_at?: string
+          customer_processing_fee_kobo?: number
           email: string
           expected_amount: number
+          expected_amount_kobo?: number | null
           failed_at?: string | null
           failure_reason?: string | null
           id?: string
           metadata?: Json
+          mismatch_reason?: string | null
+          paystack_fee_kobo?: number
+          paystack_transaction_id?: number | null
           purpose: string
+          received_amount_kobo?: number | null
           reference: string
+          refund_amount_kobo?: number | null
+          refund_reference?: string | null
+          refund_status?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          vendor_processing_fee_kobo?: number
           verified_at?: string | null
         }
         Update: {
           created_at?: string
+          customer_processing_fee_kobo?: number
           email?: string
           expected_amount?: number
+          expected_amount_kobo?: number | null
           failed_at?: string | null
           failure_reason?: string | null
           id?: string
           metadata?: Json
+          mismatch_reason?: string | null
+          paystack_fee_kobo?: number
+          paystack_transaction_id?: number | null
           purpose?: string
+          received_amount_kobo?: number | null
           reference?: string
+          refund_amount_kobo?: number | null
+          refund_reference?: string | null
+          refund_status?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          vendor_processing_fee_kobo?: number
           verified_at?: string | null
         }
         Relationships: []
@@ -971,6 +1001,7 @@ export type Database = {
           is_sponsored: boolean | null
           is_subscription: boolean
           listing_model: string
+          payment_processing_fee_bearer: string
           platform_fee_percent: number
           price: number
           ranking_score: number | null
@@ -997,6 +1028,7 @@ export type Database = {
           is_sponsored?: boolean | null
           is_subscription?: boolean
           listing_model?: string
+          payment_processing_fee_bearer?: string
           platform_fee_percent?: number
           price: number
           ranking_score?: number | null
@@ -1023,6 +1055,7 @@ export type Database = {
           is_sponsored?: boolean | null
           is_subscription?: boolean
           listing_model?: string
+          payment_processing_fee_bearer?: string
           platform_fee_percent?: number
           price?: number
           ranking_score?: number | null
@@ -1168,13 +1201,19 @@ export type Database = {
           buyer_email: string
           commission_percent_snapshot: number
           created_at: string
+          customer_processing_fee_kobo: number
           id: string
           payment_gateway: string | null
+          payment_processing_fee_bearer: string
           payment_reference: string | null
+          paystack_fee_kobo: number
+          paystack_transaction_id: number | null
           platform_fee: number
           platform_fee_percent_snapshot: number
           product_id: string
+          received_amount_kobo: number | null
           refund_eligible_until: string | null
+          required_amount_kobo: number | null
           second_tier_affiliate_id: string | null
           second_tier_commission: number | null
           status: Database["public"]["Enums"]["sale_status"]
@@ -1182,6 +1221,7 @@ export type Database = {
           updated_at: string
           vendor_earnings: number
           vendor_id: string
+          vendor_processing_fee_kobo: number
         }
         Insert: {
           affiliate_commission?: number
@@ -1189,13 +1229,19 @@ export type Database = {
           buyer_email: string
           commission_percent_snapshot: number
           created_at?: string
+          customer_processing_fee_kobo?: number
           id?: string
           payment_gateway?: string | null
+          payment_processing_fee_bearer?: string
           payment_reference?: string | null
+          paystack_fee_kobo?: number
+          paystack_transaction_id?: number | null
           platform_fee?: number
           platform_fee_percent_snapshot: number
           product_id: string
+          received_amount_kobo?: number | null
           refund_eligible_until?: string | null
+          required_amount_kobo?: number | null
           second_tier_affiliate_id?: string | null
           second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
@@ -1203,6 +1249,7 @@ export type Database = {
           updated_at?: string
           vendor_earnings: number
           vendor_id: string
+          vendor_processing_fee_kobo?: number
         }
         Update: {
           affiliate_commission?: number
@@ -1210,13 +1257,19 @@ export type Database = {
           buyer_email?: string
           commission_percent_snapshot?: number
           created_at?: string
+          customer_processing_fee_kobo?: number
           id?: string
           payment_gateway?: string | null
+          payment_processing_fee_bearer?: string
           payment_reference?: string | null
+          paystack_fee_kobo?: number
+          paystack_transaction_id?: number | null
           platform_fee?: number
           platform_fee_percent_snapshot?: number
           product_id?: string
+          received_amount_kobo?: number | null
           refund_eligible_until?: string | null
+          required_amount_kobo?: number | null
           second_tier_affiliate_id?: string | null
           second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
@@ -1224,6 +1277,7 @@ export type Database = {
           updated_at?: string
           vendor_earnings?: number
           vendor_id?: string
+          vendor_processing_fee_kobo?: number
         }
         Relationships: [
           {
