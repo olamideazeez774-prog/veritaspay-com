@@ -22,4 +22,6 @@ The branch also retains fail-closed trusted internal authorization for financial
 
 ### Deployment verification still required
 
+The deployed `www.mirvyn.app` bundle was verified to be missing the literal Supabase URL and publishable key that exist in the local build. The source now has a defensive bootstrap screen instead of failing to a blank root, but the Vercel build must still receive `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in its production environment and be redeployed before launch.
+
 The live Supabase database was not available for read-only inspection during this pass. Before launch, verify that migrations `20260820000000_launch_integrity_hardening.sql`, `20260820010000_certificate_claim_integrity.sql`, and `20260820020000_verification_review_integrity.sql` are deployed; inspect live `pg_trigger` and `pg_policies`; confirm Paystack transfer webhook events are configured; and run a sandbox-only end-to-end payment/payout/refund rehearsal. These items are intentionally not represented as fully verified by source-only evidence.
