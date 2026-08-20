@@ -333,14 +333,10 @@ export default function Checkout() {
                       <span className="font-mono text-xs">{affiliateCode}</span>
                     </div>
                   )}
-                  {feePreview.customerProcessingFee > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Payment processing fee</span>
-                      <span>{formatCurrency(feePreview.customerProcessingFee)}</span>
-                    </div>
-                  )}
                   <p className="text-xs text-muted-foreground">
-                    {feeBearer === "customer" ? "You bear the Paystack processing fee." : feeBearer === "split_50_50" ? "The Paystack processing fee is shared equally." : "The vendor bears the Paystack processing fee."}
+                    {feeBearer === "vendor_affiliate_split_50_50"
+                      ? "The vendor shares the Paystack processing fee 50/50 with the affiliate. You pay the product price only."
+                      : "The vendor bears the Paystack processing fee. You pay the product price only."}
                   </p>
                 </div>
 

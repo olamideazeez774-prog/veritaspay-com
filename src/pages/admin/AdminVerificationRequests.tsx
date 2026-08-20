@@ -86,31 +86,12 @@ export default function AdminVerificationRequests() {
 
   const updateRequest = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: "approved" | "rejected"; notes: string }) => {
-      const request = requests?.find(r => r.id === id);
-      const { error } = await supabase
-        .from("verification_requests")
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-
+      const { error } = await supabase.rpc("review_verification_request", {
+        _request_id: id,
+        _status: status,
+        _notes: notes || undefined,
+      });
       if (error) throw error;
-
-      // If approved, also update the user's profile to verified
-      if (status === "approved" && request) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ is_verified: true, ...(notes ? { admin_notes: notes } : {}) })
-          .eq("id", request.user_id);
-
-        if (profileError) throw profileError;
-      } else if (notes && request) {
-        await supabase
-          .from("profiles")
-          .update({ admin_notes: notes })
-          .eq("id", request.user_id);
-      }
     },
     onSuccess: () => {
       toast.success("Verification request updated");

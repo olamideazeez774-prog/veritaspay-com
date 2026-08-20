@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [".manus.computer"],
     hmr: {
       overlay: false,
     },
@@ -44,7 +45,7 @@ export default defineConfig(({ mode }) => ({
         display: "standalone",
         orientation: "portrait-primary",
         scope: "/",
-        start_url: "/dashboard",
+        start_url: "/",
         categories: ["business", "finance", "shopping"],
         icons: [
           {

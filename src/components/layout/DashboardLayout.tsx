@@ -143,9 +143,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => {
     // On mobile, remove items that are in the bottom nav
-    const sidebarItems = isMobile 
+    const sidebarItems = isMobile
       ? filteredNavItems.filter(item => !bottomNavHrefs.includes(item.href))
       : filteredNavItems;
+    const showLabels = isMobile || sidebarOpen;
 
     return (
       <>
@@ -155,14 +156,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold">
               M
             </div>
-            {sidebarOpen && (
+            {showLabels && (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 className="font-serif text-lg font-semibold text-sidebar-foreground">
                 {PLATFORM_NAME}
               </motion.span>
             )}
           </Link>
-          {sidebarOpen && (
+          {showLabels && (
             <div className="flex items-center gap-1">
               <NotificationBell />
               <ThemeToggle />
@@ -181,13 +182,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Link key={item.href} to={item.href}>
                   <motion.div whileHover={{ x: 4 }}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                       isActive
                         ? "bg-sidebar-primary text-sidebar-primary-foreground"
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}>
                     <item.icon className="h-5 w-5 shrink-0" />
-                    {sidebarOpen && <span>{item.title}</span>}
+                    {showLabels && <span>{item.title}</span>}
                   </motion.div>
                 </Link>
               );
@@ -199,7 +200,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <>
               <Separator className="my-4 bg-sidebar-border" />
               <div className="mb-2 px-3">
-                {sidebarOpen && (
+                {showLabels && (
                   <span className="text-xs font-medium uppercase tracking-wider text-sidebar-foreground/60">
                     Admin
                   </span>
@@ -207,18 +208,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
               <nav className="space-y-1">
                 {filteredAdminItems.map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href === "/dashboard" ? location.pathname === "/dashboard" : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
                   return (
                     <Link key={item.href} to={item.href}>
                       <motion.div whileHover={{ x: 4 }}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                          "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                           isActive
                             ? "bg-sidebar-primary text-sidebar-primary-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}>
-                        <item.icon className="h-5 w-5 shrink-0" />
-                        {sidebarOpen && <span>{item.title}</span>}
+                        <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                        {showLabels && <span>{item.title}</span>}
                       </motion.div>
                     </Link>
                   );
@@ -231,21 +232,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* User Section */}
         <div className={cn("border-t border-sidebar-border p-4", isMobile && "pb-20")}>
           <Link to="/dashboard/settings"
-            className={cn("flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent", !sidebarOpen && "justify-center")}>
+            className={cn("flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent", !showLabels && "justify-center")}>
             <Avatar className="h-9 w-9">
               <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name ? `${profile.full_name} avatar` : "Profile avatar"} />
               <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm">
                 {getInitials(profile?.full_name)}
               </AvatarFallback>
             </Avatar>
-            {sidebarOpen && (
+            {showLabels && (
               <div className="flex-1 overflow-hidden">
                 <p className="truncate text-sm font-medium text-sidebar-foreground">{profile?.full_name || "User"}</p>
                 <p className="truncate text-xs text-sidebar-foreground/60">{profile?.email}</p>
               </div>
             )}
           </Link>
-          {sidebarOpen && (
+          {showLabels && (
             <Button variant="ghost" size="sm"
               className="mt-3 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={handleSignOutClick}>
@@ -272,8 +273,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile Header */}
       <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:hidden">
         <div className="flex items-center gap-4">
-          <button onClick={() => setMobileOpen(true)} title="Open menu" className="text-foreground">
-            <Menu className="h-6 w-6" />
+              <button onClick={() => setMobileOpen(true)} title="Open navigation" aria-label="Open navigation" className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-foreground hover:bg-muted">
+            <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
           <span className="font-serif text-lg font-semibold">{PLATFORM_NAME}</span>
         </div>
@@ -293,8 +294,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar pb-20 lg:hidden">
-              <button onClick={() => setMobileOpen(false)} title="Close menu" className="absolute right-4 top-4 text-sidebar-foreground">
-                <X className="h-5 w-5" />
+              <button onClick={() => setMobileOpen(false)} title="Close navigation" aria-label="Close navigation" className="absolute right-3 top-3 flex min-h-11 min-w-11 items-center justify-center rounded-xl text-sidebar-foreground hover:bg-sidebar-accent">
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
               <SidebarContent isMobile />
             </motion.aside>

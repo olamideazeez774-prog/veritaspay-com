@@ -81,33 +81,33 @@ export default function Marketplace() {
                 </span>
               </h1>
               <p className="mt-6 text-lg text-muted-foreground">
-                Browse our curated collection of high-quality digital products and start earning
-                commissions as an affiliate.
+                Find a product to buy, or choose something you would genuinely recommend and earn from every tracked sale.
               </p>
             </motion.div>
           </div>
         </section>
 
         {/* Filters */}
-        <section className="border-b bg-card/50 py-6">
-          <div className="container mx-auto px-4">
-            <form onSubmit={handleSearchSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative flex-1 max-w-md">
+        <section className="border-b bg-card/50 py-4 sm:py-6">
+          <div className="container">
+            <form onSubmit={handleSearchSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full flex-1 sm:max-w-md">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   ref={searchInputRef}
+                  aria-label="Search marketplace products"
                   placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className="pl-10"
+                  className="min-h-11 pl-10"
                   enterKeyHint="search"
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <Filter className="h-4 w-4 text-muted-foreground" />
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <Filter className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="min-h-11 w-full sm:w-[180px]" aria-label="Sort marketplace products">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -125,6 +125,7 @@ export default function Marketplace() {
         {/* Products Grid */}
         <section className="py-12 sm:py-16">
           <div className="container mx-auto px-4">
+            {!isLoading && <div className="mb-5 flex items-center justify-between gap-3 text-sm text-muted-foreground"><span>{filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} to explore</span>{search && <Button type="button" variant="ghost" size="sm" className="min-h-10" onClick={() => setSearch("")}>Clear search</Button>}</div>}
             {isLoading ? (
               <div className="flex justify-center py-20">
                 <AnimatedLoading size="lg" text="Loading products..." />
@@ -145,13 +146,13 @@ export default function Marketplace() {
                   variants={staggerContainer}
                   initial="initial"
                   animate="animate"
-                  className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 >
                   {filteredProducts.map((product) => (
                     <motion.div key={product.id} variants={staggerItem}>
                       <Link
                         to={`/product/${product.id}`}
-                        className="group block glass-card overflow-hidden hover-lift"
+                        className="group block h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
                       >
                         {/* Cover Image */}
                         <div className="aspect-video overflow-hidden bg-muted">

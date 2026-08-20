@@ -1,177 +1,54 @@
-import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
-import gsap from "gsap";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PLATFORM_NAME, PLATFORM_TAGLINE } from "@/lib/constants";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Store, Users } from "lucide-react";
 
 export function HeroSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
-
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
-  useEffect(() => {
-    if (titleRef.current) {
-      gsap.fromTo(
-        titleRef.current.querySelectorAll(".char"),
-        { opacity: 0, y: 50, rotateX: -90 },
-        {
-          opacity: 1,
-          y: 0,
-          rotateX: 0,
-          duration: 0.8,
-          stagger: 0.03,
-          ease: "back.out(1.7)",
-        }
-      );
-    }
-  }, []);
-
-  const splitText = (text: string) => {
-    return text.split("").map((char, i) => (
-      <span key={i} className="char inline-block">
-        {char === " " ? "\u00A0" : char}
-      </span>
-    ));
-  };
-
   return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
-    >
-      {/* Animated Background */}
+    <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden pt-24 sm:min-h-[720px] sm:pt-28">
       <div className="absolute inset-0 gradient-mesh" />
-      
-      {/* Floating Elements */}
-      <motion.div
-        style={{ y }}
-        className="absolute inset-0 pointer-events-none"
-      >
-        <motion.div
-          animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 left-[10%] w-20 h-20 rounded-2xl gradient-primary opacity-20 blur-sm"
-        />
-        <motion.div
-          animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-1/3 right-[15%] w-32 h-32 rounded-full gradient-accent opacity-10 blur-md"
-        />
-        <motion.div
-          animate={{ y: [0, -15, 0], x: [0, 10, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-          className="absolute bottom-1/4 left-[20%] w-24 h-24 rounded-full bg-primary/10 blur-lg"
-        />
-      </motion.div>
+      <motion.div animate={{ y: [0, -16, 0], rotate: [0, 4, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute left-[8%] top-1/4 h-16 w-16 rounded-2xl gradient-primary opacity-20 blur-sm sm:h-24 sm:w-24" />
+      <motion.div animate={{ y: [0, 18, 0], rotate: [0, -5, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="pointer-events-none absolute right-[10%] top-1/3 h-24 w-24 rounded-full gradient-accent opacity-10 blur-md sm:h-40 sm:w-40" />
 
-      {/* Content */}
-      <motion.div style={{ opacity }} className="container relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8"
-          >
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">
-              {PLATFORM_TAGLINE}
-            </span>
+      <div className="container relative z-10 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-card/70 px-3 py-1.5 text-xs font-semibold text-primary shadow-sm sm:mb-7 sm:px-4 sm:py-2 sm:text-sm">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />{PLATFORM_TAGLINE}
           </motion.div>
 
-          {/* Title */}
-          <h1
-            ref={titleRef}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold font-serif mb-6 leading-tight"
-          >
-            <span className="block text-gradient-primary perspective-[1000px]">
-              {splitText(PLATFORM_NAME)}
-            </span>
-          </h1>
+          <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
+            Sell what you know.
+            <span className="block text-gradient-primary">Promote what you trust.</span>
+          </motion.h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 text-balance"
-          >
-            Sell digital products, recruit affiliates, and scale your revenue with 
-            complete transparency. The premium marketplace built for creators who mean business.
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.16 }} className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+            {PLATFORM_NAME} gives creators a simple storefront and gives affiliates a clear way to earn from products their audiences already want.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <Link to="/register">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button size="lg" className="group gap-2 h-12 px-8 text-base">
-                  Start Selling Free
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </motion.div>
-            </Link>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="gap-2 h-12 px-8 text-base glass hover:bg-primary/5"
-              >
-                <a href="#how-it-works" aria-label="See how Mirvyn works">
-                  <Play className="h-4 w-4" />
-                  Watch Demo
-                </a>
-              </Button>
-            </motion.div>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.24 }} className="mt-8 grid gap-3 sm:flex sm:justify-center">
+            <Button asChild size="lg" className="min-h-12 gap-2 px-6 text-base"><Link to="/register"><Store className="h-4 w-4" />Start selling free <ArrowRight className="h-4 w-4" /></Link></Button>
+            <Button asChild size="lg" variant="outline" className="min-h-12 gap-2 bg-card/60 px-6 text-base"><Link to="/marketplace"><Users className="h-4 w-4" />Explore the marketplace</Link></Button>
           </motion.div>
 
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto"
-          >
+          <motion.a href="#how-it-works" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.5 }} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Play className="h-4 w-4" aria-hidden="true" />See how it works
+          </motion.a>
+
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.6 }} className="mx-auto mt-10 grid max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-card/70 p-3 text-left shadow-sm backdrop-blur-sm sm:mt-14 sm:gap-4 sm:p-4">
             {[
-              { value: "10K+", label: "Active Users" },
-              { value: "₦50M+", label: "Paid Out" },
-              { value: "98%", label: "Satisfaction" },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.2 + i * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-2xl sm:text-3xl font-bold font-serif text-gradient-primary">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-              </motion.div>
+              ["Free", "vendor registration"],
+              ["₦2,000", "course listing"],
+              ["₦350/mo", "affiliate access"],
+            ].map(([value, label]) => (
+              <div key={label} className="min-w-0 rounded-xl px-2 py-2 sm:px-3">
+                <p className="truncate font-serif text-lg font-bold text-primary sm:text-2xl">{value}</p>
+                <p className="mt-1 text-[11px] leading-4 text-muted-foreground sm:text-xs">{label}</p>
+              </div>
             ))}
           </motion.div>
         </div>
-      </motion.div>
-
+      </div>
     </section>
   );
 }

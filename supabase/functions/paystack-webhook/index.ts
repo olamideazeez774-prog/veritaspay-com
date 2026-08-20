@@ -29,6 +29,36 @@ Deno.serve(async (req) => {
     const refundTransactionReference: string | undefined = event?.data?.transaction_reference || event?.data?.transaction?.reference;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    const transferEvents = new Set(["transfer.success", "transfer.failed", "transfer.reversed"]);
+    if (transferEvents.has(event.event)) {
+      const transferReference = event?.data?.reference;
+      const transferCode = event?.data?.transfer_code;
+      const transferStatus = event.event.slice("transfer.".length);
+      const payoutStatus = event.event === "transfer.success" ? "paid" : "rejected";
+      if (transferReference || transferCode) {
+        const payoutId = typeof transferReference === "string" && transferReference.startsWith("MV-PO-")
+          ? transferReference.slice("MV-PO-".length)
+          : null;
+        let query = supabase.from("payout_requests").update({
+          status: payoutStatus,
+          transfer_status: transferStatus,
+          transfer_code: transferCode || null,
+          processed_at: new Date().toISOString(),
+          failure_reason: event.event === "transfer.success" ? null : (event?.data?.reason || `Paystack transfer ${transferStatus}`),
+        });
+        if (payoutId) {
+          query = query.eq("id", payoutId);
+        } else {
+          query = query.eq("transfer_code", transferCode);
+        }
+        const { error: transferUpdateError } = await query;
+        if (transferUpdateError) {
+          console.error("payout transfer reconciliation failed", transferUpdateError);
+        }
+      }
+      return new Response("ok", { status: 200 });
+    }
+
     if (event.event?.startsWith("refund.")) {
       if (refundTransactionReference) {
         await supabase.from("pending_payments").update({

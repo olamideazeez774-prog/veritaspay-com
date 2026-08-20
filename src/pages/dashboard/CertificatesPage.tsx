@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatedLoading } from "@/components/ui/animated-loading";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
 import { generatePremiumCertificatePDF, generateEarningCertificatePDF } from "@/lib/certificateGenerator";
 import { logger } from "@/lib/logger";
@@ -135,34 +134,18 @@ export default function CertificatesPage() {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
-    const hash = `VP-${rank.rank_name.toUpperCase()}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
-
-    const metadata = {
-      full_name: profile?.full_name || "",
-      email: profile?.email || "",
-      total_commission: totalEarned,
-      milestone_date: new Date().toISOString(),
-      platform_name: PLATFORM_NAME,
-      avatar_url: profile?.avatar_url || "",
-      rank_description: rank.description || "",
-    };
-
-    const { error } = await supabase.from("certificates").insert([{
-      user_id: user.id,
-      rank_name: rank.rank_name,
-      cert_type: "rank",
-      threshold_amount: rank.min_earnings,
-      certificate_hash: hash,
-      metadata: metadata,
-    }]);
-
+    const { error } = await supabase.rpc("claim_certificate", {
+      _cert_type: "rank",
+      _rank_name: rank.rank_name,
+      _threshold_amount: rank.min_earnings,
+    });
     if (error) {
-      if (error.code === "23505") toast.info("Certificate already claimed!");
-      else toast.error("Failed to claim certificate");
-    } else {
-      toast.success(`${rank.rank_name} certificate claimed!`);
-      refetchCerts();
+      if (error.message.toLowerCase().includes("already")) toast.info("Certificate already claimed!");
+      else toast.error(error.message || "Failed to claim certificate");
+      return;
     }
+    toast.success(`${rank.rank_name} certificate claimed!`);
+    refetchCerts();
   };
 
   const handleClaimEarningCertificate = async (amount: number) => {
@@ -171,31 +154,17 @@ export default function CertificatesPage() {
       toast.error("Certificates are not yet available. Admin signature is required.");
       return;
     }
-    const hash = `VP-EARN-${user.id.slice(0, 8)}-${Date.now().toString(36)}`.toUpperCase();
-
-    const { error } = await supabase.from("certificates").insert([{
-      user_id: user.id,
-      rank_name: `Earning ${formatCurrency(amount)}`,
-      cert_type: "earning",
-      threshold_amount: amount,
-      certificate_hash: hash,
-      metadata: {
-        full_name: profile?.full_name || "",
-        email: profile?.email || "",
-        total_commission: amount,
-        milestone_date: new Date().toISOString(),
-        platform_name: PLATFORM_NAME,
-        avatar_url: profile?.avatar_url || "",
-      },
-    }]);
-
+    const { error } = await supabase.rpc("claim_certificate", {
+      _cert_type: "earning",
+      _threshold_amount: amount,
+    });
     if (error) {
-      if (error.code === "23505") toast.info("Certificate already claimed!");
-      else toast.error("Failed to claim certificate");
-    } else {
-      toast.success(`${formatCurrency(amount)} earning certificate claimed!`);
-      refetchCerts();
+      if (error.message.toLowerCase().includes("already")) toast.info("Certificate already claimed!");
+      else toast.error(error.message || "Failed to claim certificate");
+      return;
     }
+    toast.success(`${formatCurrency(amount)} earning certificate claimed!`);
+    refetchCerts();
   };
 
   const handleDownloadCert = async (cert: Certificate) => {

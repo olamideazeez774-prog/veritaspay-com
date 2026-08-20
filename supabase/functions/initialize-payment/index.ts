@@ -6,7 +6,6 @@ const ALLOWED_PURPOSES = new Set([
   "sale",
   "verification",
   "listing_fee",
-  "vendor_onboarding",
   "affiliate_membership",
   "premium_upgrade",
   "subscription",
@@ -33,6 +32,14 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const authorization = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+    if (authorization?.startsWith("Bearer ")) {
+      const token = authorization.slice("Bearer ".length).trim();
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) return respond({ error: "Invalid authentication token" }, 401);
+      authenticatedUserId = user.id;
+    }
 
     const {
       email,
@@ -56,21 +63,32 @@ Deno.serve(async (req) => {
 
     // --------- NON-SALE FLOWS ---------
     if (purposeKey !== "sale") {
-      if (!userId || !amount || amount <= 0) {
-        return respond({ error: `Missing userId/amount for ${purposeKey}` }, 400);
+      if (!authenticatedUserId) return respond({ error: "Authentication required for this payment" }, 401);
+      if (userId && userId !== authenticatedUserId) {
+        return respond({ error: "Authenticated user does not match payment owner" }, 403);
+      }
+      const effectiveUserId = authenticatedUserId;
+      const canonicalAmount = purposeKey === "listing_fee"
+        ? 2000
+        : purposeKey === "affiliate_membership"
+          ? 350
+          : Number(amount);
+      if (!Number.isFinite(canonicalAmount) || canonicalAmount <= 0) {
+        return respond({ error: `Missing valid payment amount for ${purposeKey}` }, 400);
       }
 
       const reference = `MV-${purposeKey.toUpperCase().slice(0, 4)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
       // 1. Persist PENDING payment intent FIRST (source of truth)
       const { error: insertErr } = await supabase.from("pending_payments").insert({
-        user_id: userId,
+        user_id: effectiveUserId,
         email,
         purpose: purposeKey,
         reference,
-        expected_amount: amount,
+        expected_amount: canonicalAmount,
+        expected_amount_kobo: Math.round(canonicalAmount * 100),
         status: "pending",
-        metadata: { ...clientMetadata, product_id: productId || null },
+        metadata: { ...clientMetadata, product_id: productId || null, canonical_amount_kobo: Math.round(canonicalAmount * 100) },
       });
       if (insertErr) {
         console.error("pending_payments insert failed", insertErr);
@@ -83,10 +101,10 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          amount: Math.round(amount * 100),
+          amount: Math.round(canonicalAmount * 100),
           reference,
           callback_url: callbackUrl || undefined,
-          metadata: { purpose: purposeKey, user_id: userId, product_id: productId || null, ...clientMetadata },
+          metadata: { purpose: purposeKey, user_id: effectiveUserId, product_id: productId || null, ...clientMetadata },
         }),
       });
       const data = await paystackRes.json();
@@ -100,7 +118,7 @@ Deno.serve(async (req) => {
 
       return respond({
         reference,
-        amount,
+        amount: canonicalAmount,
         purpose: purposeKey,
         authorization_url: data.data.authorization_url,
         access_code: data.data.access_code,
@@ -108,6 +126,9 @@ Deno.serve(async (req) => {
     }
 
     // --------- SALE FLOW ---------
+    if (userId && authenticatedUserId && userId !== authenticatedUserId) {
+      return respond({ error: "Authenticated user does not match payment owner" }, 403);
+    }
     if (!productId) return respond({ error: "Missing productId" }, 400);
 
     // Resolve price server-side
@@ -150,8 +171,8 @@ Deno.serve(async (req) => {
 
     if (finalPrice <= 0) return respond({ error: "Invalid product price" }, 400);
 
-    const feeBearer: PaymentFeeBearer = product.payment_processing_fee_bearer === "customer" || product.payment_processing_fee_bearer === "split_50_50"
-      ? product.payment_processing_fee_bearer
+    const feeBearer: PaymentFeeBearer = product.payment_processing_fee_bearer === "vendor_affiliate_split_50_50"
+      ? "vendor_affiliate_split_50_50"
       : "vendor";
     const feeBreakdown = calculatePaymentFeeBreakdown(Math.round(finalPrice * 100), feeBearer);
     const requiredAmount = feeBreakdown.requiredAmountKobo / 100;
@@ -168,6 +189,7 @@ Deno.serve(async (req) => {
         expected_amount_kobo: feeBreakdown.requiredAmountKobo,
         customer_processing_fee_kobo: feeBreakdown.customerProcessingFeeKobo,
         vendor_processing_fee_kobo: feeBreakdown.vendorProcessingFeeKobo,
+        affiliate_processing_fee_kobo: feeBreakdown.affiliateProcessingFeeKobo,
         status: "pending",
         metadata: {
           product_id: productId,
@@ -177,6 +199,7 @@ Deno.serve(async (req) => {
           product_amount_kobo: feeBreakdown.productAmountKobo,
           payment_processing_fee_bearer: feeBearer,
           estimated_paystack_fee_kobo: feeBreakdown.estimatedPaystackFeeKobo,
+          affiliate_processing_fee_kobo: feeBreakdown.affiliateProcessingFeeKobo,
         },
     });
 
@@ -218,6 +241,7 @@ Deno.serve(async (req) => {
       product_amount: finalPrice,
       payment_processing_fee_bearer: feeBearer,
       customer_processing_fee: feeBreakdown.customerProcessingFeeKobo / 100,
+      affiliate_processing_fee: feeBreakdown.affiliateProcessingFeeKobo / 100,
       estimated_paystack_fee: feeBreakdown.estimatedPaystackFeeKobo / 100,
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,

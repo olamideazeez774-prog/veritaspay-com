@@ -94,7 +94,7 @@ export default function DeliveryPage() {
           sale: { ...data.sale, accessCount: data.sale.accessCount + 1 },
         });
       }
-      window.open(data.product.fileUrl, "_blank");
+      window.open(data.product.fileUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -107,7 +107,7 @@ export default function DeliveryPage() {
           sale: { ...data.sale, accessCount: data.sale.accessCount + 1 },
         });
       }
-      window.open(data.product.externalUrl, "_blank");
+      window.open(data.product.externalUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -268,7 +268,7 @@ export default function DeliveryPage() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.open(`mailto:${product.vendorEmail}`)}
+                      onClick={() => window.open(`mailto:${product.vendorEmail}`, "_blank", "noopener,noreferrer")}
                     >
                       <Mail className="mr-2 h-4 w-4" />
                       Contact Vendor

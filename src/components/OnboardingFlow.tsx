@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Package, Link2, BarChart3, Wallet, ShoppingCart,
-  Settings, Shield, Inbox, Wrench, QrCode,
-  ChevronRight, ChevronLeft, Check, X, Sparkles,
-  TrendingUp, Users, Megaphone, CreditCard, Award
-} from "lucide-react";
+import { Package, Link2, BarChart3, Wallet, ShoppingCart, ChevronRight, ChevronLeft, Check, X, Sparkles, Users, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,107 +16,17 @@ interface OnboardingStep {
 }
 
 const vendorSteps: OnboardingStep[] = [
-  {
-    icon: Package,
-    title: "Create Your First Product",
-    description: "List your digital product — courses, ebooks, templates, software — anything you want to sell. Set your price, upload a cover image, and add a compelling description.",
-    action: "Go to Products → Add Product to create your first listing.",
-    color: "text-primary",
-  },
-  {
-    icon: CreditCard,
-    title: "Pay Your Listing Fee",
-    description: "Submit a listing payment to activate your product on the marketplace. This one-time fee ensures quality listings and keeps the platform spam-free.",
-    action: "After creating a product, submit your listing payment for admin approval.",
-    color: "text-accent",
-  },
-  {
-    icon: ShoppingCart,
-    title: "Track Your Sales",
-    description: "Monitor every sale in real-time. See who bought, how much you earned, and track affiliate-driven sales vs direct purchases.",
-    action: "Visit the Sales page to view your revenue breakdown and order history.",
-    color: "text-success",
-  },
-  {
-    icon: Wrench,
-    title: "Use the Vendor Toolkit",
-    description: "Create discount coupons for your products, calculate your ROI, and optimize your pricing strategy with built-in tools.",
-    action: "Go to Vendor Toolkit to create coupons and use the ROI calculator.",
-    color: "text-warning",
-  },
-  {
-    icon: Wallet,
-    title: "Manage Your Earnings",
-    description: "Your earnings flow through pending → cleared → withdrawable stages. Once cleared, request a payout to your bank account anytime.",
-    action: "Visit Wallet to track balances, then Payouts to request withdrawals.",
-    color: "text-info",
-  },
-  {
-    icon: Megaphone,
-    title: "Broadcast Announcements",
-    description: "Keep your affiliates informed about product updates, promotions, and important changes. Published announcements reach all affiliates instantly.",
-    action: "Go to Announcements to create and publish updates for your affiliate network.",
-    color: "text-primary",
-  },
-  {
-    icon: Award,
-    title: "Earn Your Verification Badge",
-    description: "Build trust with a verified badge on your profile. Earn it by reaching Gold rank, or apply for paid verification in Settings.",
-    action: "Check your progress in Settings → Verification Badge section.",
-    color: "text-accent",
-  },
+  { icon: Package, title: "Create your first product", description: "Add a course, ebook, template, or other digital product. Set a clear price and explain the result buyers will get.", action: "Start in Products → Add product.", color: "text-primary" },
+  { icon: Store, title: "Publish with confidence", description: "Pay the fixed one-time ₦2,000 course listing fee, then your product can move through review and appear in the marketplace.", action: "Finish the listing payment from your product form.", color: "text-accent" },
+  { icon: Users, title: "Let affiliates extend your reach", description: "Keep your affiliate setting on and choose a commission that makes your product worth promoting. Your links and sales stay visible in one place.", action: "Use Vendor Toolkit and Announcements to support promotion.", color: "text-success" },
+  { icon: Wallet, title: "Watch sales and withdraw", description: "Follow earnings from pending to withdrawable. When your balance is ready, request a payout from Wallet or Payouts.", action: "Open Wallet whenever you want the complete money picture.", color: "text-info" },
 ];
 
 const affiliateSteps: OnboardingStep[] = [
-  {
-    icon: Package,
-    title: "Browse & Pick Products",
-    description: "Explore the marketplace of approved digital products. Look for products with high commission rates and strong descriptions that your audience will love.",
-    action: "Go to Browse Products to find products to promote.",
-    color: "text-primary",
-  },
-  {
-    icon: Link2,
-    title: "Generate Affiliate Links",
-    description: "Create unique tracking links for every product you want to promote. Each click is tracked, and when someone buys through your link, you earn commission automatically.",
-    action: "Click 'Affiliate Link' on any product page or go to My Links to manage all your links.",
-    color: "text-accent",
-  },
-  {
-    icon: BarChart3,
-    title: "Track Your Performance",
-    description: "Monitor clicks, conversions, and commission earnings in real-time. See which products and campaigns are performing best.",
-    action: "Visit Analytics and Stats to see your performance dashboards.",
-    color: "text-success",
-  },
-  {
-    icon: QrCode,
-    title: "Use the Affiliate Toolkit",
-    description: "Generate QR codes, build UTM-tracked campaign links, use the AI caption generator, and estimate your profits with the calculator.",
-    action: "Go to Toolkit for QR codes, UTM builder, AI tools, and promo materials.",
-    color: "text-warning",
-  },
-  {
-    icon: Users,
-    title: "Grow with Referrals",
-    description: "Invite others to join the platform using your referral code. Earn second-tier commissions when the vendors they bring make sales.",
-    action: "Visit Referrals to get your unique referral code and track signups.",
-    color: "text-info",
-  },
-  {
-    icon: Wallet,
-    title: "Cash Out Your Earnings",
-    description: "Your commissions go through pending → cleared → withdrawable stages. Once withdrawable, request a payout to your bank account.",
-    action: "Visit Wallet to track earnings, then Payouts to withdraw.",
-    color: "text-primary",
-  },
-  {
-    icon: Shield,
-    title: "Climb the Rank Ladder",
-    description: "As you earn more, you advance through Bronze → Silver → Gold → Platinum → Diamond ranks. Higher ranks unlock commission boosts and fee discounts.",
-    action: "Check Certificates to see your current rank and claim achievement certificates.",
-    color: "text-accent",
-  },
+  { icon: ShoppingCart, title: "Find products your audience needs", description: "Browse the marketplace and look for products with a clear promise, strong description, and a commission worth your effort.", action: "Start in Browse products.", color: "text-primary" },
+  { icon: Link2, title: "Create one tracked link", description: "Generate your unique link from a product page. Every click and conversion is connected to your account automatically.", action: "Choose Affiliate link on any product you want to promote.", color: "text-accent" },
+  { icon: BarChart3, title: "Share, learn, improve", description: "Share your link where your audience already pays attention, then use Stats to see which products and channels are working.", action: "Review clicks and conversions before changing your strategy.", color: "text-success" },
+  { icon: Wallet, title: "Cash out when cleared", description: "Your commissions move through pending, cleared, and withdrawable states. The minimum withdrawal is ₦3,500 and the exact fee is shown before confirmation.", action: "Open Wallet to follow your balance and Payouts to withdraw.", color: "text-info" },
 ];
 
 interface OnboardingFlowProps {
@@ -130,225 +35,90 @@ interface OnboardingFlowProps {
 }
 
 export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
-  const { user, isVendor, isAffiliate } = useAuth();
+  const { user, isVendor } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
-
   const steps = isVendor ? vendorSteps : affiliateSteps;
   const totalSteps = steps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
-
-  // Debounced progress save to DB (prevents excessive writes)
-  useEffect(() => {
-    if (!user) return;
-
-    const timeoutId = setTimeout(() => {
-      const role = isVendor ? "vendor" : "affiliate";
-      supabase.from("onboarding_progress").upsert({
-        user_id: user.id,
-        role,
-        current_step: currentStep,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" }).then(() => {});
-    }, 1000); // Debounce 1 second
-
-    return () => clearTimeout(timeoutId);
-  }, [currentStep, user, isVendor]);
-
-  const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
-      setDirection(1);
-      setCurrentStep(s => s + 1);
-    } else {
-      handleComplete();
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setDirection(-1);
-      setCurrentStep(s => s - 1);
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!user) return;
-    const role = isVendor ? "vendor" : "affiliate";
-    await supabase.from("onboarding_progress").upsert({
-      user_id: user.id,
-      role,
-      current_step: totalSteps - 1,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id" });
-    onComplete();
-  };
-
-  const step = steps[currentStep];
   const modalRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
 
-  // Handle ESC key to close/skip
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onSkip();
-    }
+  useEffect(() => {
+    if (!user) return;
+    const timeoutId = setTimeout(() => {
+      supabase.from("onboarding_progress").upsert({ user_id: user.id, role: isVendor ? "vendor" : "affiliate", current_step: currentStep, updated_at: new Date().toISOString() }, { onConflict: "user_id" }).then(() => {});
+    }, 600);
+    return () => clearTimeout(timeoutId);
+  }, [currentStep, user, isVendor]);
+
+  const handleComplete = async () => {
+    if (!user) return;
+    await supabase.from("onboarding_progress").upsert({ user_id: user.id, role: isVendor ? "vendor" : "affiliate", current_step: totalSteps - 1, completed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    onComplete();
+  };
+
+  const handleNext = () => {
+    if (currentStep === totalSteps - 1) return void handleComplete();
+    setDirection(1);
+    setCurrentStep((step) => step + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentStep === 0) return;
+    setDirection(-1);
+    setCurrentStep((step) => step - 1);
+  };
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape") onSkip();
   }, [onSkip]);
 
-  // Set up keyboard listeners and focus trap
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
-    // Focus first focusable element when modal opens
     firstFocusableRef.current?.focus();
-    // Prevent body scroll
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [handleKeyDown]);
 
-  const variants = {
-    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0 }),
-  };
+  const step = steps[currentStep];
+  const StepIcon = step.icon;
 
   return (
-    <div
-      ref={modalRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="onboarding-title"
-      aria-describedby="onboarding-description"
-      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === modalRef.current) onSkip();
-      }}
-    >
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description" className="fixed inset-0 z-[100] flex items-end justify-center bg-background/85 p-2 backdrop-blur-md sm:items-center sm:p-4" onClick={(event) => { if (event.target === modalRef.current) onSkip(); }}>
+      <div className="w-full max-w-xl overflow-y-auto rounded-3xl border border-border bg-card p-4 shadow-2xl sm:max-h-[90vh] sm:p-6">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="onboarding-title" className="text-lg font-bold">
-              Welcome to Mirvyn
-            </h2>
-            <p id="onboarding-description" className="text-sm text-muted-foreground">
-              {isVendor ? "Vendor" : "Affiliate"} Quick Start Guide
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Quick start</p>
+            <h2 id="onboarding-title" className="mt-1 font-serif text-2xl font-bold">Welcome to Mirvyn</h2>
+            <p id="onboarding-description" className="mt-1 text-sm text-muted-foreground">A four-step path for {isVendor ? "selling your products" : "earning from recommendations"}.</p>
           </div>
-          <Button
-            ref={firstFocusableRef}
-            variant="ghost"
-            size="sm"
-            onClick={onSkip}
-            className="text-muted-foreground"
-            aria-label="Skip onboarding"
-          >
-            <X className="h-4 w-4 mr-1" aria-hidden="true" /> Skip
-          </Button>
+          <Button ref={firstFocusableRef} variant="ghost" size="sm" onClick={onSkip} className="min-h-11 shrink-0 text-muted-foreground" aria-label="Skip quick start"><X className="mr-1 h-4 w-4" aria-hidden="true" />Skip</Button>
         </div>
 
-        {/* Progress */}
-        <div className="mb-6 space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Step {currentStep + 1} of {totalSteps}</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
+        <div className="mt-6 space-y-2" aria-live="polite"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>Step {currentStep + 1} of {totalSteps}</span><span>{Math.round(progress)}%</span></div><Progress value={progress} className="h-2" /></div>
 
-        {/* Step Content */}
-        <div className="glass-card p-6 sm:p-8 overflow-hidden min-h-[320px] flex flex-col">
+        <div className="mt-5 min-h-[310px] overflow-hidden rounded-2xl border border-primary/15 bg-primary/5 p-5 sm:min-h-[330px] sm:p-8">
           <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={currentStep}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3 }}
-              className="flex-1 flex flex-col items-center text-center space-y-5"
-            >
-              {/* Icon */}
-              <div
-                className={cn(
-                  "h-20 w-20 rounded-2xl flex items-center justify-center bg-muted/50 border-2 border-border",
-                )}
-                aria-hidden="true"
-              >
-                <step.icon className={cn("h-10 w-10", step.color)} />
-              </div>
-
-              {/* Title */}
-              <h3 className="text-xl font-bold">{step.title}</h3>
-
-              {/* Description */}
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                {step.description}
-              </p>
-
-              {/* Action */}
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 w-full">
-                <p className="text-xs font-medium text-primary flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {step.action}
-                </p>
-              </div>
+            <motion.div key={currentStep} custom={direction} initial={{ x: direction > 0 ? 30 : -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: direction > 0 ? -30 : 30, opacity: 0 }} transition={{ duration: 0.2 }} className="flex h-full flex-col items-center justify-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-sm"><StepIcon className={cn("h-8 w-8", step.color)} aria-hidden="true" /></div>
+              <h3 className="mt-5 font-serif text-2xl font-semibold">{step.title}</h3>
+              <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{step.description}</p>
+              <div className="mt-5 flex w-full items-start gap-2 rounded-xl border border-primary/15 bg-card/80 p-3 text-left text-xs font-medium text-primary"><Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{step.action}</div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="min-h-[44px]"
-            aria-label="Previous step"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" aria-hidden="true" />
-            Back
-          </Button>
-
-          {/* Step dots */}
-          <div className="flex gap-1.5" role="tablist" aria-label="Onboarding steps">
-            {steps.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setDirection(i > currentStep ? 1 : -1); setCurrentStep(i); }}
-                className={cn(
-                  "h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  i === currentStep ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                )}
-                aria-label={`Go to step ${i + 1} of ${totalSteps}`}
-                aria-current={i === currentStep ? "step" : undefined}
-                role="tab"
-              />
-            ))}
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <Button variant="outline" onClick={handlePrev} disabled={currentStep === 0} className="min-h-11" aria-label="Previous quick-start step"><ChevronLeft className="mr-1 h-4 w-4" aria-hidden="true" />Back</Button>
+          <div className="flex items-center gap-1.5" role="tablist" aria-label="Quick-start steps">
+            {steps.map((item, index) => <button key={item.title} type="button" onClick={() => { setDirection(index > currentStep ? 1 : -1); setCurrentStep(index); }} className={cn("h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", index === currentStep ? "w-7 bg-primary" : "w-2 bg-muted-foreground/30")} aria-label={`Go to step ${index + 1}`} aria-current={index === currentStep ? "step" : undefined} />)}
           </div>
-
-          <Button
-            onClick={handleNext}
-            className="min-h-[44px]"
-            aria-label={currentStep === totalSteps - 1 ? "Complete onboarding" : "Next step"}
-          >
-            {currentStep === totalSteps - 1 ? (
-              <>
-                <Check className="h-4 w-4 mr-1" aria-hidden="true" />
-                Done
-              </>
-            ) : (
-              <>
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" aria-hidden="true" />
-              </>
-            )}
-          </Button>
+          <Button onClick={handleNext} className="min-h-11" aria-label={currentStep === totalSteps - 1 ? "Finish quick start" : "Next quick-start step"}>{currentStep === totalSteps - 1 ? <><Check className="mr-1 h-4 w-4" aria-hidden="true" />Done</> : <>Next<ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" /></>}</Button>
         </div>
       </div>
     </div>
