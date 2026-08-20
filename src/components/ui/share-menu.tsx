@@ -61,7 +61,8 @@ export function ShareMenu({
       onClick: () => {
         window.open(
           `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
         setIsOpen(false);
       },
@@ -73,7 +74,8 @@ export function ShareMenu({
       onClick: () => {
         window.open(
           `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
         setIsOpen(false);
       },
@@ -85,7 +87,8 @@ export function ShareMenu({
       onClick: () => {
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
         setIsOpen(false);
       },
@@ -97,7 +100,8 @@ export function ShareMenu({
       onClick: () => {
         window.open(
           `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
         setIsOpen(false);
       },
