@@ -1654,6 +1654,10 @@ export type Database = {
       }
     }
     Functions: {
+      claim_certificate: {
+        Args: { _cert_type: string; _rank_name?: string; _threshold_amount?: number }
+        Returns: Database["public"]["Tables"]["certificates"]["Row"]
+      }
       clear_earning: {
         Args: { _amount: number; _wallet_id: string }
         Returns: undefined
@@ -1709,6 +1713,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_valid_click_insert: { Args: never; Returns: boolean }
       mark_ai_alert_read: { Args: { alert_id: string }; Returns: undefined }
+      review_verification_request: {
+        Args: { _notes?: string; _request_id: string; _status: string }
+        Returns: Database["public"]["Tables"]["verification_requests"]["Row"]
+      }
       write_system_log: {
         Args: {
           _actor_id?: string
