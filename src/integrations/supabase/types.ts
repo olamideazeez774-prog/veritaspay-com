@@ -850,6 +850,7 @@ export type Database = {
           mismatch_reason: string | null
           paystack_fee_kobo: number
           paystack_transaction_id: number | null
+          processing_started_at: string | null
           purpose: string
           received_amount_kobo: number | null
           reference: string
@@ -876,6 +877,7 @@ export type Database = {
           mismatch_reason?: string | null
           paystack_fee_kobo?: number
           paystack_transaction_id?: number | null
+          processing_started_at?: string | null
           purpose: string
           received_amount_kobo?: number | null
           reference: string
@@ -902,6 +904,7 @@ export type Database = {
           mismatch_reason?: string | null
           paystack_fee_kobo?: number
           paystack_transaction_id?: number | null
+          processing_started_at?: string | null
           purpose?: string
           received_amount_kobo?: number | null
           reference?: string
@@ -1400,6 +1403,7 @@ export type Database = {
           description: string | null
           earning_state: Database["public"]["Enums"]["earning_state"] | null
           id: string
+          reversal_of_transaction_id: string | null
           sale_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           wallet_id: string
@@ -1410,6 +1414,7 @@ export type Database = {
           description?: string | null
           earning_state?: Database["public"]["Enums"]["earning_state"] | null
           id?: string
+          reversal_of_transaction_id?: string | null
           sale_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           wallet_id: string
@@ -1420,11 +1425,19 @@ export type Database = {
           description?: string | null
           earning_state?: Database["public"]["Enums"]["earning_state"] | null
           id?: string
+          reversal_of_transaction_id?: string | null
           sale_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_reversal_of_transaction_id_fkey"
+            columns: ["reversal_of_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_sale_id_fkey"
             columns: ["sale_id"]
@@ -1707,6 +1720,36 @@ export type Database = {
       }
       clear_eligible_earnings: { Args: { _batch_size?: number }; Returns: Json }
       compute_withdrawal_fee: { Args: { _amount: number }; Returns: number }
+      create_verified_sale: {
+        Args: {
+          _affiliate_commission: number
+          _affiliate_id: string
+          _affiliate_processing_fee_kobo: number
+          _buyer_email: string
+          _commission_percent_snapshot: number
+          _customer_processing_fee_kobo: number
+          _delivery_access_token: string
+          _payment_gateway: string
+          _payment_processing_fee_bearer: string
+          _payment_reference: string
+          _paystack_fee_kobo: number
+          _paystack_transaction_id: number
+          _platform_fee: number
+          _platform_fee_percent_snapshot: number
+          _product_id: string
+          _product_title: string
+          _received_amount_kobo: number
+          _refund_eligible_until: string
+          _required_amount_kobo: number
+          _second_tier_affiliate_id: string
+          _second_tier_commission: number
+          _total_amount: number
+          _vendor_earnings_before_onboarding: number
+          _vendor_id: string
+          _vendor_processing_fee_kobo: number
+        }
+        Returns: Json
+      }
       create_wallet_transaction: {
         Args: {
           _amount: number
@@ -1757,6 +1800,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_valid_click_insert: { Args: never; Returns: boolean }
       mark_ai_alert_read: { Args: { alert_id: string }; Returns: undefined }
+      process_refund_atomic: {
+        Args: { _reason: string; _sale_id: string }
+        Returns: Json
+      }
       write_system_log: {
         Args: {
           _actor_id?: string
