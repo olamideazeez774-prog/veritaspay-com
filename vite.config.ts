@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
         display: "standalone",
         orientation: "portrait-primary",
         scope: "/",
-        start_url: "/dashboard",
+        start_url: "/",
         categories: ["business", "finance", "shopping"],
         icons: [
           {
