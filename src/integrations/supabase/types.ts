@@ -561,6 +561,41 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_logs: {
+        Row: {
+          access_method: string
+          accessed_at: string
+          id: string
+          ip_address: string | null
+          sale_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          access_method: string
+          accessed_at?: string
+          id?: string
+          ip_address?: string | null
+          sale_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          access_method?: string
+          accessed_at?: string
+          id?: string
+          ip_address?: string | null
+          sale_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_logs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       experiments: {
         Row: {
           created_at: string
@@ -1202,10 +1237,14 @@ export type Database = {
           affiliate_commission: number
           affiliate_id: string | null
           affiliate_processing_fee_kobo: number
+          buyer_access_count: number
           buyer_email: string
           commission_percent_snapshot: number
           created_at: string
           customer_processing_fee_kobo: number
+          delivered_at: string | null
+          delivery_access_token: string | null
+          delivery_method: string | null
           id: string
           payment_gateway: string | null
           payment_processing_fee_bearer: string
@@ -1231,10 +1270,14 @@ export type Database = {
           affiliate_commission?: number
           affiliate_id?: string | null
           affiliate_processing_fee_kobo?: number
+          buyer_access_count?: number
           buyer_email: string
           commission_percent_snapshot: number
           created_at?: string
           customer_processing_fee_kobo?: number
+          delivered_at?: string | null
+          delivery_access_token?: string | null
+          delivery_method?: string | null
           id?: string
           payment_gateway?: string | null
           payment_processing_fee_bearer?: string
@@ -1260,10 +1303,14 @@ export type Database = {
           affiliate_commission?: number
           affiliate_id?: string | null
           affiliate_processing_fee_kobo?: number
+          buyer_access_count?: number
           buyer_email?: string
           commission_percent_snapshot?: number
           created_at?: string
           customer_processing_fee_kobo?: number
+          delivered_at?: string | null
+          delivery_access_token?: string | null
+          delivery_method?: string | null
           id?: string
           payment_gateway?: string | null
           payment_processing_fee_bearer?: string
@@ -1684,6 +1731,7 @@ export type Database = {
         Returns: Json
       }
       generate_affiliate_code: { Args: never; Returns: string }
+      generate_delivery_token: { Args: never; Returns: string }
       generate_profile_referral_code: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_unread_alert_count: { Args: never; Returns: number }
