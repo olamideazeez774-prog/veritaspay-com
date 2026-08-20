@@ -802,6 +802,7 @@ export type Database = {
       }
       pending_payments: {
         Row: {
+          affiliate_processing_fee_kobo: number
           created_at: string
           customer_processing_fee_kobo: number
           email: string
@@ -827,6 +828,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          affiliate_processing_fee_kobo?: number
           created_at?: string
           customer_processing_fee_kobo?: number
           email: string
@@ -852,6 +854,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          affiliate_processing_fee_kobo?: number
           created_at?: string
           customer_processing_fee_kobo?: number
           email?: string
@@ -1198,6 +1201,7 @@ export type Database = {
         Row: {
           affiliate_commission: number
           affiliate_id: string | null
+          affiliate_processing_fee_kobo: number
           buyer_email: string
           commission_percent_snapshot: number
           created_at: string
@@ -1226,6 +1230,7 @@ export type Database = {
         Insert: {
           affiliate_commission?: number
           affiliate_id?: string | null
+          affiliate_processing_fee_kobo?: number
           buyer_email: string
           commission_percent_snapshot: number
           created_at?: string
@@ -1254,6 +1259,7 @@ export type Database = {
         Update: {
           affiliate_commission?: number
           affiliate_id?: string | null
+          affiliate_processing_fee_kobo?: number
           buyer_email?: string
           commission_percent_snapshot?: number
           created_at?: string
