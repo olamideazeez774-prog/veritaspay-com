@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, alreadyProcessed: true, saleId: existingSale.id }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (pendingPayment.status !== "pending") {
+    if (pendingPayment.status !== "pending" && pendingPayment.status !== "processing") {
       return new Response(JSON.stringify({ error: "Payment is not in a processable state" }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -240,22 +240,6 @@ Deno.serve(async (req) => {
     const affiliateCommission = Math.max(0, grossAffiliateCommission - (affiliateProcessingFeeKobo / 100));
     let vendorEarnings = Math.max(0, totalAmount - platformFee - grossAffiliateCommission - (vendorProcessingFeeKobo / 100));
 
-    // ======== STARTER PLAN ONBOARDING DEDUCTION ========
-    // Vendors on the Starter plan (₦3k upfront + ₦5,500 deferred) have ₦1,100 deducted
-    // from up to their first 5 sales' vendor earnings.
-    let onboardingDeducted = 0;
-    {
-      const perSaleMax = Math.min(1100, vendorEarnings);
-      if (perSaleMax > 0) {
-        const { data: deducted } = await supabase.rpc("deduct_onboarding_balance", {
-          _vendor_id: product.vendor_id,
-          _max_deduction: perSaleMax,
-        });
-        onboardingDeducted = Number(deducted) || 0;
-        vendorEarnings -= onboardingDeducted;
-      }
-    }
-
     // Second-tier commission - calculated from AFFILIATE commission (not platform fee)
     // The referring affiliate earns a percentage of what their referred affiliate earns
     let secondTierAffiliateId: string | null = null;
@@ -281,72 +265,54 @@ Deno.serve(async (req) => {
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
     const deliveryAccessToken = crypto.randomUUID();
 
-    // ======== CREATE SALE ========
-    // Paystack has already been verified by paystack-callback before this function is called,
-    // so the sale must be completed immediately. Pending wallet funds are held only by the
-    // refund window, not by the sale status.
-    const { data: sale, error: saleError } = await supabase
-      .from("sales")
-      .insert({
-        product_id: productId, vendor_id: product.vendor_id, affiliate_id: affiliateId,
-        second_tier_affiliate_id: secondTierAffiliateId, buyer_email: normalizedBuyerEmail,
-        total_amount: totalAmount, platform_fee: platformFee,
-        affiliate_commission: affiliateCommission, second_tier_commission: secondTierCommission,
-        vendor_earnings: vendorEarnings, commission_percent_snapshot: commissionPercent,
-        platform_fee_percent_snapshot: platformFeePercent, status: "completed",
-        refund_eligible_until: refundEligibleUntil.toISOString(),
-        delivery_access_token: deliveryAccessToken,
-        payment_reference: paymentReference, payment_gateway: paymentGateway,
-        payment_processing_fee_bearer: paymentProcessingFeeBearer,
-        required_amount_kobo: Number(requiredAmountKobo ?? pendingPayment.expected_amount_kobo ?? 0),
-        received_amount_kobo: Number(receivedAmountKobo ?? pendingPayment.received_amount_kobo ?? 0),
-        paystack_transaction_id: paystackTransactionId ?? null,
-        paystack_fee_kobo: verifiedPaystackFeeKobo,
-        customer_processing_fee_kobo: 0,
-        vendor_processing_fee_kobo: vendorProcessingFeeKobo,
-        affiliate_processing_fee_kobo: affiliateProcessingFeeKobo,
-      })
-      .select().single();
+    // ======== ATOMIC VERIFIED SALE + WALLET UPDATES ========
+    // This RPC preserves the existing calculations and starter-plan deduction,
+    // but commits the sale, deduction, and all wallet credits as one transaction.
+    // The payment-reference unique constraint makes callback/webhook retries safe.
+    const { data: saleResult, error: saleError } = await supabase.rpc("create_verified_sale", {
+      _product_id: productId,
+      _vendor_id: product.vendor_id,
+      _affiliate_id: affiliateId,
+      _second_tier_affiliate_id: secondTierAffiliateId,
+      _buyer_email: normalizedBuyerEmail,
+      _total_amount: totalAmount,
+      _platform_fee: platformFee,
+      _affiliate_commission: affiliateCommission,
+      _second_tier_commission: secondTierCommission,
+      _vendor_earnings_before_onboarding: vendorEarnings,
+      _commission_percent_snapshot: commissionPercent,
+      _platform_fee_percent_snapshot: platformFeePercent,
+      _refund_eligible_until: refundEligibleUntil.toISOString(),
+      _delivery_access_token: deliveryAccessToken,
+      _payment_reference: paymentReference,
+      _payment_gateway: paymentGateway,
+      _payment_processing_fee_bearer: paymentProcessingFeeBearer,
+      _required_amount_kobo: Number(requiredAmountKobo ?? pendingPayment.expected_amount_kobo ?? 0),
+      _received_amount_kobo: Number(receivedAmountKobo ?? pendingPayment.received_amount_kobo ?? 0),
+      _paystack_transaction_id: paystackTransactionId ?? null,
+      _paystack_fee_kobo: verifiedPaystackFeeKobo,
+      _customer_processing_fee_kobo: 0,
+      _vendor_processing_fee_kobo: vendorProcessingFeeKobo,
+      _affiliate_processing_fee_kobo: affiliateProcessingFeeKobo,
+      _product_title: product.title,
+    });
 
-    if (saleError) {
-      console.error("Error creating sale:", saleError);
+    if (saleError || !saleResult?.sale_id) {
+      console.error("Error creating verified sale:", saleError);
       return new Response(JSON.stringify({ error: "Failed to process sale" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Increment conversion count
-    if (affiliateLinkId) {
+    const sale = { id: String(saleResult.sale_id) };
+    const saleCreated = saleResult.created === true;
+    vendorEarnings = Number(saleResult.vendor_earnings ?? vendorEarnings);
+
+    // Counters are non-financial side effects and only advance for a new sale.
+    if (saleCreated && affiliateLinkId) {
       await supabase.rpc("increment_conversion_count", { link_id: affiliateLinkId });
     }
-
-    // Increment coupon usage (atomic)
-    if (appliedCouponId) {
+    if (saleCreated && appliedCouponId) {
       await supabase.rpc("increment_coupon_usage", { coupon_id: appliedCouponId });
-    }
-
-    // ======== WALLET UPDATES ========
-    const updateWallet = async (userId: string, amount: number, type: string, description: string) => {
-      const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", userId).single();
-      if (wallet) {
-        // Use atomic RPC function for transaction + balance update
-        await supabase.rpc("create_wallet_transaction", {
-          _wallet_id: wallet.id,
-          _sale_id: sale.id,
-          _amount: amount,
-          _type: type,
-          _description: description,
-        });
-      }
-    };
-
-    await updateWallet(product.vendor_id, vendorEarnings, "sale_vendor", `Sale of ${product.title}`);
-
-    if (affiliateId && affiliateCommission > 0) {
-      await updateWallet(affiliateId, affiliateCommission, "sale_commission", `Commission from ${product.title}`);
-    }
-
-    if (secondTierAffiliateId && secondTierCommission > 0) {
-      await updateWallet(secondTierAffiliateId, secondTierCommission, "sale_commission", `Second-tier commission from ${product.title}`);
     }
 
     // ======== SEND RECEIPT EMAIL ========

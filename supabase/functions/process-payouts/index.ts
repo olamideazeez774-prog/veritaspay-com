@@ -124,10 +124,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // 4. Mark paid. Wallet funds were already reserved by the payout insert trigger;
-      // the status update trigger records total withdrawn without double-debiting.
+      // 4. Record the accepted transfer as processing. Wallet funds were already
+      // reserved by the payout insert trigger; total_withdrawn is incremented
+      // only after Paystack emits transfer.success.
       await supabase.from("payout_requests").update({
-        status: "paid",
+        status: "processing",
         transfer_code: xferJson.data?.transfer_code ?? null,
         transfer_status: xferJson.data?.status ?? "queued",
         processed_at: new Date().toISOString(),

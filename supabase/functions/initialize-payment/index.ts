@@ -32,6 +32,14 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const authorization = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+    if (authorization?.startsWith("Bearer ")) {
+      const token = authorization.slice("Bearer ".length).trim();
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) return respond({ error: "Invalid authentication token" }, 401);
+      authenticatedUserId = user.id;
+    }
 
     const {
       email,
@@ -55,12 +63,17 @@ Deno.serve(async (req) => {
 
     // --------- NON-SALE FLOWS ---------
     if (purposeKey !== "sale") {
+      if (!authenticatedUserId) return respond({ error: "Authentication required for this payment" }, 401);
+      if (userId && userId !== authenticatedUserId) {
+        return respond({ error: "Authenticated user does not match payment owner" }, 403);
+      }
+      const effectiveUserId = authenticatedUserId;
       const canonicalAmount = purposeKey === "listing_fee"
         ? 2000
         : purposeKey === "affiliate_membership"
           ? 350
           : Number(amount);
-      if (!userId || !Number.isFinite(canonicalAmount) || canonicalAmount <= 0) {
+      if (!Number.isFinite(canonicalAmount) || canonicalAmount <= 0) {
         return respond({ error: `Missing valid payment amount for ${purposeKey}` }, 400);
       }
 
@@ -68,7 +81,7 @@ Deno.serve(async (req) => {
 
       // 1. Persist PENDING payment intent FIRST (source of truth)
       const { error: insertErr } = await supabase.from("pending_payments").insert({
-        user_id: userId,
+        user_id: effectiveUserId,
         email,
         purpose: purposeKey,
         reference,
@@ -91,7 +104,7 @@ Deno.serve(async (req) => {
           amount: Math.round(canonicalAmount * 100),
           reference,
           callback_url: callbackUrl || undefined,
-          metadata: { purpose: purposeKey, user_id: userId, product_id: productId || null, ...clientMetadata },
+          metadata: { purpose: purposeKey, user_id: effectiveUserId, product_id: productId || null, ...clientMetadata },
         }),
       });
       const data = await paystackRes.json();
@@ -113,6 +126,9 @@ Deno.serve(async (req) => {
     }
 
     // --------- SALE FLOW ---------
+    if (userId && authenticatedUserId && userId !== authenticatedUserId) {
+      return respond({ error: "Authenticated user does not match payment owner" }, 403);
+    }
     if (!productId) return respond({ error: "Missing productId" }, 400);
 
     // Resolve price server-side

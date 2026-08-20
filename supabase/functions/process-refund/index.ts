@@ -87,110 +87,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Start refund process
-    const refundResults = {
-      saleUpdated: false,
-      transactionsReversed: 0,
-      walletAdjustments: [] as string[],
-      errors: [] as string[],
-    };
+    // The sale status claim, wallet debits, and reversal rows are committed by
+    // one database transaction. Any failure rolls back all changes, preventing
+    // a refunded sale with only some wallets reversed.
+    const { data: atomicResult, error: atomicRefundError } = await supabase.rpc("process_refund_atomic", {
+      _sale_id: saleId,
+      _reason: reason || "",
+    });
 
-    // 1. Update sale status to refunded
-    const { data: updatedSale, error: updateSaleError } = await supabase
-      .from("sales")
-      .update({
-        status: "refunded",
-        updated_at: now.toISOString(),
-      })
-        .eq("id", saleId)
-      .eq("status", "completed")
-      .select("id")
-      .maybeSingle();
-
-    if (updateSaleError) {
-      throw new Error(`Failed to update sale status: ${updateSaleError.message}`);
-    }
-    if (!updatedSale) {
+    if (atomicRefundError) {
+      const isConflict = atomicRefundError.message.includes("already refunded") || atomicRefundError.message.includes("not refundable");
       return new Response(
-        JSON.stringify({ error: "Sale was already refunded or is not refundable" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: isConflict ? "Sale was already refunded or is not refundable" : "Refund transaction failed" }),
+        { status: isConflict ? 409 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    refundResults.saleUpdated = true;
-
-    // 2. Reverse wallet transactions
-    for (const transaction of sale.transactions || []) {
-      try {
-        // Get current wallet state
-        const { data: wallet } = await supabase
-          .from("wallets")
-          .select("pending_balance, cleared_balance, withdrawable_balance, total_earned")
-          .eq("id", transaction.wallet_id)
-          .single();
-
-        if (!wallet) {
-          refundResults.errors.push(`Wallet not found: ${transaction.wallet_id}`);
-          continue;
-        }
-
-        const amount = parseFloat(transaction.amount);
-        const earningState = transaction.earning_state;
-
-        // Calculate new balances based on earning state
-        let newPending = parseFloat(wallet.pending_balance);
-        let newCleared = parseFloat(wallet.cleared_balance);
-        let newWithdrawable = parseFloat(wallet.withdrawable_balance);
-        let newTotalEarned = parseFloat(wallet.total_earned);
-
-        if (earningState === "pending") {
-          newPending = Math.max(0, newPending - amount);
-        } else if (earningState === "cleared") {
-          newCleared = Math.max(0, newCleared - amount);
-          newWithdrawable = Math.max(0, newWithdrawable - amount);
-        }
-        
-        newTotalEarned = Math.max(0, newTotalEarned - amount);
-
-        // Update wallet
-        const { error: walletError } = await supabase
-          .from("wallets")
-          .update({
-            pending_balance: newPending,
-            cleared_balance: newCleared,
-            withdrawable_balance: newWithdrawable,
-            total_earned: newTotalEarned,
-            updated_at: now.toISOString(),
-          })
-          .eq("id", transaction.wallet_id);
-
-        if (walletError) {
-          refundResults.errors.push(`Failed to update wallet ${transaction.wallet_id}: ${walletError.message}`);
-          continue;
-        }
-
-        // Create reversal transaction record
-        const { error: reversalError } = await supabase
-          .from("transactions")
-          .insert({
-            wallet_id: transaction.wallet_id,
-            sale_id: saleId,
-            amount: -amount,
-            type: "refund",
-            earning_state: null,
-            description: `Refund for ${sale.products?.title || "product"}${reason ? `: ${reason}` : ""}`,
-          });
-
-        if (reversalError) {
-          refundResults.errors.push(`Failed to create reversal transaction: ${reversalError.message}`);
-        }
-
-        refundResults.transactionsReversed++;
-        refundResults.walletAdjustments.push(`Wallet ${transaction.wallet_id}: -₦${amount}`);
-      } catch (err) {
-        refundResults.errors.push(`Error reversing transaction ${transaction.id}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
+    const refundResults = {
+      saleUpdated: true,
+      transactionsReversed: Number(atomicResult?.transactions_reversed || 0),
+      walletAdjustments: [] as string[],
+      errors: [] as string[],
+    };
 
     // 3. Log the refund event
     await supabase.from("system_logs").insert({

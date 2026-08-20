@@ -39,6 +39,45 @@ export async function verifyAndActivate(
     return { ok: false, status: 400, body: { error: "Payment amount mismatch — refund is being tracked and no value was delivered", amountMismatch: true, refundStatus: pending.refund_status || "pending" } };
   }
 
+  // Claim the payment before any Paystack verification or activation. This closes
+  // the callback/webhook race: only the invocation that changes pending ->
+  // processing may perform the activation. A stale claim can be recovered after
+  // five minutes so a crashed invocation does not strand a successful payment.
+  const nowIso = new Date().toISOString();
+  const processingStartedAt = pending.processing_started_at ? new Date(pending.processing_started_at).getTime() : 0;
+  const processingIsFresh = pending.status === "processing" && processingStartedAt > Date.now() - 5 * 60 * 1000;
+  if (processingIsFresh) {
+    return { ok: true, status: 202, body: { success: true, processing: true, reference } };
+  }
+
+  const claimQuery = supabase
+    .from("pending_payments")
+    .update({ status: "processing", processing_started_at: nowIso })
+    .eq("reference", reference)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  let { data: claimed, error: claimError } = await claimQuery;
+
+  if (!claimed && pending.status === "processing" && pending.processing_started_at) {
+    ({ data: claimed, error: claimError } = await supabase
+      .from("pending_payments")
+      .update({ status: "processing", processing_started_at: nowIso })
+      .eq("reference", reference)
+      .eq("status", "processing")
+      .eq("processing_started_at", pending.processing_started_at)
+      .select("id")
+      .maybeSingle());
+  }
+
+  if (claimError) {
+    console.error("Payment processing claim failed", claimError);
+    return { ok: false, status: 500, body: { error: "Could not claim payment for processing" } };
+  }
+  if (!claimed) {
+    return { ok: true, status: 202, body: { success: true, processing: true, reference } };
+  }
+
   // 2. Verify with Paystack
   const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
     headers: { Authorization: `Bearer ${paystackSecret}`, "Content-Type": "application/json" },
@@ -47,8 +86,9 @@ export async function verifyAndActivate(
   if (!verifyRes.ok || !paystackData.status || paystackData.data?.status !== "success") {
     await supabase
       .from("pending_payments")
-      .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: paystackData?.message || `paystack status ${paystackData.data?.status}` })
-      .eq("reference", reference);
+      .update({ status: "failed", processing_started_at: null, failed_at: new Date().toISOString(), failure_reason: paystackData?.message || `paystack status ${paystackData.data?.status}` })
+      .eq("reference", reference)
+      .eq("status", "processing");
     return { ok: false, status: 400, body: { error: paystackData?.message || "Payment not successful" } };
   }
 
@@ -96,6 +136,7 @@ export async function verifyAndActivate(
 
     await supabase.from("pending_payments").update({
       status: "amount_mismatch",
+      processing_started_at: null,
       failed_at: new Date().toISOString(),
       failure_reason: "amount_mismatch",
       mismatch_reason: `Expected ${expectedKobo} kobo; received ${amountPaidKobo} kobo`,
@@ -105,7 +146,7 @@ export async function verifyAndActivate(
       refund_amount_kobo: amountPaidKobo,
       refund_reference: refundReference,
       refund_status: refundStatus,
-    }).eq("reference", reference);
+    }).eq("reference", reference).eq("status", "processing");
 
     try {
       await supabase.functions.invoke("send-email", {
@@ -137,7 +178,7 @@ export async function verifyAndActivate(
     received_amount_kobo: amountPaidKobo,
     paystack_transaction_id: paystackTransactionId,
     paystack_fee_kobo: paystackFeeKobo,
-  }).eq("reference", reference).eq("status", "pending");
+  }).eq("reference", reference).eq("status", "processing");
 
   // 4. Activate based on purpose
   const userId = pending.user_id;
@@ -241,16 +282,18 @@ export async function verifyAndActivate(
     console.error("activation failed", purpose, activationErr);
     await supabase
       .from("pending_payments")
-      .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: `activation: ${(activationErr as Error).message}` })
-      .eq("reference", reference);
+      .update({ status: "failed", processing_started_at: null, failed_at: new Date().toISOString(), failure_reason: `activation: ${(activationErr as Error).message}` })
+      .eq("reference", reference)
+      .eq("status", "processing");
     return { ok: false, status: 500, body: { error: "Activation failed after payment" } };
   }
 
   // 5. Mark verified
   await supabase
     .from("pending_payments")
-    .update({ status: "verified", verified_at: new Date().toISOString() })
-    .eq("reference", reference);
+    .update({ status: "verified", processing_started_at: null, verified_at: new Date().toISOString() })
+    .eq("reference", reference)
+    .eq("status", "processing");
 
   return {
     ok: true,
