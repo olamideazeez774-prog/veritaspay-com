@@ -1714,6 +1714,30 @@ export type Database = {
       }
     }
     Functions: {
+      claim_certificate: {
+        Args: {
+          _cert_type: string
+          _rank_name?: string
+          _threshold_amount?: number
+        }
+        Returns: {
+          cert_type: string
+          certificate_hash: string
+          id: string
+          issued_at: string
+          metadata: Json | null
+          rank_name: string
+          threshold_amount: number | null
+          user_id: string
+          verified_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "certificates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       clear_earning: {
         Args: { _amount: number; _wallet_id: string }
         Returns: undefined
@@ -1803,6 +1827,25 @@ export type Database = {
       process_refund_atomic: {
         Args: { _reason: string; _sale_id: string }
         Returns: Json
+      }
+      review_verification_request: {
+        Args: { _notes?: string; _request_id: string; _status: string }
+        Returns: {
+          created_at: string
+          id: string
+          path: string
+          payment_reference: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "verification_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       write_system_log: {
         Args: {
