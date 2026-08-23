@@ -24,8 +24,18 @@ export const DEFAULT_AI_OPTIMIZATION_SETTINGS: AIOptimizationSettings = {
   timezone: "Africa/Lagos",
 };
 
+type LooseAIOptimizationSettings = Partial<Record<keyof AIOptimizationSettings, unknown>>;
+
+function pickOption<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function pickStringList(value: unknown, fallback: string[]): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
+}
+
 export function mergeAIOptimizationSettings(
-  settings?: Partial<AIOptimizationSettings> | null,
+  settings?: LooseAIOptimizationSettings | null,
 ): AIOptimizationSettings {
   return {
     ...DEFAULT_AI_OPTIMIZATION_SETTINGS,
