@@ -1866,7 +1866,7 @@ export type Database = {
       app_role: "admin" | "vendor" | "affiliate"
       earning_state: "pending" | "cleared" | "withdrawable"
       payout_status: "pending" | "processing" | "paid" | "rejected"
-      product_status: "draft" | "active" | "paused"
+      product_status: "draft" | "active" | "paused" | "pending_review"
       sale_status: "pending" | "completed" | "refunded"
       transaction_type:
         | "sale_commission"
@@ -2004,7 +2004,7 @@ export const Constants = {
       app_role: ["admin", "vendor", "affiliate"],
       earning_state: ["pending", "cleared", "withdrawable"],
       payout_status: ["pending", "processing", "paid", "rejected"],
-      product_status: ["draft", "active", "paused"],
+      product_status: ["draft", "active", "paused", "pending_review"],
       sale_status: ["pending", "completed", "refunded"],
       transaction_type: [
         "sale_commission",
