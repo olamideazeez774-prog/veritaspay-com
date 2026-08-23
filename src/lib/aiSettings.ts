@@ -24,13 +24,34 @@ export const DEFAULT_AI_OPTIMIZATION_SETTINGS: AIOptimizationSettings = {
   timezone: "Africa/Lagos",
 };
 
+type LooseAIOptimizationSettings = Partial<Record<keyof AIOptimizationSettings, unknown>>;
+
+function pickOption<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function pickStringList(value: unknown, fallback: string[]): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
+}
+
 export function mergeAIOptimizationSettings(
-  settings?: Partial<AIOptimizationSettings> | null,
+  settings?: LooseAIOptimizationSettings | null,
 ): AIOptimizationSettings {
+  const defaults = DEFAULT_AI_OPTIMIZATION_SETTINGS;
+  if (!settings) return { ...defaults };
+
+  const bool = (value: unknown, fallback: boolean) => (typeof value === "boolean" ? value : fallback);
+
   return {
-    ...DEFAULT_AI_OPTIMIZATION_SETTINGS,
-    ...settings,
-    preferred_platforms: settings?.preferred_platforms ?? DEFAULT_AI_OPTIMIZATION_SETTINGS.preferred_platforms,
-    preferred_posting_times: settings?.preferred_posting_times ?? DEFAULT_AI_OPTIMIZATION_SETTINGS.preferred_posting_times,
+    auto_generate_captions: bool(settings.auto_generate_captions, defaults.auto_generate_captions),
+    auto_schedule_posts: bool(settings.auto_schedule_posts, defaults.auto_schedule_posts),
+    content_frequency: pickOption(settings.content_frequency, ["daily", "weekly", "monthly"] as const, defaults.content_frequency),
+    preferred_platforms: pickStringList(settings.preferred_platforms, defaults.preferred_platforms),
+    smart_alerts_enabled: bool(settings.smart_alerts_enabled, defaults.smart_alerts_enabled),
+    alert_min_severity: pickOption(settings.alert_min_severity, ["low", "medium", "high"] as const, defaults.alert_min_severity),
+    auto_optimize_commissions: bool(settings.auto_optimize_commissions, defaults.auto_optimize_commissions),
+    auto_adjust_prices: bool(settings.auto_adjust_prices, defaults.auto_adjust_prices),
+    preferred_posting_times: pickStringList(settings.preferred_posting_times, defaults.preferred_posting_times),
+    timezone: typeof settings.timezone === "string" && settings.timezone ? settings.timezone : defaults.timezone,
   };
 }
