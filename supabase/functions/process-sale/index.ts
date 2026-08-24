@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
     // ======== CALCULATE AMOUNTS ========
     const totalAmount = Math.max(0, product.price - discountAmount);
     const platformFeePercent = 5;
-    const secondTierCommissionPercent = product.second_tier_commission_percent || 5;
+
 
     // CORRECT COMMISSION FORMULA (industry-standard):
     //   platform_fee       = total * platform_fee_percent / 100
@@ -240,26 +240,8 @@ Deno.serve(async (req) => {
     const affiliateCommission = Math.max(0, grossAffiliateCommission - (affiliateProcessingFeeKobo / 100));
     let vendorEarnings = Math.max(0, totalAmount - platformFee - grossAffiliateCommission - (vendorProcessingFeeKobo / 100));
 
-    // Second-tier commission - calculated from AFFILIATE commission (not platform fee)
-    // The referring affiliate earns a percentage of what their referred affiliate earns
     let secondTierAffiliateId: string | null = null;
     let secondTierCommission = 0;
-
-    if (affiliateId) {
-      // Check if the affiliate was referred by another affiliate
-      const { data: affiliateReferral } = await supabase
-        .from("platform_referrals").select("referrer_id").eq("referred_user_id", affiliateId).maybeSingle();
-
-      if (affiliateReferral) {
-        const { data: referrerRole } = await supabase
-          .from("user_roles").select("role").eq("user_id", affiliateReferral.referrer_id).eq("role", "affiliate").maybeSingle();
-        if (referrerRole) {
-          secondTierAffiliateId = affiliateReferral.referrer_id;
-          // Second-tier commission is a percentage of the PRIMARY affiliate's commission
-          secondTierCommission = Math.round((affiliateCommission * secondTierCommissionPercent) / 100);
-        }
-      }
-    }
 
     const refundEligibleUntil = new Date();
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
@@ -273,12 +255,10 @@ Deno.serve(async (req) => {
       _product_id: productId,
       _vendor_id: product.vendor_id,
       _affiliate_id: affiliateId,
-      _second_tier_affiliate_id: secondTierAffiliateId,
       _buyer_email: normalizedBuyerEmail,
       _total_amount: totalAmount,
       _platform_fee: platformFee,
       _affiliate_commission: affiliateCommission,
-      _second_tier_commission: secondTierCommission,
       _vendor_earnings_before_onboarding: vendorEarnings,
       _commission_percent_snapshot: commissionPercent,
       _platform_fee_percent_snapshot: platformFeePercent,

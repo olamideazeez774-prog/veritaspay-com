@@ -189,38 +189,7 @@ export default function Register() {
                 minLength={6}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="referralCode">Referral Code (optional)</Label>
-              <div className="relative">
-                <Input
-                  id="referralCode"
-                  type="text"
-                  placeholder="e.g., VP1A2B3C"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  className={
-                    referralValid === true
-                      ? "border-success focus-visible:ring-success"
-                      : referralValid === false
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : ""
-                  }
-                />
-                {referralValid === true && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-success text-sm">
-                    ✓ Valid
-                  </span>
-                )}
-                {referralValid === false && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-destructive text-sm">
-                    Invalid
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Enter a referral code if someone invited you
-              </p>
-            </div>
+
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>

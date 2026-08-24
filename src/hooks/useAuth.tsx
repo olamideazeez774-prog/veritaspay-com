@@ -15,7 +15,7 @@ interface AuthContextType {
   isAffiliate: boolean;
   isPremium: boolean;
   isEmailVerified: boolean;
-  signUp: (email: string, password: string, fullName: string, referralCode?: string) => Promise<{ error: Error | null; data: unknown }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; data: unknown }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, referralCode?: string) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -127,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: window.location.origin,
         data: {
           full_name: fullName,
-          ...(referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
         },
       },
     });
