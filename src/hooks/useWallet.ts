@@ -96,7 +96,7 @@ export function useCreatePayoutRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payout-requests"] });
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
-      toast.success("Payout requested! Held 12 hours for fraud review, then auto-paid via Paystack.");
+      toast.success("Payout requested! It will be processed and sent to your bank account within the next minute.");
     },
     onError: (error: Error) => {
       toast.error(error.message);
