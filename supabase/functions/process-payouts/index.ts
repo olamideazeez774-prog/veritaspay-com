@@ -27,13 +27,26 @@ async function resolveBankCode(secret: string, bankName: string): Promise<string
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (!isTrustedInternalRequest(req)) return authFailureResponse(corsHeaders, "Internal authorization required");
-
+  
   const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY");
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  // Allow either internal/cron authorization OR a valid user session.
+  // The function itself only pulls due payouts from the database, so it
+  // is safe to allow any authenticated user to trigger a processing run.
+  if (!isTrustedInternalRequest(req)) {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return authFailureResponse(corsHeaders, "Authorization required");
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authError || !user) {
+      return authFailureResponse(corsHeaders, "Valid user session required");
+    }
+  }
 
   if (!PAYSTACK_SECRET) {
     return new Response(JSON.stringify({ error: "Paystack not configured" }), { status: 503 });

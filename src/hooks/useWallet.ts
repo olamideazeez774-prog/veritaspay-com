@@ -91,6 +91,16 @@ export function useCreatePayoutRequest() {
         .select()
         .single();
       if (error) throw error;
+      
+      // Fire-and-forget call to the edge function to process immediately.
+      // We do not await it or fail the mutation if it fails, because the
+      // background cron will still pick it up as a fallback.
+      supabase.functions.invoke("process-payouts", {
+        method: "POST",
+      }).catch((err) => {
+        console.warn("Immediate payout trigger failed, relying on cron fallback:", err);
+      });
+      
       return data;
     },
     onSuccess: () => {
