@@ -18,8 +18,6 @@ export interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  referral_code: string | null;
-  referred_by: string | null;
   is_verified: boolean;
   is_banned: boolean;
   suspended_until: string | null;
@@ -59,7 +57,6 @@ export interface Product {
   is_featured: boolean | null;
   is_sponsored: boolean | null;
   ranking_score: number | null;
-  second_tier_commission_percent: number | null;
   created_at: string;
   updated_at: string;
   vendor?: Profile;
@@ -111,8 +108,6 @@ export interface Sale {
   customer_processing_fee_kobo: number;
   affiliate_processing_fee_kobo: number;
   vendor_processing_fee_kobo: number;
-  second_tier_affiliate_id: string | null;
-  second_tier_commission: number | null;
   created_at: string;
   updated_at: string;
   product?: Product;

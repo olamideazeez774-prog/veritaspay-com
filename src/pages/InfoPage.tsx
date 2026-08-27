@@ -61,7 +61,7 @@ const pages: Record<string, InfoPageContent> = {
     title: "Terms of Service",
     intro: "These terms describe the rules for using Mirvyn as a vendor, affiliate, buyer, or administrator.",
     sections: [
-      { heading: "Responsible use", body: "Use accurate account information, respect intellectual property, and do not misuse payment, tracking, messaging, or referral features." },
+      { heading: "Responsible use", body: "Use accurate account information, respect intellectual property, and do not misuse payment, tracking, or messaging features." },
       { heading: "Transactions", body: "Prices, commissions, platform fees, delivery obligations, and refund terms are shown in the relevant product or dashboard flow before action is taken." },
       { heading: "Account protection", body: "Keep credentials private and contact support promptly if you suspect unauthorized access or a suspicious transaction." },
     ],
@@ -71,7 +71,7 @@ const pages: Record<string, InfoPageContent> = {
     title: "Privacy Policy",
     intro: "Mirvyn uses account, transaction, and product data to provide marketplace, affiliate, delivery, analytics, and support features.",
     sections: [
-      { heading: "Data we use", body: "We use information you provide, operational events, and payment references needed to authenticate users, deliver products, track referrals, and prevent fraud." },
+      { heading: "Data we use", body: "We use information you provide, operational events, and payment references needed to authenticate users, deliver products, attribute affiliate sales, and prevent fraud." },
       { heading: "Your choices", body: "You can review profile information in Settings and contact support about access, correction, or account questions." },
       { heading: "Security", body: "Access to sensitive operations is controlled by authenticated sessions, role checks, database policies, and server-side functions." },
     ],

@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // plus email addresses, which are not sufficient proof of purchase ownership.
     const query = supabase
       .from("sales")
-      .select("id, buyer_email, total_amount, created_at, payment_reference, delivery_access_token, delivery_method, delivered_at, refund_eligible_until, access_count, product_id")
+      .select("id, buyer_email, total_amount, created_at, payment_reference, delivery_access_token, delivery_method, delivered_at, refund_eligible_until, buyer_access_count, product_id")
       .eq("status", "completed")
       .eq("delivery_access_token", token);
 
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
           deliveredAt: sale.delivered_at,
           refundEligibleUntil: sale.refund_eligible_until,
           refundEligible,
-          accessCount: sale.access_count || 0,
+          accessCount: sale.buyer_access_count || 0,
         },
         product: product ? {
           id: product.id,
