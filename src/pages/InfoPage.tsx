@@ -52,9 +52,9 @@ const pages: Record<string, InfoPageContent> = {
     intro: "Tell us what you need help with and our support team will route your request to the right person.",
     sections: [
       { heading: "Support", body: "For account, product, payment, or delivery questions, include the email on your Mirvyn account and a clear description of the issue." },
-      { heading: "Email", body: "Reach the team at hello@mirvyn.app. We aim to respond with a useful next step rather than a generic acknowledgement." },
+      { heading: "Email", body: "Reach the team at mirvynsupport@gmail.com. We aim to respond with a useful next step rather than a generic acknowledgement." },
     ],
-    cta: { label: "Email support", href: "mailto:hello@mirvyn.app" },
+    cta: { label: "Email support", href: "mailto:mirvynsupport@gmail.com" },
   },
   "/terms": {
     eyebrow: "Legal",
