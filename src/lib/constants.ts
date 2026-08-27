@@ -12,7 +12,6 @@ export const DEFAULT_COOKIE_DURATION_DAYS = 30;
 
 export const MIN_WITHDRAWAL_AMOUNT = 3500;
 export const PAYOUT_HOLD_HOURS = 12;
-export const REFERRAL_BONUS_PERCENT = 3;
 
 // Vendor registration is free. These legacy exports remain zero for callers
 // that still import them; no paid onboarding path is valid.

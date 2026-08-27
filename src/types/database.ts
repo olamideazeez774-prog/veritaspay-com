@@ -18,7 +18,6 @@ export interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  referred_by: string | null;
   is_verified: boolean;
   is_banned: boolean;
   suspended_until: string | null;
