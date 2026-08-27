@@ -163,7 +163,7 @@ export function PaymentModal({
                   <Input
                     id="businessEmail"
                     type="email"
-                    placeholder="business@example.com"
+                    placeholder="mirvynsupport@gmail.com"
                     value={businessEmail}
                     onChange={(e) => setBusinessEmail(e.target.value)}
                   />

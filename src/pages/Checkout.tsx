@@ -233,7 +233,7 @@ export default function Checkout() {
                       <Label htmlFor="email">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="email" type="email" placeholder="john@example.com" value={formData.email}
+                        <Input id="email" type="email" placeholder="mirvynsupport@gmail.com" value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="pl-10" required />
                       </div>
                       <p className="text-xs text-muted-foreground">Your purchase details will be sent to this email.</p>
