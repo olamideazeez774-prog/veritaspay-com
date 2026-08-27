@@ -36,7 +36,6 @@ const navItems: NavItem[] = [
   { title: "My Links", href: "/dashboard/links", icon: Link2, roles: ["affiliate"] },
   { title: "Analytics", href: "/dashboard/stats", icon: BarChart3, roles: ["affiliate"] },
   { title: "Intelligence", href: "/dashboard/analytics", icon: BarChart3, roles: ["affiliate"], featureFlag: "ai_modules" },
-  { title: "Referrals", href: "/dashboard/referrals", icon: Users, roles: ["affiliate"] },
   { title: "Toolkit", href: "/dashboard/toolkit", icon: Link2, roles: ["affiliate"], featureFlag: "affiliate_toolkit" },
   { title: "Certificates", href: "/dashboard/certificates", icon: Shield, featureFlag: "certificates" },
   { title: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, roles: ["vendor", "affiliate"], featureFlag: "leaderboard" },

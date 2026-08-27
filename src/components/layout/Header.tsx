@@ -119,7 +119,7 @@ export function Header() {
             ) : (
               <>
                 <Button asChild variant="ghost" className="text-sm"><Link to="/login">Sign in</Link></Button>
-                <Button asChild className="gap-2 text-sm"><Link to="/register">Start selling free <ArrowRight className="h-4 w-4" /></Link></Button>
+                <Button asChild className="gap-2 text-sm"><Link to="/register">Start selling now <ArrowRight className="h-4 w-4" /></Link></Button>
               </>
             )}
           </div>

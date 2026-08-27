@@ -1,7 +1,7 @@
 // Canonical MIRVYN pricing constants. Keep financial rules centralized and
 // mirror them in server-side migrations/functions before deployment.
 export const PLATFORM_NAME = "Mirvyn";
-export const PLATFORM_TAGLINE = "The Premium Affiliate Commerce Platform";
+export const PLATFORM_TAGLINE = "The Modern Digital Commerce Platform";
 
 export const DEFAULT_PLATFORM_FEE_PERCENT = 5;
 export const DEFAULT_COMMISSION_PERCENT = 50;

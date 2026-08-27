@@ -42,7 +42,7 @@ const VendorSales = lazy(() => import("./pages/dashboard/VendorSales").then(m =>
 const AffiliateLinks = lazy(() => import("./pages/dashboard/AffiliateLinks").then(m => ({ default: m.default })));
 const AffiliateBrowse = lazy(() => import("./pages/dashboard/AffiliateBrowse").then(m => ({ default: m.default })));
 const AffiliateStats = lazy(() => import("./pages/dashboard/AffiliateStats").then(m => ({ default: m.default })));
-const AffiliateReferrals = lazy(() => import("./pages/dashboard/AffiliateReferrals").then(m => ({ default: m.default })));
+
 const WalletPage = lazy(() => import("./pages/dashboard/WalletPage").then(m => ({ default: m.default })));
 const PayoutsPage = lazy(() => import("./pages/dashboard/PayoutsPage").then(m => ({ default: m.default })));
 const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage").then(m => ({ default: m.default })));
@@ -212,14 +212,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/dashboard/referrals"
-                element={
-                  <ProtectedRoute requiredRoles={["affiliate"]}>
-                    <AffiliateReferrals />
-                  </ProtectedRoute>
-                }
-              />
+
               <Route
                 path="/dashboard/toolkit"
                 element={

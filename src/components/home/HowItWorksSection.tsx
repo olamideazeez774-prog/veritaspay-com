@@ -1,31 +1,43 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { UserPlus, Package, Link2, Wallet } from "lucide-react";
+import { UserPlus, Package, Link2, Wallet, Store, CheckCircle } from "lucide-react";
 
 const steps = [
   {
     icon: UserPlus,
-    title: "Sign Up",
-    description: "Create your free account as a vendor or affiliate in under a minute.",
+    title: "Create your account",
+    description: "Sign up as a vendor or affiliate and set up your MIRVYN account.",
     step: "01",
   },
   {
     icon: Package,
-    title: "Add Products",
-    description: "Upload your digital files or add external course links with custom pricing.",
+    title: "Set things up",
+    description: "Vendors add their products, pricing, and commission settings. Affiliates can explore products available for promotion.",
     step: "02",
   },
   {
-    icon: Link2,
-    title: "Share Links",
-    description: "Generate affiliate links and start promoting to your audience.",
+    icon: Store,
+    title: "Customers purchase",
+    description: "Customers purchase products through MIRVYN's payment system. Each transaction is verified and recorded.",
     step: "03",
   },
   {
-    icon: Wallet,
-    title: "Get Paid",
-    description: "Earn commissions on every sale and withdraw to your bank account.",
+    icon: Link2,
+    title: "Sales are tracked",
+    description: "MIRVYN records the transaction and calculates the applicable platform fees and commissions.",
     step: "04",
+  },
+  {
+    icon: CheckCircle,
+    title: "Earnings are updated",
+    description: "Once the transaction reaches the appropriate status, eligible earnings are reflected in the relevant wallets.",
+    step: "05",
+  },
+  {
+    icon: Wallet,
+    title: "Withdraw",
+    description: "When the minimum withdrawal requirement is reached, eligible users can request a payout to their bank account.",
+    step: "06",
   },
 ];
 
@@ -52,11 +64,11 @@ export function HowItWorksSection() {
             How It Works
           </motion.span>
           <h2 className="text-4xl md:text-5xl font-bold font-serif mb-6">
-            Start Earning in{" "}
-            <span className="text-gradient-accent">Four Simple Steps</span>
+            From product creation to{" "}
+            <span className="text-gradient-accent">payment and payout.</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Get from signup to your first sale in minutes, not days.
+            MIRVYN brings the key parts of a digital product business into one simple flow.
           </p>
         </motion.div>
 
@@ -65,7 +77,7 @@ export function HowItWorksSection() {
           {/* Connection Line */}
           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary -translate-y-1/2 opacity-20" />
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {steps.map((step, index) => (
               <motion.div
                 key={step.title}

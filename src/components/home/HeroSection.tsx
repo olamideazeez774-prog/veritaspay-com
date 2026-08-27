@@ -18,16 +18,15 @@ export function HeroSection() {
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }} className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-            Sell what you know.
-            <span className="block text-gradient-primary">Promote what you trust.</span>
+            Create. Sell. Grow.
           </motion.h1>
 
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.16 }} className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            {PLATFORM_NAME} gives creators a simple storefront and gives affiliates a clear way to earn from products their audiences already want.
+            MIRVYN gives creators a simple platform to sell digital products, manage their business, and connect with customers and promoters — all in one place.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.24 }} className="mt-8 grid gap-3 sm:flex sm:justify-center">
-            <Button asChild size="lg" className="min-h-12 gap-2 px-6 text-base"><Link to="/register"><Store className="h-4 w-4" />Start selling free <ArrowRight className="h-4 w-4" /></Link></Button>
+            <Button asChild size="lg" className="min-h-12 gap-2 px-6 text-base"><Link to="/register"><Store className="h-4 w-4" />Start selling now <ArrowRight className="h-4 w-4" /></Link></Button>
             <Button asChild size="lg" variant="outline" className="min-h-12 gap-2 bg-card/60 px-6 text-base"><Link to="/marketplace"><Users className="h-4 w-4" />Explore the marketplace</Link></Button>
           </motion.div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { Button } from "@/components/ui/button";
@@ -9,48 +9,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PLATFORM_NAME } from "@/lib/constants";
 import { toast } from "sonner";
 import { ArrowRight, Link2, Loader2, Store, UserPlus } from "lucide-react";
-import { validateReferralCode, recordPlatformReferral } from "@/hooks/useReferrals";
 
-const REF_STORAGE_KEY = "vp_referral_code";
-const REF_ID_STORAGE_KEY = "vp_referrer_id";
 
-// Referral code validation regex - alphanumeric only, 6-20 chars
-const REFERRAL_CODE_REGEX = /^[A-Z0-9]{6,20}$/;
 
-function validateReferralCodeFormat(code: string): boolean {
-  return REFERRAL_CODE_REGEX.test(code);
-}
-
-function setRefCookie(code: string) {
-  // Validate code before setting cookie
-  if (!validateReferralCodeFormat(code)) {
-    return;
-  }
-  
-  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-  const secure = window.location.protocol === "https:" ? ";Secure" : "";
-  document.cookie = `vp_ref=${encodeURIComponent(code)};expires=${expires};path=/;SameSite=Strict${secure}`;
-}
-
-function getRefCookie(): string {
-  const match = document.cookie.match(/(?:^|;\s*)vp_ref=([^;]*)/);
-  const value = match ? decodeURIComponent(match[1]) : "";
-  // Validate on retrieval too
-  return validateReferralCodeFormat(value) ? value : "";
-}
-
-function clearRefCookie() {
-  document.cookie = "vp_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict";
-}
 
 export default function Register() {
-  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [referralValid, setReferralValid] = useState<boolean | null>(null);
-  const [referrerId, setReferrerId] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { recordAttempt, checkRateLimit, getTimeRemaining } = useRateLimit({
@@ -58,41 +25,6 @@ export default function Register() {
     windowMs: 60 * 60 * 1000, // 1 hour
     lockoutMs: 24 * 60 * 60 * 1000, // 24 hours
   });
-
-  // Persist ref param to localStorage + cookie immediately on page load
-  const paramRef = searchParams.get("ref");
-  const [referralCode, setReferralCode] = useState(() => {
-    if (paramRef) {
-      const upper = paramRef.toUpperCase();
-      localStorage.setItem(REF_STORAGE_KEY, upper);
-      setRefCookie(upper);
-      return upper;
-    }
-    return localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "";
-  });
-
-  // Validate referral code when it changes
-  useEffect(() => {
-    const checkCode = async () => {
-      const trimmed = referralCode.trim();
-      if (trimmed.length >= 6) {
-        const result = await validateReferralCode(trimmed);
-        setReferralValid(result.valid);
-        setReferrerId(result.referrerId || null);
-        if (result.valid && result.referrerId) {
-          localStorage.setItem(REF_STORAGE_KEY, trimmed);
-          localStorage.setItem(REF_ID_STORAGE_KEY, result.referrerId);
-          setRefCookie(trimmed);
-        }
-      } else {
-        setReferralValid(null);
-        setReferrerId(null);
-      }
-    };
-
-    const debounce = setTimeout(checkCode, 500);
-    return () => clearTimeout(debounce);
-  }, [referralCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,28 +39,13 @@ export default function Register() {
     
     setIsLoading(true);
 
-    const refToSend = referralValid ? (referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "") : "";
-    const { error, data } = await signUp(email, password, fullName, refToSend);
+    const { error } = await signUp(email, password, fullName);
 
     if (error) {
       recordAttempt();
       toast.error(error.message);
       setIsLoading(false);
     } else {
-      // Record referral if valid
-      const storedReferrerId = referrerId || localStorage.getItem(REF_ID_STORAGE_KEY);
-      const storedCode = referralCode.trim().toUpperCase() || localStorage.getItem(REF_STORAGE_KEY) || getRefCookie() || "";
-      
-      const signUpData = data as { user?: { id: string } } | null;
-      if (storedReferrerId && signUpData?.user?.id && storedReferrerId !== signUpData.user.id) {
-        await recordPlatformReferral(storedReferrerId, signUpData.user.id, storedCode);
-      }
-
-      // Clean up storage
-      localStorage.removeItem(REF_STORAGE_KEY);
-      localStorage.removeItem(REF_ID_STORAGE_KEY);
-      clearRefCookie();
-
       toast.success("Account created successfully! Please check your email to verify.");
       navigate("/login");
     }

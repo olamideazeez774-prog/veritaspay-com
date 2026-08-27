@@ -6,7 +6,6 @@ import { PLATFORM_NAME } from "@/lib/constants";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 const benefits = [
-  "No monthly fees",
   "Instant setup",
   "Secure payments",
   "24/7 support",
@@ -94,7 +93,7 @@ export function CTASection() {
                     className="inline-block"
                   >
                     <Button size="lg" className="group h-14 px-10 text-base">
-                      Create Free Account
+                      Create Account
                       <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </motion.div>

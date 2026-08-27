@@ -24,8 +24,8 @@ export function FeaturesSection() {
       <div className="container relative">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
           <span className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">Start with your goal</span>
-          <h2 className="font-serif text-3xl font-bold sm:text-4xl md:text-5xl">One platform, two clear ways to grow</h2>
-          <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">You do not need to understand the whole platform before you begin. Choose the path that fits what you want to do today.</p>
+          <h2 className="font-serif text-3xl font-bold sm:text-4xl md:text-5xl">Build your digital business in one place</h2>
+          <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">Whether you're launching your first digital product or scaling one that's already selling, MIRVYN gives you everything you need to sell, track, and grow — all from one platform.</p>
         </motion.div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -35,8 +35,8 @@ export function FeaturesSection() {
               <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">For creators and vendors</span>
             </div>
             <h3 className="mt-6 font-serif text-2xl font-semibold">Sell what you know</h3>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">Register free, list your digital products for a fixed ₦2,000 per course, and use Mirvyn’s affiliate network to reach more buyers.</p>
-            <Button asChild className="mt-6 min-h-11 gap-2"><Link to="/register">Start selling free <ArrowRight className="h-4 w-4" /></Link></Button>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">Register, list your digital products for a fixed ₦2,000 per course, and use Mirvyn’s affiliate network to reach more buyers.</p>
+            <Button asChild className="mt-6 min-h-11 gap-2"><Link to="/register">Start selling now <ArrowRight className="h-4 w-4" /></Link></Button>
           </motion.article>
 
           <motion.article initial={{ opacity: 0, x: 24 }} animate={isInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.5, delay: 0.18 }} className="group rounded-3xl border border-accent/20 bg-card p-6 shadow-sm transition-shadow hover:shadow-lg sm:p-8">

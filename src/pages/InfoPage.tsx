@@ -22,9 +22,9 @@ const pages: Record<string, InfoPageContent> = {
       { heading: "Free vendor registration", body: "Create a vendor account at no cost. Each course has a fixed one-time ₦2,000 listing fee." },
       { heading: "5% platform commission", body: "Mirvyn earns 5% on every successful sale. The platform commission is shown clearly in the sale economics." },
       { heading: "Affiliate membership", body: "Affiliate access is ₦350 per month. Affiliates can promote products, track performance, and earn commissions." },
-      { heading: "Withdrawals", body: "The minimum withdrawal is ₦3,500. MIRVYN withdrawal fees range from ₦50 to ₦500 by withdrawal amount, and the exact fee is shown before confirmation." },
+      { heading: "Withdrawals", body: "The minimum withdrawal is ₦3,500. A withdrawal fee of ₦50–₦500 applies to all payouts, based on amount, and never exceeds ₦500. This applies to both vendors and affiliates." },
     ],
-    cta: { label: "Start selling free", href: "/register?role=vendor" },
+    cta: { label: "Start selling now", href: "/register?role=vendor" },
   },
   "/blog": {
     eyebrow: "Mirvyn insights",
