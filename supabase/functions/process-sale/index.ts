@@ -240,8 +240,6 @@ Deno.serve(async (req) => {
     const affiliateCommission = Math.max(0, grossAffiliateCommission - (affiliateProcessingFeeKobo / 100));
     let vendorEarnings = Math.max(0, totalAmount - platformFee - grossAffiliateCommission - (vendorProcessingFeeKobo / 100));
 
-    let secondTierAffiliateId: string | null = null;
-    let secondTierCommission = 0;
 
     const refundEligibleUntil = new Date();
     refundEligibleUntil.setDate(refundEligibleUntil.getDate() + product.refund_window_days);
@@ -341,7 +339,6 @@ ${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee"
           original_price: product.price, discount: discountAmount,
           total_amount: totalAmount, platform_fee: platformFee,
           affiliate_commission: affiliateCommission,
-          second_tier_commission: secondTierCommission,
           vendor_earnings: vendorEarnings, commission_applied: commissionPercent,
           payment_processing_fee_bearer: paymentProcessingFeeBearer,
           paystack_fee: verifiedPaystackFeeKobo / 100,
