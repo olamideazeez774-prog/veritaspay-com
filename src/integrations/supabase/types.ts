@@ -138,27 +138,6 @@ export type Database = {
         }
         Relationships: []
       }
-      affiliate_referral_codes: {
-        Row: {
-          affiliate_id: string
-          created_at: string
-          id: string
-          referral_code: string
-        }
-        Insert: {
-          affiliate_id: string
-          created_at?: string
-          id?: string
-          referral_code: string
-        }
-        Update: {
-          affiliate_id?: string
-          created_at?: string
-          id?: string
-          referral_code?: string
-        }
-        Relationships: []
-      }
       ai_content_calendar: {
         Row: {
           affiliate_link_id: string | null
@@ -919,36 +898,6 @@ export type Database = {
         }
         Relationships: []
       }
-      platform_referrals: {
-        Row: {
-          commission_amount: number | null
-          commission_paid: boolean | null
-          created_at: string
-          id: string
-          referral_code: string
-          referred_user_id: string
-          referrer_id: string
-        }
-        Insert: {
-          commission_amount?: number | null
-          commission_paid?: boolean | null
-          created_at?: string
-          id?: string
-          referral_code: string
-          referred_user_id: string
-          referrer_id: string
-        }
-        Update: {
-          commission_amount?: number | null
-          commission_paid?: boolean | null
-          created_at?: string
-          id?: string
-          referral_code?: string
-          referred_user_id?: string
-          referrer_id?: string
-        }
-        Relationships: []
-      }
       platform_settings: {
         Row: {
           id: string
@@ -1047,7 +996,6 @@ export type Database = {
           price: number
           ranking_score: number | null
           refund_window_days: number
-          second_tier_commission_percent: number | null
           status: Database["public"]["Enums"]["product_status"]
           subscription_interval: string | null
           title: string
@@ -1074,7 +1022,6 @@ export type Database = {
           price: number
           ranking_score?: number | null
           refund_window_days?: number
-          second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           subscription_interval?: string | null
           title: string
@@ -1101,7 +1048,6 @@ export type Database = {
           price?: number
           ranking_score?: number | null
           refund_window_days?: number
-          second_tier_commission_percent?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           subscription_interval?: string | null
           title?: string
@@ -1124,7 +1070,6 @@ export type Database = {
           is_banned: boolean
           is_verified: boolean
           onboarding_balance_due: number
-          referral_code: string | null
           referred_by: string | null
           suspended_until: string | null
           updated_at: string
@@ -1144,7 +1089,6 @@ export type Database = {
           is_banned?: boolean
           is_verified?: boolean
           onboarding_balance_due?: number
-          referral_code?: string | null
           referred_by?: string | null
           suspended_until?: string | null
           updated_at?: string
@@ -1164,7 +1108,6 @@ export type Database = {
           is_banned?: boolean
           is_verified?: boolean
           onboarding_balance_due?: number
-          referral_code?: string | null
           referred_by?: string | null
           suspended_until?: string | null
           updated_at?: string
@@ -1260,8 +1203,6 @@ export type Database = {
           received_amount_kobo: number | null
           refund_eligible_until: string | null
           required_amount_kobo: number | null
-          second_tier_affiliate_id: string | null
-          second_tier_commission: number | null
           status: Database["public"]["Enums"]["sale_status"]
           total_amount: number
           updated_at: string
@@ -1293,8 +1234,6 @@ export type Database = {
           received_amount_kobo?: number | null
           refund_eligible_until?: string | null
           required_amount_kobo?: number | null
-          second_tier_affiliate_id?: string | null
-          second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
           total_amount: number
           updated_at?: string
@@ -1326,8 +1265,6 @@ export type Database = {
           received_amount_kobo?: number | null
           refund_eligible_until?: string | null
           required_amount_kobo?: number | null
-          second_tier_affiliate_id?: string | null
-          second_tier_commission?: number | null
           status?: Database["public"]["Enums"]["sale_status"]
           total_amount?: number
           updated_at?: string
@@ -1694,21 +1631,18 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string | null
-          referral_code: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string | null
-          referral_code?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string | null
-          referral_code?: string | null
         }
         Relationships: []
       }
@@ -1765,8 +1699,6 @@ export type Database = {
           _received_amount_kobo: number
           _refund_eligible_until: string
           _required_amount_kobo: number
-          _second_tier_affiliate_id: string
-          _second_tier_commission: number
           _total_amount: number
           _vendor_earnings_before_onboarding: number
           _vendor_id: string
@@ -1799,8 +1731,6 @@ export type Database = {
       }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_delivery_token: { Args: never; Returns: string }
-      generate_profile_referral_code: { Args: never; Returns: string }
-      generate_referral_code: { Args: never; Returns: string }
       get_unread_alert_count: { Args: never; Returns: number }
       has_role: {
         Args: {
