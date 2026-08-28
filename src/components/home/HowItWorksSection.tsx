@@ -55,14 +55,6 @@ export function HowItWorksSection() {
           transition={{ duration: 0.6 }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <motion.span
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-block px-4 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-medium mb-4"
-          >
-            How It Works
-          </motion.span>
           <h2 className="text-4xl md:text-5xl font-bold font-serif mb-6">
             From product creation to{" "}
             <span className="text-gradient-accent">payment and payout.</span>

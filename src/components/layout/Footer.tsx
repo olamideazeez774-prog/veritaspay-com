@@ -35,8 +35,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-muted-foreground max-w-sm mb-6">
-              The modern affiliate marketplace. Sell digital products, recruit affiliates, 
-              and scale your revenue with complete transparency.
+              The modern digital marketplace. Sell digital products, manage your business, work with promoters, and grow your revenue with complete transparency.
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (

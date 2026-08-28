@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { PLATFORM_NAME } from "@/lib/constants";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 const benefits = [
@@ -45,8 +44,7 @@ export function CTASection() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-3xl md:text-5xl font-bold font-serif mb-6"
               >
-                Ready to Grow Your{" "}
-                <span className="text-gradient-primary">Business</span>?
+                Ready to Grow Your Business?
               </motion.h2>
 
               <motion.p
@@ -55,8 +53,7 @@ export function CTASection() {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
               >
-                Join thousands of vendors and affiliates already earning with {PLATFORM_NAME}. 
-                Start your journey today.
+                Join vendors and affiliates building their digital businesses with MIRVYN. Start your journey today.
               </motion.p>
 
               {/* Benefits */}

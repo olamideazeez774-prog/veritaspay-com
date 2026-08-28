@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/home/HeroSection";
 import { FeaturesSection } from "@/components/home/FeaturesSection";
 import { HowItWorksSection } from "@/components/home/HowItWorksSection";
+import { PricingSection } from "@/components/home/PricingSection";
 import { CTASection } from "@/components/home/CTASection";
 
 export default function Index() {
@@ -13,6 +14,7 @@ export default function Index() {
         <HeroSection />
         <FeaturesSection />
         <HowItWorksSection />
+        <PricingSection />
         <CTASection />
       </main>
       <Footer />

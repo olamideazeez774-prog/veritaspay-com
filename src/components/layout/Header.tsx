@@ -164,7 +164,7 @@ export function Header() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <Button asChild variant="outline" className="min-h-11"><Link to="/login">Sign in</Link></Button>
-                    <Button asChild className="min-h-11"><Link to="/register">Get started</Link></Button>
+                    <Button asChild className="min-h-11"><Link to="/register">Start selling now</Link></Button>
                   </div>
                 )}
               </nav>

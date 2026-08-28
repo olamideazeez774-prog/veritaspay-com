@@ -22,7 +22,7 @@ export function HeroSection() {
           </motion.h1>
 
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.16 }} className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            MIRVYN gives creators a simple platform to sell digital products, manage their business, and connect with customers and promoters — all in one place.
+            MIRVYN gives creators a simple platform to sell digital products, manage their business, and connect with customers and promoters.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.24 }} className="mt-8 grid gap-3 sm:flex sm:justify-center">
@@ -37,7 +37,7 @@ export function HeroSection() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.6 }} className="mx-auto mt-10 grid max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-card/70 p-3 text-left shadow-sm backdrop-blur-sm sm:mt-14 sm:gap-4 sm:p-4">
             {[
               ["Free", "vendor registration"],
-              ["₦2,000", "course listing"],
+              ["₦2,000", "product listing"],
               ["₦350/mo", "affiliate access"],
             ].map(([value, label]) => (
               <div key={label} className="min-w-0 rounded-xl px-2 py-2 sm:px-3">
