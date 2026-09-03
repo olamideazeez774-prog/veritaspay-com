@@ -39,16 +39,25 @@ export default function Register() {
     
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { data, error } = await signUp(email, password, fullName);
 
     if (error) {
       recordAttempt();
       toast.error(error.message);
       setIsLoading(false);
-    } else {
-      toast.success("Account created successfully! Please check your email to verify.");
-      navigate("/login");
+      return;
     }
+
+    const hasSession = Boolean((data as { session?: unknown } | null)?.session);
+
+    if (hasSession) {
+      toast.success("Welcome to Mirvyn! Let's set up your account.");
+      navigate("/dashboard");
+      return;
+    }
+
+    toast.success("Account created. Sign in to continue.");
+    navigate("/login");
   };
 
   return (
