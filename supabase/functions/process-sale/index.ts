@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const normalizedBuyerEmail = buyerEmail.trim().toLowerCase();
     const { data: pendingPayment, error: pendingPaymentError } = await supabase
       .from("pending_payments")
-      .select("reference, purpose, status, email, metadata, expected_amount_kobo, customer_processing_fee_kobo, vendor_processing_fee_kobo, affiliate_processing_fee_kobo, paystack_fee_kobo")
+      .select("reference, purpose, status, email, metadata, expected_amount_kobo, received_amount_kobo, customer_processing_fee_kobo, vendor_processing_fee_kobo, affiliate_processing_fee_kobo, paystack_fee_kobo")
       .eq("reference", paymentReference)
       .maybeSingle();
 

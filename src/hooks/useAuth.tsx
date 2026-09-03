@@ -143,11 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error) {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
-        // Check email verification
-        if (!authUser.email_confirmed_at) {
-          await supabase.auth.signOut();
-          return { error: new Error("Please verify your email before signing in. Check your inbox for the verification link.") };
-        }
+
 
         const { data: prof } = await supabase
           .from("profiles")
