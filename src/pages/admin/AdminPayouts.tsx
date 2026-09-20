@@ -66,11 +66,13 @@ export default function AdminPayouts() {
 
   const updatePayout = useMutation({
     mutationFn: async ({ payoutId, status, notes }: { payoutId: string; status: PayoutStatus; notes: string }) => {
-      const { error } = await supabase
-        .from("payout_requests")
-        .update({ status, admin_notes: notes, processed_at: status === "paid" || status === "rejected" ? new Date().toISOString() : null })
-        .eq("id", payoutId);
+      // State changes are performed by an admin-only edge function instead of a
+      // direct table write, so wallet bookkeeping transitions stay server-side.
+      const { data, error } = await supabase.functions.invoke("admin-update-payout", {
+        body: { payoutId, status, admin_notes: notes || null },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-payouts"] });
@@ -78,7 +80,7 @@ export default function AdminPayouts() {
       setSelectedPayout(null);
       setAdminNotes("");
     },
-    onError: () => { toast.error("Failed to update payout"); },
+    onError: (error: Error) => { toast.error(error.message || "Failed to update payout"); },
   });
 
   const filteredPayouts = payouts?.filter((payout) => {

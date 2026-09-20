@@ -64,23 +64,17 @@ export function RoleSelector() {
       // Each selected role becomes its own payment intent so partial failures
       // never accidentally activate a role the user didn't pay for.
       if (selectedRoles.includes("vendor")) {
-        const { data: existingVendorRole } = await supabase
-          .from("user_roles")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("role", "vendor")
-          .maybeSingle();
-        if (!existingVendorRole) {
-          const { error: roleError } = await supabase.from("user_roles").insert({ user_id: user.id, role: "vendor" });
-          if (roleError) throw roleError;
+        const { data: vendorResult, error: roleError } = await supabase.rpc("self_activate_vendor");
+        if (roleError) throw roleError;
+        if (vendorResult && typeof vendorResult === "object" && "error" in vendorResult) {
+          throw new Error(String((vendorResult as { error: string }).error));
         }
       }
 
-      const intents: Array<{ purpose: "affiliate_membership"; amount: number; metadata: Record<string, unknown> }> = [];
+      const intents: Array<{ purpose: "affiliate_membership"; metadata: Record<string, unknown> }> = [];
       if (selectedRoles.includes("affiliate")) {
         intents.push({
           purpose: "affiliate_membership",
-          amount: AFFILIATE_REGISTRATION_FEE,
           metadata: {},
         });
       }
@@ -94,7 +88,7 @@ export function RoleSelector() {
       }
 
       const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
-        body: { email: user.email, purpose: first.purpose, userId: user.id, amount: first.amount, callbackUrl, metadata: first.metadata },
+        body: { email: user.email, purpose: first.purpose, userId: user.id, callbackUrl, metadata: first.metadata },
       });
       if (payErr) throw payErr;
       if (data?.error) throw new Error(data.error);

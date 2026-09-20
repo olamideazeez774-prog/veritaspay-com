@@ -1,3 +1,5 @@
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -6,14 +8,30 @@ const corsHeaders = {
 
 // SECURITY: this function must only be called from other edge functions (service role)
 // or by authenticated admins. Reject any unauthenticated public callers.
-function isAuthorized(req: Request): boolean {
+async function isAuthorized(
+  req: Request,
+  supabaseAdmin: SupabaseClient,
+): Promise<{ ok: boolean; viaAdmin?: string }> {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return false;
+  if (!token) return { ok: false };
+
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  // Allow service-role calls (from other edge functions) only.
+  // Service-role calls (from other edge functions) are always allowed.
   // Anon-key calls are rejected even if the key is present.
-  return token === serviceKey;
+  if (serviceKey && token === serviceKey) return { ok: true };
+
+  // Authenticated admin fallback so admins can trigger notifications manually.
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user) return { ok: false };
+  const { data: role } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", data.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (role) return { ok: true, viaAdmin: data.user.id };
+  return { ok: false };
 }
 
 interface EmailRequest {
@@ -23,13 +41,29 @@ interface EmailRequest {
   from?: string;
 }
 
+// Senders this platform actually owns. Anything else is a spoofing attempt.
+const ALLOWED_FROM = new Set([
+  "noreply@mirvyn.com",
+  "Mirvyn <noreply@mirvyn.com>",
+  "support@mirvyn.com",
+  "Mirvyn <support@mirvyn.com>",
+  "hello@mirvyn.com",
+  "Mirvyn <hello@mirvyn.com>",
+]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    if (!isAuthorized(req)) {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const authz = await isAuthorized(req, supabaseAdmin);
+    if (!authz.ok) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,6 +87,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    const requestedFrom = (from || "").trim();
+    if (requestedFrom && !ALLOWED_FROM.has(requestedFrom)) {
+      return new Response(JSON.stringify({ error: "Unauthorized sender address" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const sender = requestedFrom || "Mirvyn <noreply@mirvyn.com>";
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -60,7 +104,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: from || "Mirvyn <noreply@mirvyn.com>",
+        from: sender,
         to: [to],
         subject,
         html,

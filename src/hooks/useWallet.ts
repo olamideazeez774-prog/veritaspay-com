@@ -135,29 +135,3 @@ export function useAllPayoutRequests() {
     },
   });
 }
-
-export function useUpdatePayoutRequest() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<PayoutRequest> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("payout_requests")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payout-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["all-payout-requests"] });
-      toast.success("Payout request updated!");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}

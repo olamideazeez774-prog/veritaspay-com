@@ -249,9 +249,13 @@ export async function verifyAndActivate(
         .update({ affiliate_membership_expires_at: expiresAt })
         .eq("id", userId);
     } else if (purpose === "sale") {
-      // Sales are handled by process-sale; webhook just records verification, callback also calls process-sale
+      // Sales are handled by process-sale; webhook just records verification, callback also calls process-sale.
+      // SECURITY: checkout-time server metadata is AUTHORITATIVE. The caller-supplied
+      // saleContext is only a fallback for legacy rows — otherwise anyone who learns a
+      // victim's reference (it appears in the callback URL) could swap the affiliate for
+      // commission farming or inject a different coupon to distort the vendor split.
       const productId = (metadata.product_id as string) || saleContext?.productId;
-      const buyerEmail = saleContext?.buyerEmail || pending.email;
+      const buyerEmail = pending.email || saleContext?.buyerEmail;
       if (productId && buyerEmail) {
         const { data: existingSale } = await supabase
           .from("sales")
@@ -263,9 +267,9 @@ export async function verifyAndActivate(
             body: {
               productId,
               buyerEmail,
-              buyerName: saleContext?.buyerName || (metadata.buyer_name as string) || null,
-              affiliateCode: saleContext?.affiliateCode || (metadata.affiliate_code as string) || null,
-              couponCode: saleContext?.couponCode || (metadata.coupon_code as string) || null,
+              buyerName: (metadata.buyer_name as string) || saleContext?.buyerName || null,
+              affiliateCode: (metadata.affiliate_code as string) || saleContext?.affiliateCode || null,
+              couponCode: (metadata.coupon_code as string) || saleContext?.couponCode || null,
               paymentReference: reference,
               paymentGateway: "paystack",
               requiredAmountKobo: expectedKobo,

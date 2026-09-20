@@ -150,7 +150,6 @@ export default function Checkout() {
         buyerName: formData.name,
         affiliateCode: affiliateCode || null,
         couponCode: couponApplied?.code || null,
-        finalPrice: finalPrice,
         requiredAmount: paymentData.amount,
         paymentProcessingFeeBearer: paymentData.payment_processing_fee_bearer || feeBearer,
         paymentReference: paymentData.reference,

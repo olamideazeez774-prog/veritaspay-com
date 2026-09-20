@@ -1,16 +1,28 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ShoppingCart, TrendingUp, Users, DollarSign, Plus } from "lucide-react";
+import { ShoppingCart, TrendingUp, Users, DollarSign, Plus, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorStats } from "@/hooks/useStats";
-import { useVendorSales } from "@/hooks/useSales";
+import { useVendorSales, useProcessRefund } from "@/hooks/useSales";
 import { useWallet } from "@/hooks/useWallet";
 import { StatCard } from "@/components/ui/stat-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { SALE_STATUS_LABELS } from "@/lib/constants";
@@ -28,6 +40,25 @@ export default function VendorSales() {
   const { data: stats, isLoading: statsLoading } = useVendorStats(user?.id);
   const { data: sales, isLoading: salesLoading } = useVendorSales(user?.id);
   const { data: wallet } = useWallet(user?.id);
+  const processRefund = useProcessRefund();
+  const [refundTarget, setRefundTarget] = useState<{ id: string; title: string } | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+
+  const submitRefund = () => {
+    if (!refundTarget) return;
+    processRefund.mutate(
+      { saleId: refundTarget.id, reason: refundReason.trim() || undefined },
+      { onSettled: () => {
+        setRefundTarget(null);
+        setRefundReason("");
+      } },
+    );
+  };
+
+  const isRefundEligible = (sale: { status: string; refund_eligible_until?: string | null }) =>
+    sale.status === "completed" &&
+    !!sale.refund_eligible_until &&
+    new Date(sale.refund_eligible_until) > new Date();
 
   const isLoading = statsLoading || salesLoading;
 
@@ -144,6 +175,7 @@ export default function VendorSales() {
                     <TableHead>Affiliate</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,6 +204,20 @@ export default function VendorSales() {
                       <TableCell className="text-muted-foreground">
                         {formatDate(sale.created_at)}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {isRefundEligible(sale) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            disabled={processRefund.isPending}
+                            onClick={() => setRefundTarget({ id: sale.id, title: sale.products?.title || "this sale" })}
+                          >
+                            <Undo2 className="mr-1 h-4 w-4" />
+                            Refund
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -180,6 +226,38 @@ export default function VendorSales() {
           )}
         </motion.div>
       </div>
+
+      {/* Refund confirmation */}
+      <AlertDialog open={!!refundTarget} onOpenChange={(open) => !open && setRefundTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Refund “{refundTarget?.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The buyer's money is returned via Paystack and all wallet credits for this sale
+              are reversed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="Reason (optional, shared with the buyer)"
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={processRefund.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                submitRefund();
+              }}
+            >
+              {processRefund.isPending ? "Processing…" : "Process refund"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

@@ -1,212 +1,131 @@
 # Production Deployment Guide
 
-## Critical Fixes Applied
+> Status: the codebase is deployment-ready. The steps below are what you must
+> run to bring a live Supabase/Vercel project up to date with this code.
 
-### ✅ 1. Config.toml Fixes (COMPLETED)
-Added 6 missing edge functions to `supabase/config.toml` with `verify_jwt = false`:
-- `paystack-callback` - Fixed 401 errors on payment verification
-- `get-delivery` - Fixed delivery access for buyers
-- `clear-earnings` - Fixed earnings clearing cron
-- `process-refund` - Fixed refund processing
-- `fraud-detection` - Fixed fraud analysis
-- `ai-autonomous-scheduler` - Fixed AI automation
+## 1. Apply the pending database migration
 
-### ✅ 2. SQL Migrations Created
+One migration contains all 2026-09 hardening (grants, vendor self-activation RPC,
+payout immutability trigger, clear-earnings cron, role-policy tightening):
 
-#### Migration 1: Fix admin_notes Privacy
-**File:** `supabase/migrations/20260404000001_fix_admin_notes_privacy.sql`
-
-This migration addresses the security issue where `admin_notes` on profiles were publicly readable.
-
-**To apply:**
 ```bash
 supabase db push
 ```
 
-Or run in Supabase SQL Editor:
-```sql
--- Create a public profiles view (excluding admin_notes)
-CREATE OR REPLACE VIEW public_profiles AS
-SELECT 
-  id, full_name, email, avatar_url, referral_code, 
-  is_banned, suspended_until, vendor_tier, is_verified,
-  created_at, updated_at
-FROM profiles;
+Or run in the Supabase SQL Editor:
+`supabase/migrations/20260920120000_audit_remediation_hardening.sql`
 
--- Note: Application should use public_profiles for public display
--- Only fetch admin_notes for admin users or own profile
-```
+What it does:
 
-#### Migration 2: Enable Realtime
-**File:** `supabase/migrations/20260404000002_enable_realtime.sql`
+| Fix | Detail |
+|---|---|
+| `create_verified_sale` / `process_refund_atomic` grants | Restores `EXECUTE ... TO service_role` that a previous migration REVOKEd without re-granting. **Without this, every marketplace sale fails on any fresh environment.** |
+| `self_activate_vendor()` | Free, idempotent vendor onboarding RPC (SECURITY DEFINER, hard-codes the `vendor` role). Replaces the old client-side `user_roles` INSERT that RLS blocked. |
+| Payout immutability | `enforce_payout_request_integrity` now freezes `amount`/`fee_amount`/`net_amount`/`wallet_id`/`user_id` after creation, and the UPDATE trigger is re-bound without `OF status` so money-column-only edits can't bypass the guard. |
+| Clear-earnings cron | Schedules `clear-earnings-daily` (`0 0 * * *`) calling the SECURITY DEFINER RPC directly — same proven pattern as `cleanup-stale-payments-15m`. No external cron service needed. |
+| Role policy tightening | `user_roles` INSERT is admin-only for `authenticated` (service role bypasses RLS, so onboarding via the RPC still works). |
 
-Enables realtime subscriptions for live updates.
+## 2. Deploy the changed edge functions
 
-**To apply:**
 ```bash
-supabase db push
+supabase functions deploy admin-update-payout      # NEW function
+supabase functions deploy initialize-payment
+supabase functions deploy process-sale
+supabase functions deploy process-refund
+supabase functions deploy send-email
+supabase functions deploy get-delivery
+supabase functions deploy track-click
+supabase functions deploy paystack-callback
+supabase functions deploy paystack-webhook
 ```
 
-Or run in Supabase SQL Editor:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE user_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE vendor_announcements;
-```
+`admin-update-payout` is already registered in `supabase/config.toml` (all 16
+functions are listed with `verify_jwt = false`; auth is enforced in-function).
 
----
+## 3. Environment variables
 
-## 🔴 CRITICAL: Setup Cron Jobs
+Supabase Dashboard → Edge Functions secrets:
 
-The `clear-earnings` function needs to run daily to move earnings from "pending" to "cleared" state after the refund window passes.
+| Secret | Required for |
+|---|---|
+| `PAYSTACK_SECRET_KEY` | all payment paths |
+| `RESEND_API_KEY` | transactional email (`send-email`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | auto-provided |
+| `SITE_URL` | correct links inside emails |
+| `INTERNAL_FUNCTION_SECRET` **or** `CRON_SECRET` | optional but recommended — trusted-internal auth for `clear-earnings`, `fraud-detection`, `process-sale` |
 
-### Option 1: Supabase Cron (Recommended)
+Vercel project env vars (public, safe): `VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` — see
+`vercel-env.txt`.
 
-Add to `supabase/config.toml`:
-```toml
-[cron]
-enabled = true
+## 4. Security hardening changelog (2026-09)
 
-[[cron.jobs]]
-name = "clear-earnings"
-schedule = "0 0 * * *"  # Daily at midnight
-function = "clear-earnings"
-```
+Money-rule integrity
 
-Then deploy:
-```bash
-supabase functions deploy clear-earnings
-```
+- Canonical, server-owned amounts for every non-sale purpose (`verification`,
+  `listing_fee`, `affiliate_membership`, `premium_upgrade`, `subscription`); the
+  client can no longer dictate what it pays.
+- `process-sale` computes all splits through `_shared/sale-pricing.ts` and
+  reconciles received-vs-checkout amounts; mismatches raise high-severity
+  `fraud_events`.
+- Checkout-time pending metadata (product, coupon, affiliate, buyer) is
+  **authoritative** — callback hints can no longer swap the affiliate (commission
+  farming) or inject a different coupon on a paid order.
+- Admin payout state changes go through the `admin-update-payout` edge function
+  (admin-JWT gated, sane-transition checks) instead of raw client table writes;
+  wallet bookkeeping stays in the DB trigger.
+- `process-refund` performs the atomic internal reversal **and** the real
+  Paystack refund, with uniform 404s to prevent sale enumeration.
 
-### Option 2: External Cron Service (Vercel, GitHub Actions, etc.)
+Access control & abuse resistance
 
-**Vercel Cron Example** (vercel.json):
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/clear-earnings",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
-```
+- Vendor onboarding no longer depends on a client-side role INSERT.
+- `send-email` is closed to the public (service-role or admin JWT only, allowlisted
+  `from` addresses) — was an open relay.
+- `get-delivery` rate-limits successful lookups (30/hour per IP, hashed) and writes
+  `delivery_logs` audit rows.
+- `track-click` no longer duplicates the PII-derived `ip_hash` into `fraud_events`.
+- Receipt/refund emails HTML-escape user-controlled text (titles, buyer names).
 
-**GitHub Actions Example** (.github/workflows/clear-earnings.yml):
-```yaml
-name: Clear Earnings Daily
-on:
-  schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC
-  workflow_dispatch:  # Manual trigger
+Regression protection
 
-jobs:
-  clear-earnings:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call clear-earnings function
-        run: |
-          curl -X POST "https://your-project.supabase.co/functions/v1/clear-earnings" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-```
+- `src/test/driftGuard.test.ts` (runs in `npm test`) fails CI if: client and
+  server withdrawal-fee or Paystack-fee math drift; canonical purpose amounts
+  drift from client constants; any edge function loses its auth check or config
+  entry; an app-called RPC ends on a REVOKE; or the `create_verified_sale`
+  service-role grant disappears again.
 
-### Option 3: Manual Admin Trigger
+## 5. Post-deploy smoke test (5 minutes)
 
-Add a button in Admin Panel to trigger manually:
-```typescript
-// In AdminDashboard or AdminRevenue page
-const triggerClearEarnings = async () => {
-  const { data, error } = await supabase.functions.invoke('clear-earnings');
-  if (error) toast.error('Failed to clear earnings');
-  else toast.success(`Processed ${data?.clearedCount || 0} earnings`);
-};
-```
+1. **Sale:** buy any product in test mode → webhook verifies → sale row created,
+   vendor/affiliate wallets credited, receipt email arrives.
+2. **Amount tamper:** replay the callback with a modified coupon/affiliate — must
+   be ignored (metadata wins).
+3. **Vendor onboarding:** new user selects "Sell" → role activates without error.
+4. **Payout:** request payout → reserve → admin approves → `transfer.success`
+   webhook marks it paid and `total_withdrawn` advances.
+5. **Refund:** vendor refunds an eligible sale from Dashboard → Sales → wallets
+   reverse, Paystack refund initiated.
+6. **Roles:** attempt `INSERT INTO user_roles` as a normal authenticated user —
+   must be rejected by RLS.
 
----
+## 6. Known accepted residuals (non-exploitable)
 
-## 🔴 CRITICAL: Environment Variables
+- `ai-insights` allows any authenticated user to request AI analysis of their own
+  data — a token-cost consideration, not a privilege issue (platform_advisory is
+  admin-gated).
+- Vendor self-purchase is possible but unprofitable (platform keeps the fee).
+- Abandoned payment intents are bounded by the `cleanup-stale-payments-15m` cron.
+- Optional dependency cleanup: `gsap` is declared in `package.json` but never
+  imported — safe to `npm uninstall`.
 
-Set these in Supabase Dashboard → Project Settings → Secrets:
+## 7. Pre-launch checklist
 
-| Secret | Status | Impact |
-|--------|--------|--------|
-| `PAYSTACK_SECRET_KEY` | ❌ NOT SET | Payments will fail with 503 |
-| `RESEND_API_KEY` | ❌ NOT SET | Emails will fail with 503 |
-| `LOVABLE_API_KEY` | ✅ SET | AI features work |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ SET | Edge functions work |
-| `SITE_URL` | ⚠️ CHECK | Email links need correct domain |
-
----
-
-## 🟡 MEDIUM Priority Fixes Remaining
-
-### Commission Rules Verification
-The process-sale function already has commission rules logic. However, verify these rule types work:
-- `weekly_threshold` - Boost after X weekly sales ✅
-- `per_affiliate` - Custom commission per affiliate ✅
-- `tiered` - Not yet implemented (optional enhancement)
-- `boost` - Not yet implemented (optional enhancement)
-
-### Database Triggers Verification
-Run this SQL to verify triggers exist:
-```sql
-SELECT * FROM information_schema.triggers 
-WHERE trigger_schema = 'public';
-```
-
-Expected triggers:
-- `notify_on_sale`
-- `notify_on_payout_change`
-- `log_payout_change`
-- `handle_new_user`
-- `auto_generate_affiliate_code`
-- `increment_click_count`
-- And 10+ more...
-
-If triggers are missing, run:
-```bash
-supabase db reset  # ⚠️ This will reset data
-```
-Or manually recreate triggers from migration files.
-
----
-
-## 🟢 LOW Priority Cleanup
-
-### Unused Code (Safe to Remove)
-1. `src/components/ui/toaster.tsx` - Radix Toaster (unused)
-2. `src/hooks/use-toast.ts` - Radix toast hook (unused)
-3. Legacy `/admin/*` routes in App.tsx (duplicates)
-4. `gsap` package (not imported anywhere)
-
-### Performance Improvements
-1. Add React.lazy() for code splitting
-2. Optimize certificate PDF generation (713 lines, CPU intensive)
-3. Add pagination to admin tables (currently fetch all records)
-
----
-
-## Pre-Launch Checklist
-
-- [ ] Set `PAYSTACK_SECRET_KEY` in Supabase secrets
-- [ ] Set `RESEND_API_KEY` in Supabase secrets
-- [ ] Apply SQL migrations (admin_notes, realtime)
-- [ ] Setup cron job for `clear-earnings`
-- [ ] Verify database triggers exist
-- [ ] Test payment flow end-to-end
-- [ ] Test email delivery
-- [ ] Test affiliate commission calculation
-- [ ] Verify RLS policies (admin_notes restricted)
-- [ ] Test PWA on mobile devices
-- [ ] Load test with 100+ concurrent users
-
----
-
-## Support
-
-For issues with:
-- **Payments**: Check `PAYSTACK_SECRET_KEY` and test mode
-- **Emails**: Check `RESEND_API_KEY` and domain verification
-- **Earnings not clearing**: Verify cron job is running
-- **401 errors**: Check config.toml has `verify_jwt = false`
-- **Realtime not working**: Check migration 20260404000002 applied
+- [ ] `supabase db push` applied (migration `20260920120000`)
+- [ ] Changed + new edge functions deployed (section 2)
+- [ ] `PAYSTACK_SECRET_KEY`, `RESEND_API_KEY`, `SITE_URL` set
+- [ ] Optional: `INTERNAL_FUNCTION_SECRET` set
+- [ ] `clear-earnings-daily` cron visible in `cron.job`
+- [ ] Smoke tests in section 5 pass in Paystack test mode
+- [ ] PWA verified on a real mobile device
+- [ ] Switch Paystack to live keys, re-run smoke test #1 with ₦1 product

@@ -1,11 +1,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authFailureResponse, isTrustedInternalRequest } from "../_shared/auth.ts";
+import {
+  PLATFORM_FEE_PERCENT,
+  amountWithinFeeTolerance,
+  computeSaleTotals,
+  couponDiscountKobo,
+  isCouponApplicable,
+} from "../_shared/sale-pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+/** Escape user-controlled text before embedding it in HTML emails. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 interface ProcessSaleRequest {
   productId: string;
@@ -19,7 +36,6 @@ interface ProcessSaleRequest {
   receivedAmountKobo?: number;
   paystackFeeKobo?: number;
   paystackTransactionId?: number | null;
-  affiliateProcessingFeeKobo?: number;
 }
 
 Deno.serve(async (req) => {
@@ -40,7 +56,6 @@ Deno.serve(async (req) => {
       productId, buyerEmail, buyerName, affiliateCode, paymentReference,
       paymentGateway = "paystack", couponCode,
       requiredAmountKobo, receivedAmountKobo, paystackFeeKobo, paystackTransactionId,
-      affiliateProcessingFeeKobo: requestedAffiliateProcessingFeeKobo,
     }: ProcessSaleRequest = await req.json();
 
     if (!productId || !buyerEmail || !paymentReference) {
@@ -110,43 +125,56 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ======== COUPON VALIDATION ========
-    let discountAmount = 0;
+    // ======== AUTHORITATIVE AMOUNTS ========
+    // pending_payments.metadata was written by initialize-payment at checkout
+    // time and is the contract the buyer accepted. Live product data is only a
+    // fallback for legacy rows.
+    const pendingProductAmountKobo = Number(pendingMetadata.product_amount_kobo);
+    const authoritativeProductAmountKobo = Number.isFinite(pendingProductAmountKobo) && pendingProductAmountKobo > 0
+      ? pendingProductAmountKobo
+      : Math.round(Number(product.price) * 100);
+    if (!Number.isFinite(pendingProductAmountKobo) || pendingProductAmountKobo <= 0) {
+      console.warn("pending payment missing product_amount_kobo; fell back to live product price", paymentReference);
+    }
+
+    // ======== COUPON VALIDATION (coupon comes from the pending contract) ========
+    // SECURITY: checkout-time server metadata wins; the request hint is only a
+    // legacy fallback. Letting the hint win would let a caller swap coupons on
+    // a paid order and distort the vendor/affiliate split.
+    const authoritativeCouponCode = (
+      (typeof pendingMetadata.coupon_code === "string" && pendingMetadata.coupon_code) || couponCode || ""
+    ) || null;
+    let discountKobo = 0;
     let appliedCouponId: string | null = null;
 
-    if (couponCode) {
+    if (authoritativeCouponCode) {
       const { data: coupon } = await supabase
         .from("vendor_coupons")
-        .select("*")
-        .eq("code", couponCode.toUpperCase().trim())
+        .select("id, discount_percent, discount_amount, expires_at, max_uses, current_uses, product_id")
+        .eq("code", authoritativeCouponCode.toUpperCase().trim())
         .eq("is_active", true)
         .eq("vendor_id", product.vendor_id)
         .maybeSingle();
 
-      if (coupon) {
-        const isValidProduct = !coupon.product_id || coupon.product_id === productId;
-        const isNotExpired = !coupon.expires_at || new Date(coupon.expires_at) > new Date();
-        const hasUsesLeft = !coupon.max_uses || coupon.current_uses < coupon.max_uses;
-
-        if (isValidProduct && isNotExpired && hasUsesLeft) {
-          if (coupon.discount_percent > 0) {
-            discountAmount = Math.round(product.price * (coupon.discount_percent / 100));
-          } else if (coupon.discount_amount > 0) {
-            discountAmount = Math.min(coupon.discount_amount, product.price);
-          }
-          appliedCouponId = coupon.id;
-        }
+      if (coupon && isCouponApplicable(coupon, productId)) {
+        discountKobo = couponDiscountKobo(coupon, authoritativeProductAmountKobo);
+        appliedCouponId = coupon.id;
       }
     }
 
     // ======== AFFILIATE LOOKUP ========
+    // SECURITY: the affiliate attributed at checkout (server-written metadata)
+    // is authoritative; the request hint is only a legacy fallback.
     let affiliateId: string | null = null;
     let affiliateLinkId: string | null = null;
 
-    if (affiliateCode) {
+    const effectiveAffiliateCode =
+      (typeof pendingMetadata.affiliate_code === "string" && pendingMetadata.affiliate_code) || affiliateCode || null;
+
+    if (effectiveAffiliateCode) {
       const { data: affiliateLink } = await supabase
         .from("affiliate_links").select("id, affiliate_id")
-        .eq("unique_code", affiliateCode.toUpperCase()).eq("product_id", productId).single();
+        .eq("unique_code", effectiveAffiliateCode.toUpperCase()).eq("product_id", productId).single();
 
       if (affiliateLink) {
         if (affiliateLink.affiliate_id === product.vendor_id) {
@@ -214,31 +242,50 @@ Deno.serve(async (req) => {
         commissionPercent = Math.max(commissionPercent, affiliateRules[0].commission_override);
       }
     }
+    // Sanity-bounds only; never invents a minimum.
+    commissionPercent = Math.min(100, Math.max(0, Number(commissionPercent) || 0));
 
-    // ======== CALCULATE AMOUNTS ========
-    const totalAmount = Math.max(0, product.price - discountAmount);
-    const platformFeePercent = 5;
+    // ======== CALCULATE AMOUNTS (single shared implementation) ========
+    const expectedKobo = Number(pendingPayment.expected_amount_kobo);
+    const receivedKobo = Number(receivedAmountKobo ?? pendingPayment.received_amount_kobo ?? 0);
+    if (Number.isFinite(expectedKobo) && expectedKobo > 0 && Number.isFinite(receivedKobo) && receivedKobo > 0
+      && receivedKobo !== expectedKobo) {
+      return new Response(JSON.stringify({ error: "Received amount does not match the checkout amount" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
+    const estimatedFeeKobo = Math.max(0, Number(pendingMetadata.estimated_paystack_fee_kobo ?? 0));
+    if (receivedKobo > 0 && !amountWithinFeeTolerance(receivedKobo, authoritativeProductAmountKobo, discountKobo, estimatedFeeKobo)) {
+      await supabase.from("fraud_events").insert({
+        event_type: "sale_amount_reconciliation_failed", severity: "high",
+        related_id: paymentReference, related_type: "pending_payment",
+        description: `Checkout terms disagree with product/discount math for ${paymentReference}`,
+        status: "blocked",
+        metadata: { receivedKobo, authoritativeProductAmountKobo, discountKobo, estimatedFeeKobo },
+      });
+      return new Response(JSON.stringify({ error: "Sale amount reconciliation failed" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    // CORRECT COMMISSION FORMULA (industry-standard):
-    //   platform_fee       = total * platform_fee_percent / 100
-    //   affiliate_commission = total * commission_percent / 100   (% OF SALE PRICE, not of net)
-    //   vendor_earnings    = total - platform_fee - affiliate_commission
-    const platformFee = Math.round((totalAmount * platformFeePercent) / 100);
     const paymentProcessingFeeBearer = pendingMetadata.payment_processing_fee_bearer === "vendor_affiliate_split_50_50"
       ? "vendor_affiliate_split_50_50"
       : "vendor";
     const verifiedPaystackFeeKobo = Math.max(0, Number(paystackFeeKobo ?? pendingPayment.paystack_fee_kobo ?? 0));
-    const estimatedAffiliateFeeKobo = Math.max(0, Number(requestedAffiliateProcessingFeeKobo ?? pendingPayment.affiliate_processing_fee_kobo ?? pendingMetadata.affiliate_processing_fee_kobo ?? 0));
-    const affiliateProcessingFeeKobo = affiliateId && paymentProcessingFeeBearer === "vendor_affiliate_split_50_50"
-      ? Math.min(Math.floor(verifiedPaystackFeeKobo / 2), estimatedAffiliateFeeKobo || Math.floor(verifiedPaystackFeeKobo / 2))
-      : 0;
-    const vendorProcessingFeeKobo = Math.max(0, verifiedPaystackFeeKobo - affiliateProcessingFeeKobo);
-    const grossAffiliateCommission = affiliateId
-      ? Math.round((totalAmount * commissionPercent) / 100)
-      : 0;
-    const affiliateCommission = Math.max(0, grossAffiliateCommission - (affiliateProcessingFeeKobo / 100));
-    let vendorEarnings = Math.max(0, totalAmount - platformFee - grossAffiliateCommission - (vendorProcessingFeeKobo / 100));
+    const totals = computeSaleTotals({
+      productAmountKobo: authoritativeProductAmountKobo,
+      discountKobo,
+      paystackFeeKobo: verifiedPaystackFeeKobo,
+      commissionPercent,
+      platformFeePercent: PLATFORM_FEE_PERCENT,
+      feeBearer: paymentProcessingFeeBearer,
+      hasAffiliate: affiliateId != null,
+    });
+    const totalAmount = totals.totalAmountNaira;
+    const platformFee = totals.platformFee;
+    const affiliateCommission = totals.affiliateCommission;
+    let vendorEarnings = totals.vendorEarnings;
+    const affiliateProcessingFeeKobo = totals.affiliateProcessingFeeKobo;
+    const vendorProcessingFeeKobo = totals.vendorProcessingFeeKobo;
 
 
     const refundEligibleUntil = new Date();
@@ -259,7 +306,7 @@ Deno.serve(async (req) => {
       _affiliate_commission: affiliateCommission,
       _vendor_earnings_before_onboarding: vendorEarnings,
       _commission_percent_snapshot: commissionPercent,
-      _platform_fee_percent_snapshot: platformFeePercent,
+      _platform_fee_percent_snapshot: PLATFORM_FEE_PERCENT,
       _refund_eligible_until: refundEligibleUntil.toISOString(),
       _delivery_access_token: deliveryAccessToken,
       _payment_reference: paymentReference,
@@ -305,11 +352,11 @@ Deno.serve(async (req) => {
           to: normalizedBuyerEmail,
           subject: `Receipt: ${product.title} — Mirvyn`,
           html: `<h2>Thank you for your purchase!</h2>
-<p>Hi ${buyerName || "there"},</p>
-<p>Your purchase of <strong>${product.title}</strong> has been confirmed.</p>
+<p>Hi ${escapeHtml(buyerName || "there")},</p>
+<p>Your purchase of <strong>${escapeHtml(product.title)}</strong> has been confirmed.</p>
 <table style="width:100%;border-collapse:collapse;margin:16px 0">
-<tr><td style="padding:8px;border-bottom:1px solid #eee">Product</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>${product.title}</strong></td></tr>
-${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee">Discount</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;color:green">-₦${discountAmount.toLocaleString()}</td></tr>` : ""}
+<tr><td style="padding:8px;border-bottom:1px solid #eee">Product</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>${escapeHtml(product.title)}</strong></td></tr>
+${discountKobo > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee">Discount</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;color:green">-₦${(discountKobo / 100).toLocaleString()}</td></tr>` : ""}
 <tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>Total Paid</strong></td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>₦${totalAmount.toLocaleString()}</strong></td></tr>
 <tr><td style="padding:8px">Reference</td><td style="padding:8px;text-align:right;font-family:monospace">${paymentReference}</td></tr>
 </table>
@@ -336,7 +383,7 @@ ${discountAmount > 0 ? `<tr><td style="padding:8px;border-bottom:1px solid #eee"
       JSON.stringify({
         success: true, saleId: sale.id, message: "Sale processed successfully",
         breakdown: {
-          original_price: product.price, discount: discountAmount,
+          original_price: product.price, discount: discountKobo / 100,
           total_amount: totalAmount, platform_fee: platformFee,
           affiliate_commission: affiliateCommission,
           vendor_earnings: vendorEarnings, commission_applied: commissionPercent,

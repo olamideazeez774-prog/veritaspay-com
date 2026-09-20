@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Sale } from "@/types/database";
 
 interface SaleWithProduct extends Sale {
@@ -56,6 +57,49 @@ export function useAllSales() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as SaleWithProduct[];
+    },
+  });
+}
+
+interface ProcessRefundInput {
+  saleId: string;
+  reason?: string;
+}
+
+/**
+ * Vendor/admin-initiated refund through the process-refund edge function.
+ * The server re-verifies requester authorization, refund eligibility, and
+ * performs the wallet reversal atomically — the client only relays the intent.
+ */
+export function useProcessRefund() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ saleId, reason }: ProcessRefundInput) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error("You must be logged in to process refunds");
+      }
+
+      const { data, error } = await supabase.functions.invoke("process-refund", {
+        body: {
+          saleId,
+          reason,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-sales"] });
+      queryClient.invalidateQueries({ queryKey: ["affiliate-sales"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      toast.success("Refund processed successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to process refund");
     },
   });
 }

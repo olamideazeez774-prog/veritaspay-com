@@ -11,6 +11,17 @@ const ALLOWED_PURPOSES = new Set([
   "subscription",
 ]);
 
+// Canonical, server-owned prices. The client may NEVER dictate how much it
+// pays for a purpose; a buyer who controls `amount` could otherwise buy a
+// premium/verified upgrade for any price it chooses.
+const CANONICAL_PURPOSE_AMOUNTS: Record<string, number> = {
+  verification: 5000,
+  listing_fee: 2000,
+  affiliate_membership: 350,
+  premium_upgrade: 12000,
+  subscription: 3500,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: buildCorsHeaders(req) });
@@ -68,13 +79,9 @@ Deno.serve(async (req) => {
         return respond({ error: "Authenticated user does not match payment owner" }, 403);
       }
       const effectiveUserId = authenticatedUserId;
-      const canonicalAmount = purposeKey === "listing_fee"
-        ? 2000
-        : purposeKey === "affiliate_membership"
-          ? 350
-          : Number(amount);
+      const canonicalAmount = CANONICAL_PURPOSE_AMOUNTS[purposeKey];
       if (!Number.isFinite(canonicalAmount) || canonicalAmount <= 0) {
-        return respond({ error: `Missing valid payment amount for ${purposeKey}` }, 400);
+        return respond({ error: `Payment amount for ${purposeKey} is fixed by the platform and must be configured server-side` }, 400);
       }
 
       const reference = `MV-${purposeKey.toUpperCase().slice(0, 4)}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;

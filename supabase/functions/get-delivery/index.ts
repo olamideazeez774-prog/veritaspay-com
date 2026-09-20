@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Throttle successful delivery lookups per IP: 30/hour per sale. delivery_logs
+// requires a real sale_id, so only resolved accesses are logged — but a resolved
+// access is the meaningful thing to throttle (token guessing is impractical at
+// 128 bits, while a leaked token must not be hammerable).
+const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+async function hashIp(ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip + new Date().toDateString());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -41,6 +56,37 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ---- Per-IP throttling + audit trail (post-resolution; sale_id is NOT NULL) ----
+    const clientIp =
+      (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
+    const ipHash = await hashIp(clientIp);
+
+    const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count: recentLookups, error: rateCheckError } = await supabase
+      .from("delivery_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_address", ipHash)
+      .eq("sale_id", sale.id)
+      .gte("accessed_at", oneHourAgo);
+
+    if (!rateCheckError && (recentLookups ?? 0) >= RATE_LIMIT_MAX) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Best-effort logging: a logging failure must never block a legitimate buyer.
+    const { error: logError } = await supabase.from("delivery_logs").insert({
+      sale_id: sale.id,
+      access_method: "direct_token",
+      ip_address: ipHash,
+      user_agent: req.headers.get("user-agent") || null,
+    });
+    if (logError) console.warn("delivery log insert failed (non-blocking)", logError.message);
 
     // Fetch product separately
     const { data: product } = await supabase

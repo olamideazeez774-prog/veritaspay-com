@@ -50,12 +50,14 @@ Deno.serve(async (req) => {
 
     if (recentClicks && recentClicks > 100) {
       // Log potential abuse
+      // Do NOT duplicate the PII-derived ip_hash here — clicks.ip_hash already
+      // holds it for correlation, and fraud_events has a wider admin audience.
       await supabase.from("fraud_events").insert({
         event_type: "rate_limit_exceeded",
         severity: "medium",
         related_type: "click",
         description: `IP exceeded click rate limit: ${recentClicks} clicks in 1 hour`,
-        metadata: { ip_hash: ipHash, click_count: recentClicks },
+        metadata: { click_count: recentClicks, code },
         status: "flagged",
       });
 

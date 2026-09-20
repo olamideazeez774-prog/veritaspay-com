@@ -1,73 +1,60 @@
-# Welcome to your Lovable project
+# Mirvyn — Affiliate Commerce Marketplace
 
-## Project info
+Mirvyn (repo: `veritaspay-com`) is a Nigerian-₦ affiliate commerce platform: vendors list digital products, affiliates promote them for commission, and every sale flows through Paystack with atomic wallet accounting.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Stack:** Vite · React 18 · TypeScript · shadcn/Tailwind · TanStack Query · PWA · Supabase (Postgres + RLS + Deno Edge Functions + pg_cron) · Paystack · Resend
 
-## How can I edit this code?
+## Architecture at a glance
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+Browser (React PWA)
+  │  anon key + user JWT — every table read/write passes Postgres RLS
+  ▼
+Supabase Edge Functions (Deno)          Supabase Postgres
+  ├─ initialize-payment  ─► Paystack      ├─ wallets, pending_payments,
+  ├─ paystack-callback ─┐                 │   sales, payout_requests
+  ├─ paystack-webhook ──┤                 ├─ RLS: users see their own rows,
+  │   (HMAC-verified)   │                 │   writes to money tables are
+  │                     ▼                 │   service-role only
+  │          _shared/verify-payment.ts    └─ SECURITY DEFINER RPCs:
+  │   exact-kobo verify + claim race          create_verified_sale,
+  │   protection + auto-refund                process_refund_atomic, …
+  ├─ process-payouts ─► Paystack transfers
+  └─ admin-update-payout (admin JWT gated)
 ```
 
-**Edit a file directly in GitHub**
+Key invariants (do not break these):
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. **The server owns every amount.** Client-sent prices are ignored. Canonical purpose amounts live in `initialize-payment`; sale prices/coupons are resolved from the DB at checkout and snapshotted into `pending_payments.metadata`, which is authoritative end-to-end.
+2. **Payments are verified server-to-server** with Paystack, exact-kobo matched against the pending intent, claimed atomically to survive callback/webhook races, and auto-refunded on mismatch.
+3. **Privilege lives in `user_roles`** (admin-only writes via RLS). The frontend cannot self-grant anything; vendor self-activation goes through the `self_activate_vendor()` SECURITY DEFINER RPC (free role, hard-coded).
+4. **Wallet mutations are atomic SQL**, never client calls: `create_verified_sale`, payout reservation/immutability triggers, `process_refund_atomic`.
 
-**Use GitHub Codespaces**
+## Repository layout
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+| Path | What it is |
+|---|---|
+| `src/` | React app (pages, dashboard, admin, hooks, lib) |
+| `supabase/functions/` | Deno edge functions + `_shared/` modules |
+| `supabase/migrations/` | Postgres schema, RLS, RPCs, triggers (newest last) |
+| `src/test/driftGuard.test.ts` | **Money-rule drift guard** — fails CI if client/server fees, canonical amounts, edge-function auth, or migration grants drift apart |
+| `PRODUCTION_DEPLOYMENT_GUIDE.md` | Deployment + post-deploy verification steps |
 
-## What technologies are used for this project?
+## Local development
 
-This project is built with:
+```bash
+npm install
+npm run dev        # Vite dev server
+npm run build      # production PWA build
+npm test           # vitest (unit + drift guard)
+npx tsc --noEmit -p tsconfig.app.json   # typecheck
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Security model summary
 
-## How can I deploy this project?
+- All edge functions run `verify_jwt = false` **by design**; authentication is enforced in-function (`_shared/auth.ts`, `isTrustedInternalRequest`, admin role checks) or replaced by stronger mechanisms (Paystack HMAC, delivery bearer tokens, cron secrets).
+- Money tables (`wallets`, `pending_payments`, `sales`, `payout_requests`, `transactions`) are never written by the client; writes happen in atomic SQL or service-role functions.
+- Admin endpoints verify the caller's JWT, then re-check the `admin` role from the database on every request.
+- Fraud telemetry (`fraud_events`), access logs (`delivery_logs`), and system logs provide the audit trail.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+See `PRODUCTION_DEPLOYMENT_GUIDE.md` for deployment steps and the security-hardening changelog.

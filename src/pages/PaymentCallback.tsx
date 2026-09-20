@@ -16,7 +16,6 @@ interface CheckoutContext {
   buyerName?: string;
   affiliateCode?: string | null;
   couponCode?: string | null;
-  finalPrice: number;
   paymentReference: string;
   timestamp: number;
 }
@@ -53,7 +52,7 @@ export default function PaymentCallback() {
             productId?: string;
             reference: string;
             redirect?: string;
-            queue?: Array<{ purpose: string; amount: number; metadata?: Record<string, unknown>; email: string; userId: string }>;
+            queue?: Array<{ purpose: string; metadata?: Record<string, unknown>; email: string; userId: string }>;
           };
           const useRef = reference || ctx.reference;
           let data: { error?: string; redirect?: string } | null = null;
@@ -94,8 +93,9 @@ export default function PaymentCallback() {
           if (Array.isArray(ctx.queue) && ctx.queue.length > 0) {
             const [next, ...rest] = ctx.queue;
             const callbackUrl = `${window.location.origin}/payment/callback`;
+            // Amounts are canonical server-side now; never send client amounts.
             const initRes = await supabase.functions.invoke("initialize-payment", {
-              body: { email: next.email, purpose: next.purpose, userId: next.userId, amount: next.amount, callbackUrl, metadata: next.metadata },
+              body: { email: next.email, purpose: next.purpose, userId: next.userId, callbackUrl, metadata: next.metadata },
             });
             if (!initRes.error && initRes.data?.authorization_url) {
               sessionStorage.setItem("payment_purpose_context", JSON.stringify({
@@ -150,7 +150,6 @@ export default function PaymentCallback() {
             buyerName: context.buyerName,
             affiliateCode: context.affiliateCode,
             couponCode: context.couponCode,
-            finalPrice: context.finalPrice,
           },
         });
 

@@ -1648,6 +1648,10 @@ export type Database = {
       }
     }
     Functions: {
+      self_activate_vendor: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       claim_certificate: {
         Args: {
           _cert_type: string

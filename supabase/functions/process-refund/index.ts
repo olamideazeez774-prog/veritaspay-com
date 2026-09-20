@@ -12,6 +12,16 @@ interface RefundRequest {
   requestedBy?: string; // ignored; requester identity is derived from the verified JWT
 }
 
+/** Escape user-controlled text before embedding it in HTML emails. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -34,7 +44,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch the sale with related data
+    // Verify the requester has permission (admin or the sale's vendor) BEFORE
+    // touching sale details, and answer "not found" uniformly for missing AND
+    // unauthorized sales so the endpoint cannot be used to enumerate sales.
+    const { data: requesterRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", requesterId);
+    const isAdmin = requesterRoles?.some(r => r.role === "admin") ?? false;
+
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .select(`
@@ -45,7 +63,9 @@ Deno.serve(async (req) => {
       .eq("id", saleId)
       .single();
 
-    if (saleError || !sale) {
+    const isVendor = !isAdmin && requesterRoles?.some(r => r.role === "vendor") && sale?.vendor_id === requesterId;
+
+    if (saleError || !sale || (!isAdmin && !isVendor)) {
       return new Response(
         JSON.stringify({ error: "Sale not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -68,22 +88,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Refund period has expired" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify the requester has permission (admin or the vendor)
-    const { data: requesterRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", requesterId);
-
-    const isAdmin = requesterRoles?.some(r => r.role === "admin");
-    const isVendor = requesterRoles?.some(r => r.role === "vendor") && sale.vendor_id === requesterId;
-
-    if (!isAdmin && !isVendor) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Only admins or the vendor can process refunds" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -110,19 +114,58 @@ Deno.serve(async (req) => {
       errors: [] as string[],
     };
 
-    // 3. Log the refund event
+    // 3. Return the buyer's money via Paystack. The wallet reversal above only
+    //    fixes internal accounting — without this call the buyer never sees a
+    //    kobo. Best-effort: a gateway failure is logged and surfaced but does
+    //    not roll back the (already committed) internal reversal, because the
+    //    sale can no longer be double-spent either way.
+    let paystackRefundStatus = "skipped";
+    let paystackRefundReference: string | null = null;
+    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+    if (PAYSTACK_SECRET_KEY && sale.payment_reference) {
+      try {
+        const refundRes = await fetch("https://api.paystack.co/refund", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transaction: sale.payment_reference,
+            amount: Math.round(Number(sale.total_amount) * 100),
+            currency: "NGN",
+            merchant_note: `Mirvyn refund for sale ${saleId}: ${reason || "no reason given"}`,
+            customer_note: "Your refund has been submitted to Paystack and will arrive via your original payment method.",
+          }),
+        });
+        const refundJson = await refundRes.json();
+        paystackRefundStatus = refundRes.ok && refundJson?.status
+          ? (refundJson.data?.status || "pending")
+          : `failed: ${refundJson?.message || refundRes.status}`;
+        paystackRefundReference = refundJson?.data?.id ? String(refundJson.data.id) : null;
+      } catch (paystackErr) {
+        console.error("Paystack refund initiation failed", paystackErr);
+        paystackRefundStatus = "initiation_failed";
+      }
+    } else if (!PAYSTACK_SECRET_KEY) {
+      paystackRefundStatus = "skipped_not_configured";
+    }
+    refundResults.errors.push(...(paystackRefundStatus.startsWith("failed") || paystackRefundStatus === "initiation_failed"
+      ? [`paystack_refund: ${paystackRefundStatus}`]
+      : []));
+
+    // 4. Log the refund event
     await supabase.from("system_logs").insert({
       event_type: "refund_processed",
-      severity: "info",
+      severity: paystackRefundStatus.startsWith("failed") || paystackRefundStatus === "initiation_failed" ? "warning" : "info",
       user_id: requesterId,
       related_id: saleId,
       related_type: "sale",
-      description: `Refund processed for sale ${saleId}. Reason: ${reason || "Not specified"}`,
+      description: `Refund processed for sale ${saleId}. Reason: ${reason || "Not specified"}. Paystack refund: ${paystackRefundStatus}`,
       metadata: {
         sale_id: saleId,
         reason,
         requested_by: requesterId,
         total_amount: sale.total_amount,
+        paystack_refund_status: paystackRefundStatus,
+        paystack_refund_reference: paystackRefundReference,
         results: refundResults,
       },
     });
@@ -135,7 +178,7 @@ Deno.serve(async (req) => {
           subject: `Refund Processed: ${sale.products?.title || "Your Purchase"} — Mirvyn`,
           html: `<h2>Refund Confirmation</h2>
 <p>Hi there,</p>
-<p>Your refund for <strong>${sale.products?.title || "your purchase"}</strong> has been processed.</p>
+<p>Your refund for <strong>${escapeHtml(sale.products?.title || "your purchase")}</strong> has been processed.</p>
 <table style="width:100%;border-collapse:collapse;margin:16px 0">
 <tr><td style="padding:8px;border-bottom:1px solid #eee">Order Reference</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-family:monospace">${sale.payment_reference}</td></tr>
 <tr><td style="padding:8px;border-bottom:1px solid #eee">Amount Refunded</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>₦${parseFloat(sale.total_amount).toLocaleString()}</strong></td></tr>
@@ -153,7 +196,10 @@ ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Refund processed successfully",
+        message: paystackRefundStatus.startsWith("failed") || paystackRefundStatus === "initiation_failed"
+          ? "Refund recorded internally; the Paystack refund needs manual attention"
+          : "Refund processed successfully",
+        paystackRefundStatus,
         results: refundResults,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
