@@ -1652,6 +1652,14 @@ export type Database = {
         Args: Record<string, never>
         Returns: Json
       }
+      admin_update_user_flag: {
+        Args: {
+          _user_id: string
+          _field: string
+          _value: Json
+        }
+        Returns: undefined
+      }
       claim_certificate: {
         Args: {
           _cert_type: string

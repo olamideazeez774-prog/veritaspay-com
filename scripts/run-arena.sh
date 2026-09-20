@@ -21,3 +21,6 @@ awk '/^### /{f=$2} /ERROR/{if (f!=last) {print f; last=f}}' $LOG
 
 echo "== attack battery =="
 docker exec -i $CONTAINER psql -U postgres -d arena -v ON_ERROR_STOP=0 < scripts/attack-battery.sql 2>&1 | grep -vE "^(SET|DO|NOTICE|INSERT|UPDATE|CREATE|ALTER|GRANT|REVOKE|psql.*)?$" | head -60
+
+echo "== attack battery v2 (seal verification) =="
+docker exec -i $CONTAINER psql -U postgres -d arena -v ON_ERROR_STOP=0 < scripts/attack-battery-v2.sql 2>&1 | grep -E "VULNERABLE|BLOCKED|OK\]|BROKEN|SUCCEEDED" | head -60

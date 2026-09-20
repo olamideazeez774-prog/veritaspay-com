@@ -69,6 +69,32 @@ coverage, migration grant integrity).
   invalid `ADD TABLE IF NOT EXISTS` publication syntax, an illegal
   column-dropping `CREATE OR REPLACE VIEW`, and indexes on nonexistent
 columns.
+- **Attack battery v2** (`scripts/attack-battery-v2.sql`, same runner):
+  deeper campaign with a second round of live-proven holes, all sealed at
+  the root cause in `20260920140000_seal_attack_battery_v2_findings.sql`
+  and all verified blocked:
+  - **Payout double-spend state machine** — `paid → rejected` refunded the
+    wallet *while keeping* `total_withdrawn` (money printed from nothing);
+    `rejected → paid` paid out with no reservation. Sealed with terminal
+    state freezing, money-column immutability, reservation enforcement on
+    `paid`, one-time restoration on rejection, delete-proof financial
+    rows, and a monotonic `total_withdrawn` guard.
+  - **Certificate forgery** — any user could mint/rewrite publicly
+    verifiable certificates, bypassing `claim_certificate` gating. Only the
+    SECURITY DEFINER RPC can write now.
+  - **Audit-log poisoning** — public INSERT on `system_logs` allowed
+    flooding/forgeting entries; `write_system_log` also binds a client
+    actor id to the JWT identity.
+  - **Profile column tampering** — blanket UPDATE policy let users un-ban
+    themselves, clear suspensions, zero `onboarding_balance_due`, and
+    extend `affiliate_membership_expires_at` forever. Column-level grants
+    now allow only `full_name`/`avatar_url`; admin flag writes moved to an
+    audited `admin_update_user_flag` SECURITY DEFINER RPC with field/value
+    allowlists and an admin-cannot-ban-admin rule.
+  - **Vendor-URL stored XSS** — `javascript:`/`data:` URLs in product
+    `file_url`/`external_url` were storable and opened by buyers. Sealed
+    with schema CHECK constraints (any writer) plus a frontend scheme
+    allowlist helper.
 
 ## Deployment requirements (block launch, not code defects)
 

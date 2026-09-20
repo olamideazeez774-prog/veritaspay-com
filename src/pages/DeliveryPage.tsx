@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
+import { openExternalUrl, safeExternalUrl } from "@/lib/urlSafety";
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
 import { logger } from "@/lib/logger";
 
@@ -94,7 +95,11 @@ export default function DeliveryPage() {
           sale: { ...data.sale, accessCount: data.sale.accessCount + 1 },
         });
       }
-      window.open(data.product.fileUrl, "_blank", "noopener,noreferrer");
+      // Scheme-allowlist seal: vendor-controlled file_url must be http(s),
+      // never javascript:/data: (stored-XSS via product fields).
+      if (!openExternalUrl(data.product.fileUrl)) {
+        toast.error("This file link is invalid or unsafe.");
+      }
     }
   };
 
@@ -107,7 +112,9 @@ export default function DeliveryPage() {
           sale: { ...data.sale, accessCount: data.sale.accessCount + 1 },
         });
       }
-      window.open(data.product.externalUrl, "_blank", "noopener,noreferrer");
+      if (!openExternalUrl(data.product.externalUrl)) {
+        toast.error("This link is invalid or unsafe.");
+      }
     }
   };
 
@@ -268,7 +275,10 @@ export default function DeliveryPage() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.open(`mailto:${product.vendorEmail}`, "_blank", "noopener,noreferrer")}
+                      onClick={() => {
+                        const safe = safeExternalUrl(product.vendorEmail ? `mailto:${product.vendorEmail}` : null);
+                        if (safe) window.open(safe, "_blank", "noopener,noreferrer");
+                      }}
                     >
                       <Mail className="mr-2 h-4 w-4" />
                       Contact Vendor

@@ -4,6 +4,7 @@ import { Link2, Copy, Trash2, ExternalLink, MousePointer, Target } from "lucide-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useAffiliateLinks, useDeleteAffiliateLink } from "@/hooks/useAffiliateLinks";
+import { safeExternalUrl } from "@/lib/urlSafety";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -156,7 +157,7 @@ export default function AffiliateLinks() {
                     </Button>
                     <Button variant="ghost" size="icon" asChild>
                       <a
-                        href={link.products?.external_url || `/product/${link.product_id}`}
+                        href={link.products?.external_url ? safeExternalUrl(link.products.external_url) ?? `/product/${link.product_id}` : `/product/${link.product_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

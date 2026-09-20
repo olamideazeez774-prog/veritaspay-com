@@ -116,21 +116,16 @@ export default function AdminUsers() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Role removed"); },
     onError: (err) => { toast.error(err instanceof Error ? err.message : "Failed to remove role"); },
-  });
-
-  const updateVendorTier = useMutation({
+  });  const updateVendorTier = useMutation({
     mutationFn: async ({ userId, tier }: { userId: string; tier: string }) => {
-      const { error } = await supabase.from("profiles").update({ vendor_tier: tier }).eq("id", userId);
-      if (error) throw error;
-      // Audit logging
-      await supabase.rpc("write_system_log", {
-        _event_type: "vendor_tier_updated",
-        _category: "user",
-        _description: `Vendor tier updated to ${tier}`,
-        _actor_id: currentUser?.id,
-        _related_id: userId,
-        _related_type: "profile",
+      // Sealed admin path: SECURITY DEFINER RPC validates the field/value and
+      // writes the audit entry inside the same transaction.
+      const { error } = await supabase.rpc("admin_update_user_flag", {
+        _user_id: userId,
+        _field: "vendor_tier",
+        _value: JSON.stringify(tier),
       });
+      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Vendor tier updated"); },
     onError: () => { toast.error("Failed to update tier"); },
@@ -138,17 +133,12 @@ export default function AdminUsers() {
 
   const toggleVerified = useMutation({
     mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
-      const { error } = await supabase.from("profiles").update({ is_verified: verified }).eq("id", userId);
-      if (error) throw error;
-      // Audit logging
-      await supabase.rpc("write_system_log", {
-        _event_type: verified ? "user_verified" : "user_unverified",
-        _category: "user",
-        _description: `User ${verified ? "verified" : "unverified"}`,
-        _actor_id: currentUser?.id,
-        _related_id: userId,
-        _related_type: "profile",
+      const { error } = await supabase.rpc("admin_update_user_flag", {
+        _user_id: userId,
+        _field: "is_verified",
+        _value: JSON.stringify(verified),
       });
+      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Verification updated"); },
     onError: () => { toast.error("Failed to update"); },
@@ -156,16 +146,12 @@ export default function AdminUsers() {
 
   const toggleBan = useMutation({
     mutationFn: async ({ userId, ban }: { userId: string; ban: boolean }) => {
-      const { error } = await supabase.from("profiles").update({ is_banned: ban }).eq("id", userId);
-      if (error) throw error;
-      await supabase.rpc("write_system_log", {
-        _event_type: ban ? "user_banned" : "user_unbanned",
-        _category: "user",
-        _description: `User ${ban ? "banned" : "unbanned"}`,
-        _actor_id: currentUser?.id,
-        _related_id: userId,
-        _related_type: "profile",
+      const { error } = await supabase.rpc("admin_update_user_flag", {
+        _user_id: userId,
+        _field: "is_banned",
+        _value: JSON.stringify(ban),
       });
+      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("User status updated"); },
     onError: () => { toast.error("Failed to update"); },
@@ -174,16 +160,12 @@ export default function AdminUsers() {
   const suspendUser = useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const suspendUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await supabase.from("profiles").update({ suspended_until: suspendUntil }).eq("id", userId);
-      if (error) throw error;
-      await supabase.rpc("write_system_log", {
-        _event_type: "user_suspended",
-        _category: "user",
-        _description: `User suspended for 7 days`,
-        _actor_id: currentUser?.id,
-        _related_id: userId,
-        _related_type: "profile",
+      const { error } = await supabase.rpc("admin_update_user_flag", {
+        _user_id: userId,
+        _field: "suspended_until",
+        _value: JSON.stringify(suspendUntil),
       });
+      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("User suspended for 7 days"); },
     onError: () => { toast.error("Failed to suspend"); },
