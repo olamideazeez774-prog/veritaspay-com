@@ -14,7 +14,9 @@ INSERT INTO auth.users (id, email) VALUES
   ('88888888-8888-8888-8888-888888888888', 'pleb@x.com')
 ON CONFLICT DO NOTHING;
 -- Seed the owner alert up here, as postgres, BEFORE any SET ROLE:
--- ai_smart_alerts intentionally has no client INSERT policy.
+-- ai_smart_alerts intentionally has no client INSERT policy. Deterministic:
+-- clear previous seeds so LIMIT 1 below always sees this exact row.
+DELETE FROM public.ai_smart_alerts WHERE user_id = '88888888-8888-8888-8888-888888888888' AND title = 'own alert';
 INSERT INTO public.ai_smart_alerts (user_id, alert_type, title, description) VALUES
   ('88888888-8888-8888-8888-888888888888', 'trend', 'own alert', 'test');
 
@@ -90,5 +92,19 @@ SELECT public.mark_ai_alert_read(id) FROM public.ai_smart_alerts
 WHERE user_id = '88888888-8888-8888-8888-888888888888' LIMIT 1;
 SELECT '  [OK] own alert marked read via RPC: is_read=' || is_read::text
 FROM public.ai_smart_alerts WHERE user_id = '88888888-8888-8888-8888-888888888888' LIMIT 1;
+ROLLBACK;
+
+-- [V3-6] click-flood via direct PostgREST insert is denied (round-5 seal E).
+-- Only the rate-limited track-click edge function (service role) may write.
+BEGIN;
+SELECT set_config('request.jwt.claims',
+  json_build_object('sub','88888888-8888-8888-8888-888888888888','role','authenticated')::text, true);
+DO $v3f$ BEGIN
+  INSERT INTO public.clicks (link_id, ip_hash)
+  SELECT id, 'flooded' FROM public.affiliate_links LIMIT 1;
+  RAISE EXCEPTION 'VULNERABLE [V3-6]: client flooded clicks table';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM LIKE 'VULNERABLE%' THEN RAISE; ELSE RAISE NOTICE '  [BLOCKED] client click flood (%)', SQLERRM; END IF;
+END $v3f$;
 ROLLBACK;
 RESET ROLE;

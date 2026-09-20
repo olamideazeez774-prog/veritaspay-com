@@ -131,3 +131,35 @@ DROP TRIGGER IF EXISTS trg_force_listing_payment_pending ON public.product_listi
 CREATE TRIGGER trg_force_listing_payment_pending
 BEFORE INSERT ON public.product_listing_payments
 FOR EACH ROW EXECUTE FUNCTION public.force_listing_payment_pending();
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SEAL E: clicks are service-written only.
+-- Root cause: a public INSERT policy let anyone with the (public) anon key
+-- flood the clicks table straight through PostgREST, bypassing the
+-- track-click rate limiter, inflating affiliate metrics through the
+-- increment trigger, and burning database resources. No client code writes
+-- clicks directly; the sole legitimate writer is the rate-limited
+-- track-click edge function using the service role (which bypasses RLS).
+-- ════════════════════════════════════════════════════════════════════════
+DROP POLICY IF EXISTS "Clicks can be inserted for tracking" ON public.clicks;
+REVOKE INSERT ON public.clicks FROM anon, authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SEAL F: the public avatars bucket gets hard content limits. The
+-- frontend "JPEG/PNG only" check is client-side and trivially bypassed;
+-- without bucket-level limits an attacker could host arbitrary content
+-- (e.g. script-bearing SVG) or exhaust storage with huge files.
+-- ════════════════════════════════════════════════════════════════════════
+DO $bucket$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'storage' AND table_name = 'buckets'
+  ) THEN
+    UPDATE storage.buckets
+    SET allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'],
+        file_size_limit = 2097152
+    WHERE id = 'avatars';
+  END IF;
+END;
+$bucket$;
