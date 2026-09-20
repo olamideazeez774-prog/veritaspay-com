@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyAndActivate } from "../_shared/verify-payment.ts";
+import { clientIpHash, isRateLimited } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,22 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const body = await req.json();
     const reference: string = body.reference || body.trxref;
+
+    if (typeof reference !== "string" || reference.length === 0 || reference.length > 128) {
+      return new Response(JSON.stringify({ error: "Invalid payment reference" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Rate limit: verification is idempotent but each call hits Paystack's
+    // verify API — cap hammering per IP and per reference (fail-open).
+    const ipHash = await clientIpHash(req);
+    if (await isRateLimited(supabase, `cb-ip:${ipHash}`, 60, 60 * 60 * 1000)
+      || await isRateLimited(supabase, `cb-ref:${reference}`, 6, 60 * 60 * 1000)) {
+      return new Response(JSON.stringify({ error: "Too many verification attempts. Please try again shortly." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const result = await verifyAndActivate(supabase, PAYSTACK_SECRET_KEY, reference, {
       productId: body.productId,

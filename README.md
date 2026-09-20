@@ -26,9 +26,11 @@ Supabase Edge Functions (Deno)          Supabase Postgres
 Key invariants (do not break these):
 
 1. **The server owns every amount.** Client-sent prices are ignored. Canonical purpose amounts live in `initialize-payment`; sale prices/coupons are resolved from the DB at checkout and snapshotted into `pending_payments.metadata`, which is authoritative end-to-end.
-2. **Payments are verified server-to-server** with Paystack, exact-kobo matched against the pending intent, claimed atomically to survive callback/webhook races, and auto-refunded on mismatch.
-3. **Privilege lives in `user_roles`** (admin-only writes via RLS). The frontend cannot self-grant anything; vendor self-activation goes through the `self_activate_vendor()` SECURITY DEFINER RPC (free role, hard-coded).
-4. **Wallet mutations are atomic SQL**, never client calls: `create_verified_sale`, payout reservation/immutability triggers, `process_refund_atomic`.
+2. **Payments are verified server-to-server** with Paystack, exact-kobo matched against the pending intent, claimed atomically to survive callback/webhook races, and auto-refunded on mismatch. Popup success/cancel events are never trusted on their own.
+3. **Payments happen inside the app.** The Paystack v2 popup runs in `access-code` mode (`src/lib/paystackInline.ts`): the server initializes the transaction, the popup opens as an overlay — no tab switching. The hosted-page redirect exists only as a fallback for blocked popup scripts.
+4. **Privilege lives in `user_roles`** (admin-only writes via RLS). The frontend cannot self-grant anything; vendor self-activation goes through the `self_activate_vendor()` SECURITY DEFINER RPC (free role, hard-coded).
+5. **Wallet mutations are atomic SQL**, never client calls: `create_verified_sale`, payout reservation/immutability triggers, `process_refund_atomic`.
+6. **Public endpoints are rate-limited** (DB-backed sliding windows, fail-open): payment initialization, callback verification, click tracking, delivery lookups.
 
 ## Repository layout
 
@@ -38,6 +40,7 @@ Key invariants (do not break these):
 | `supabase/functions/` | Deno edge functions + `_shared/` modules |
 | `supabase/migrations/` | Postgres schema, RLS, RPCs, triggers (newest last) |
 | `src/test/driftGuard.test.ts` | **Money-rule drift guard** — fails CI if client/server fees, canonical amounts, edge-function auth, or migration grants drift apart |
+| `.github/workflows/ci.yml` | CI: typecheck + unit tests + drift guard + PWA build on every push/PR |
 | `PRODUCTION_DEPLOYMENT_GUIDE.md` | Deployment + post-deploy verification steps |
 
 ## Local development

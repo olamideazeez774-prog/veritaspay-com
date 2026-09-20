@@ -3,17 +3,19 @@
 > Status: the codebase is deployment-ready. The steps below are what you must
 > run to bring a live Supabase/Vercel project up to date with this code.
 
-## 1. Apply the pending database migration
+## 1. Apply the pending database migrations
 
-One migration contains all 2026-09 hardening (grants, vendor self-activation RPC,
-payout immutability trigger, clear-earnings cron, role-policy tightening):
+Two migrations contain the 2026-09 hardening (grants, vendor self-activation RPC,
+payout immutability trigger, clear-earnings cron, role-policy tightening) and the
+rate-limit backing table:
 
 ```bash
 supabase db push
 ```
 
-Or run in the Supabase SQL Editor:
-`supabase/migrations/20260920120000_audit_remediation_hardening.sql`
+Or run in the Supabase SQL Editor, in order:
+1. `supabase/migrations/20260920120000_audit_remediation_hardening.sql`
+2. `supabase/migrations/20260920130000_rate_limit_events.sql`
 
 What it does:
 
@@ -29,14 +31,14 @@ What it does:
 
 ```bash
 supabase functions deploy admin-update-payout      # NEW function
-supabase functions deploy initialize-payment
+supabase functions deploy initialize-payment       # + per-IP rate limit
+supabase functions deploy paystack-callback        # + per-IP/reference rate limit
+supabase functions deploy paystack-webhook         # + constant-time signature check, replay window
 supabase functions deploy process-sale
 supabase functions deploy process-refund
 supabase functions deploy send-email
 supabase functions deploy get-delivery
 supabase functions deploy track-click
-supabase functions deploy paystack-callback
-supabase functions deploy paystack-webhook
 ```
 
 `admin-update-payout` is already registered in `supabase/config.toml` (all 16
@@ -79,6 +81,10 @@ Money-rule integrity
 
 Access control & abuse resistance
 
+- **In-app payments:** Paystack v2 popup in access-code mode (`src/lib/paystackInline.ts`) — the user never leaves the site; hosted-page redirect is only a fallback. Popup callbacks are never trusted as proof of payment.
+- **Rate limiting:** DB-backed sliding windows on `initialize-payment` (12/10 min per IP+purpose) and `paystack-callback` (60/h per IP, 6/h per reference), fail-open by design; backing table auto-pruned daily.
+- **Webhook hardening:** constant-time HMAC signature compare and a 24 h replay window on top of idempotent processing.
+- **Browser security headers:** strict CSP (allowing only Paystack inline/checkout origins), HSTS, `frame-ancestors 'none'`, nosniff, referrer and permissions policies (see `vercel.json`).
 - Vendor onboarding no longer depends on a client-side role INSERT.
 - `send-email` is closed to the public (service-role or admin JWT only, allowlisted
   `from` addresses) — was an open relay.
@@ -95,10 +101,23 @@ Regression protection
   entry; an app-called RPC ends on a REVOKE; or the `create_verified_sale`
   service-role grant disappears again.
 
-## 5. Post-deploy smoke test (5 minutes)
+## 5. Continuous integration
 
-1. **Sale:** buy any product in test mode → webhook verifies → sale row created,
-   vendor/affiliate wallets credited, receipt email arrives.
+`.github/workflows/ci.yml` runs on every push and PR to `main`:
+
+1. `npx tsc --noEmit` — typecheck
+2. `npm test` — unit tests **plus the money-rule drift guard**
+3. `npm run build` — production PWA build
+
+A red CI run blocks regressions in fee math, canonical amounts, edge auth, or
+migration grants from ever reaching `main`.
+
+## 6. Post-deploy smoke test (5 minutes)
+
+1. **Sale:** buy any product in test mode → **Paystack popup opens in-app** →
+   verify → sale row created, vendor/affiliate wallets credited, receipt email
+   arrives. Close the popup midway → the "checkout closed, payment may still
+   complete" banner shows and the page stays usable.
 2. **Amount tamper:** replay the callback with a modified coupon/affiliate — must
    be ignored (metadata wins).
 3. **Vendor onboarding:** new user selects "Sell" → role activates without error.
@@ -109,7 +128,7 @@ Regression protection
 6. **Roles:** attempt `INSERT INTO user_roles` as a normal authenticated user —
    must be rejected by RLS.
 
-## 6. Known accepted residuals (non-exploitable)
+## 7. Known accepted residuals (non-exploitable)
 
 - `ai-insights` allows any authenticated user to request AI analysis of their own
   data — a token-cost consideration, not a privilege issue (platform_advisory is
@@ -119,9 +138,9 @@ Regression protection
 - Optional dependency cleanup: `gsap` is declared in `package.json` but never
   imported — safe to `npm uninstall`.
 
-## 7. Pre-launch checklist
+## 8. Pre-launch checklist
 
-- [ ] `supabase db push` applied (migration `20260920120000`)
+- [ ] `supabase db push` applied (migrations `20260920120000` + `20260920130000`)
 - [ ] Changed + new edge functions deployed (section 2)
 - [ ] `PAYSTACK_SECRET_KEY`, `RESEND_API_KEY`, `SITE_URL` set
 - [ ] Optional: `INTERNAL_FUNCTION_SECRET` set

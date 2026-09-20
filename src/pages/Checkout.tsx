@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { PLATFORM_NAME } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { previewPaymentFee, type PaymentFeeBearer } from "@/lib/paymentProcessingFee";
+import { openPaystackCheckout, verifyPayment } from "@/lib/paystackInline";
 
 export default function Checkout() {
   const { productId } = useParams();
@@ -24,6 +25,11 @@ export default function Checkout() {
 
   const [formData, setFormData] = useState({ name: "", email: "" });
   const [isProcessing, setIsProcessing] = useState(false);
+  // In-app payment phases: the popup keeps the user on this page; a banner
+  // drives each state instead of navigating away.
+  const [paymentPhase, setPaymentPhase] = useState<
+    "idle" | "awaiting" | "verifying" | "cancelled"
+  >("idle");
 
   // Coupon state
   const [couponCode, setCouponCode] = useState("");
@@ -157,16 +163,61 @@ export default function Checkout() {
       };
       sessionStorage.setItem("checkout_context", JSON.stringify(checkoutContext));
 
-      // Step 3: Redirect to Paystack for payment
+      // Step 3: Open the Paystack popup INSIDE this page (access-code mode:
+      // amount/email/metadata are locked server-side). Redirect only if the
+      // popup library could not load at all (rare, e.g. hard ad-blockers).
+      if (paymentData.access_code) {
+        try {
+          await openPaystackCheckout({
+            accessCode: paymentData.access_code,
+            onLoad: () => setPaymentPhase("awaiting"),
+            onSuccess: (tx) => {
+              setPaymentPhase("verifying");
+              verifyPayment(String(tx?.reference || paymentData.reference))
+                .then((result) => {
+                  if (result?.amountMismatch) {
+                    setPaymentPhase("idle");
+                    toast.error("The amount paid did not match. A refund has been submitted to Paystack.");
+                    return;
+                  }
+                  if (result?.success) {
+                    toast.success("Payment confirmed!");
+                    navigate("/checkout/success");
+                  } else {
+                    setPaymentPhase("idle");
+                    toast.error("Verification failed. If you were charged, contact support.");
+                  }
+                })
+                .catch((verifyErr: unknown) => {
+                  setPaymentPhase("idle");
+                  toast.error(
+                    verifyErr instanceof Error && verifyErr.message
+                      ? verifyErr.message
+                      : "Verification failed. If you were charged, check back in a minute.",
+                  );
+                });
+            },
+            onClose: () => {
+              // Closed ≠ failed: the webhook may still land and verify the charge.
+              setPaymentPhase((phase) => (phase === "awaiting" ? "cancelled" : phase));
+            },
+          });
+          return;
+        } catch (popupErr) {
+          console.warn("Popup checkout unavailable, falling back to hosted page", popupErr);
+        }
+      }
+
+      // Fallback: hosted Paystack page (keeps the flow working everywhere)
       if (paymentData.authorization_url) {
-        // Real Paystack flow - redirect to payment page
         window.location.href = paymentData.authorization_url;
       } else {
-        throw new Error("Invalid payment response: missing authorization URL");
+        throw new Error("Invalid payment response: missing checkout details");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Payment initialization failed";
       toast.error(message);
+      setPaymentPhase("idle");
     } finally {
       setIsProcessing(false);
     }
@@ -284,11 +335,30 @@ export default function Checkout() {
                     </div>
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
-                    {isProcessing ? (
-                      <><LoadingSpinner size="sm" className="mr-2" />Processing...</>
+                  {paymentPhase !== "idle" && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className={`rounded-lg border p-3 text-sm ${
+                        paymentPhase === "cancelled"
+                          ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                          : "border-primary/40 bg-primary/10"
+                      }`}
+                    >
+                      {paymentPhase === "awaiting" && "Complete your payment in the secure checkout window."}
+                      {paymentPhase === "verifying" && (
+                        <span className="inline-flex items-center gap-2"><LoadingSpinner size="sm" /> Verifying payment… do not close this page.</span>
+                      )}
+                      {paymentPhase === "cancelled" && (
+                        "Checkout closed. If you already paid, hold on — your payment may still complete; otherwise you can try again."
+                      )}
+                    </div>
+                  )}
+                  <Button type="submit" size="lg" className="w-full" disabled={isProcessing || paymentPhase === "verifying"}>
+                    {isProcessing || paymentPhase === "verifying" ? (
+                      <><LoadingSpinner size="sm" className="mr-2" />{paymentPhase === "verifying" ? "Verifying..." : "Processing..."}</>
                     ) : (
-                      <><Lock className="mr-2 h-4 w-4" />Pay {formatCurrency(feePreview.requiredAmount)}</>
+                      <><Lock className="mr-2 h-4 w-4" />Pay {formatCurrency(feePreview.requiredAmount)} securely</>
                     )}
                   </Button>
                 </form>

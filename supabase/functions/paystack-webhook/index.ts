@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { verifyAndActivate } from "../_shared/verify-payment.ts";
 
 // Public webhook — Paystack POSTs charge.success / charge.failed events here.
@@ -18,12 +18,26 @@ Deno.serve(async (req) => {
     const raw = await req.text();
     const sig = req.headers.get("x-paystack-signature") || "";
     const expected = createHmac("sha512", PAYSTACK_SECRET_KEY).update(raw).digest("hex");
-    if (sig !== expected) {
+    // Constant-time compare: a plain string diff leaks signature bytes via
+    // response timing. Both are fixed-length sha512 hex, but guard lengths.
+    const encoder = new TextEncoder();
+    const sigBuf = encoder.encode(sig);
+    const expBuf = encoder.encode(expected);
+    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
       console.warn("paystack-webhook signature mismatch");
       return new Response("invalid signature", { status: 401 });
     }
 
     const event = JSON.parse(raw);
+
+    // Replay window: a captured-and-replayed signed event older than 24h is
+    // rejected even though it carries a genuine signature. Activation is
+    // idempotent anyway, so this is defense in depth, not correctness.
+    const eventCreatedAt = Date.parse(event?.data?.created_at || event?.created_at || "");
+    if (Number.isFinite(eventCreatedAt) && Date.now() - eventCreatedAt > 24 * 60 * 60 * 1000) {
+      console.warn("paystack-webhook rejected stale replayed event", event?.event);
+      return new Response("stale event", { status: 202 });
+    }
     const reference: string | undefined = event?.data?.reference;
     const refundReference: string | undefined = event?.data?.refund_reference || (event?.data?.id ? String(event.data.id) : undefined);
     const refundTransactionReference: string | undefined = event?.data?.transaction_reference || event?.data?.transaction?.reference;

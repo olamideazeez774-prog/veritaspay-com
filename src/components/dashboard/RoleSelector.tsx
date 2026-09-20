@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Package, Link2, Check, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { openPaystackCheckout, verifyPayment } from "@/lib/paystackInline";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,7 +38,8 @@ const roles = [
 ];
 
 export function RoleSelector() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const { flags } = useAllFeatureFlags();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,27 +83,52 @@ export function RoleSelector() {
       }
 
       // Affiliate membership is the only paid role setup. Vendor registration is already complete if selected.
-      const [first, ...rest] = intents;
-      if (!first) {
-        toast.success(selectedRoles.includes("vendor") ? "Vendor account activated for free." : "Role setup complete.");
-        window.location.href = "/dashboard";
-        return;
+      // Paid intents run sequentially in an in-app Paystack popup — the user
+      // never leaves the page; the hosted page is only a hard fallback.
+      const runPaidIntent = async (intent: { purpose: "affiliate_membership"; metadata: Record<string, unknown> }) => {
+        const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
+          body: { email: user.email, purpose: intent.purpose, userId: user.id, callbackUrl, metadata: intent.metadata },
+        });
+        if (payErr) throw payErr;
+        if (data?.error) throw new Error(data.error);
+
+        if (data.access_code) {
+          await new Promise<void>((resolve, reject) => {
+            openPaystackCheckout({
+              accessCode: data.access_code,
+              onSuccess: (tx) => {
+                verifyPayment(String(tx?.reference || data.reference))
+                  .then(() => resolve())
+                  .catch(reject);
+              },
+              onClose: () => reject(new Error("Checkout closed before payment completed.")),
+            }).catch(reject);
+          });
+        } else if (data.authorization_url) {
+          // Hard fallback: hosted page; PaymentCallback continues verification.
+          sessionStorage.setItem("payment_purpose_context", JSON.stringify({
+            purpose: intent.purpose,
+            userId: user.id,
+            reference: data.reference,
+            redirect: "/dashboard",
+            queue: [],
+          }));
+          window.location.href = data.authorization_url;
+          return "redirected";
+        } else {
+          throw new Error("Invalid payment response: missing checkout details");
+        }
+        return "paid";
+      };
+
+      for (const intent of intents) {
+        const outcome = await runPaidIntent(intent);
+        if (outcome === "redirected") return; // verification continues on PaymentCallback
       }
 
-      const { data, error: payErr } = await supabase.functions.invoke("initialize-payment", {
-        body: { email: user.email, purpose: first.purpose, userId: user.id, callbackUrl, metadata: first.metadata },
-      });
-      if (payErr) throw payErr;
-      if (data?.error) throw new Error(data.error);
-
-      sessionStorage.setItem("payment_purpose_context", JSON.stringify({
-        purpose: first.purpose,
-        userId: user.id,
-        reference: data.reference,
-        redirect: "/dashboard",
-        queue: rest.map((r) => ({ ...r, email: user.email, userId: user.id })),
-      }));
-      window.location.href = data.authorization_url;
+      try { await refreshProfile?.(); } catch { /* noop */ }
+      toast.success(selectedRoles.includes("vendor") ? "Vendor account activated." : "Role setup complete.");
+      navigate("/dashboard");
       return;
     } catch (error: unknown) {
       const err = error as Error;

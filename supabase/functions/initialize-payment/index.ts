@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { calculatePaymentFeeBreakdown, type PaymentFeeBearer } from "../_shared/payment-fees.ts";
+import { clientIpHash, isRateLimited } from "../_shared/rate-limit.ts";
 
 const ALLOWED_PURPOSES = new Set([
   "sale",
@@ -70,6 +71,12 @@ Deno.serve(async (req) => {
     const purposeKey = purpose || "sale";
     if (!ALLOWED_PURPOSES.has(purposeKey)) {
       return respond({ error: `Unsupported purpose: ${purposeKey}` }, 400);
+    }
+
+    // Rate limit: stops pending-row spam and Paystack API abuse (fail-open).
+    const ipHash = await clientIpHash(req);
+    if (await isRateLimited(supabase, `init:${ipHash}:${purposeKey}`, 12, 10 * 60 * 1000)) {
+      return respond({ error: "Too many payment attempts. Please try again in a few minutes." }, 429);
     }
 
     // --------- NON-SALE FLOWS ---------
