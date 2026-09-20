@@ -42,6 +42,8 @@ Key invariants (do not break these):
 | `src/test/driftGuard.test.ts` | **Money-rule drift guard** — fails CI if client/server fees, canonical amounts, edge-function auth, or migration grants drift apart |
 | `.github/workflows/ci.yml` | CI: typecheck + unit tests + drift guard + PWA build on every push/PR |
 | `PRODUCTION_DEPLOYMENT_GUIDE.md` | Deployment + post-deploy verification steps |
+| `QA_PR_BODY.md` | Consolidated QA status: coverage, validation, deploy requirements, accepted residuals |
+| `.agents/skills/` | Installed agent skills (web-design-guidelines, frontend-design) used for UI audits |
 
 ## Local development
 

@@ -140,6 +140,8 @@ migration grants from ever reaching `main`.
 
 ## 8. Pre-launch checklist
 
+Full QA state and accepted residuals are consolidated in `QA_PR_BODY.md`.
+
 - [ ] `supabase db push` applied (migrations `20260920120000` + `20260920130000`)
 - [ ] Changed + new edge functions deployed (section 2)
 - [ ] `PAYSTACK_SECRET_KEY`, `RESEND_API_KEY`, `SITE_URL` set
