@@ -147,7 +147,7 @@ export default function AdminRevenueControls() {
             <p className="text-muted-foreground text-sm">Configure platform fees, payouts, vendor tiers, and AI modules</p>
           </div>
           <Button onClick={handleSave} disabled={isSaving} className="min-h-[44px] w-full sm:w-auto sm:self-end">
-            <Save className="h-4 w-4 mr-2" />{isSaving ? "Saving..." : "Save All"}
+            <Save className="h-4 w-4 mr-2" />{isSaving ? "Saving…" : "Save All"}
           </Button>
         </div>
 

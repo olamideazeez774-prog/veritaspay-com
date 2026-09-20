@@ -81,7 +81,7 @@ export function HowItWorksSection() {
                 <motion.div
                   whileHover={{ y: -6 }}
                   transition={{ duration: 0.3 }}
-                  className="relative p-8 rounded-2xl bg-card border border-border text-center group hover:border-primary/30 hover:shadow-lg transition-all"
+                  className="relative p-8 rounded-2xl bg-card border border-border text-center group hover:border-primary/30 hover:shadow-lg transition"
                 >
                   {/* Step Number */}
                   <motion.div

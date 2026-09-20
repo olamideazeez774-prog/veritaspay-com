@@ -152,7 +152,7 @@ export default function Marketplace() {
                     <motion.div key={product.id} variants={staggerItem}>
                       <Link
                         to={`/product/${product.id}`}
-                        className="group block h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                        className="group block h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
                       >
                         {/* Cover Image */}
                         <div className="aspect-video overflow-hidden bg-muted">
@@ -203,7 +203,7 @@ export default function Marketplace() {
                       disabled={isLoading}
                       variant="outline"
                     >
-                      {isLoading ? "Loading..." : `Load More (${totalProducts - products.length} remaining)`}
+                      {isLoading ? "Loading…" : `Load More (${totalProducts - products.length} remaining)`}
                     </Button>
                   </div>
                 )}

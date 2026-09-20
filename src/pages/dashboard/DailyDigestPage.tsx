@@ -93,7 +93,7 @@ export default function DailyDigestPage() {
                 <motion.div
                   key={digest.id}
                   variants={staggerItem}
-                  className={`glass-card p-4 sm:p-6 space-y-4 transition-all ${!digest.is_read ? "ring-2 ring-primary/30" : ""}`}
+                  className={`glass-card p-4 sm:p-6 space-y-4 transition ${!digest.is_read ? "ring-2 ring-primary/30" : ""}`}
                   onClick={() => !digest.is_read && markRead.mutate(digest.id)}
                 >
                   <div className="flex items-center justify-between">

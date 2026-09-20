@@ -476,7 +476,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => setTheme(option.value)}
                     className={cn(
-                      "flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all min-h-[56px]",
+                      "flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition min-h-[56px]",
                       theme === option.value ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground/50"
                     )}
                   >

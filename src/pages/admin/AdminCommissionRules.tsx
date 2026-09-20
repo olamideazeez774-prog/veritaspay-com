@@ -100,8 +100,8 @@ export default function AdminCommissionRules() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Switch checked={rule.is_active} onCheckedChange={(checked) => updateRule.mutate({ id: rule.id, is_active: checked })} />
-                    <Button variant="ghost" size="icon" className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => deleteRule.mutate(rule.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" aria-label={`Delete rule ${rule.rule_type}`} className="text-destructive min-h-[44px] min-w-[44px]" onClick={() => deleteRule.mutate(rule.id)}>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>

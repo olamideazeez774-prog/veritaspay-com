@@ -222,7 +222,7 @@ export default function WalletPage() {
                     variant="outline"
                     className="w-full"
                   >
-                    {transLoading ? "Loading..." : `Load More (${totalTransactions - transactions.length} remaining)`}
+                    {transLoading ? "Loading…" : `Load More (${totalTransactions - transactions.length} remaining)`}
                   </Button>
                 </div>
               )}

@@ -23,7 +23,7 @@ export function LoadingPage() {
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <LoadingSpinner size="lg" />
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">Loading…</p>
       </div>
     </div>
   );

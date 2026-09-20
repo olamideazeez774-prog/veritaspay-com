@@ -303,7 +303,7 @@ export default function CertificatesPage() {
                         </p>
                         {!achieved && (
                           <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full bg-primary/70 transition-all w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                            <div className="h-full rounded-full bg-primary/70 transition w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
                           </div>
                         )}
                       </div>
@@ -346,7 +346,7 @@ export default function CertificatesPage() {
                       </p>
                       {!achieved && (
                         <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-primary transition-all w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                          <div className="h-full rounded-full bg-primary transition w-[var(--progress)]" style={{ ["--progress" as string]: `${progress}%` }} />
                         </div>
                       )}
                     </div>

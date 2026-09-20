@@ -84,8 +84,8 @@ export default function AdminMessaging() {
                       <Button variant="outline" size="sm" onClick={() => togglePublish.mutate({ id: ann.id, is_published: !ann.is_published })}>
                         {ann.is_published ? <><EyeOff className="h-4 w-4 mr-1" />Hide</> : <><Eye className="h-4 w-4 mr-1" />Publish</>}
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteAnn.mutate(ann.id)}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" aria-label={`Delete announcement: ${ann.title}`} className="text-destructive" onClick={() => deleteAnn.mutate(ann.id)}>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>

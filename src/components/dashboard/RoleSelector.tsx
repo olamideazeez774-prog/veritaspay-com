@@ -161,7 +161,7 @@ export function RoleSelector() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={cn(
-                "relative flex flex-col items-start rounded-xl border-2 p-6 text-left transition-all",
+                "relative flex flex-col items-start rounded-xl border-2 p-6 text-left transition",
                 isSelected
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"

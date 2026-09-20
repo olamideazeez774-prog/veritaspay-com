@@ -221,8 +221,8 @@ export default function AffiliateBrowse() {
                         </Button>
                       )}
                       <Link to={`/product/${product.id}`}>
-                        <Button variant="ghost" size="icon">
-                          <DollarSign className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" aria-label={`Promote ${product.title}`}>
+                          <DollarSign className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </Link>
                     </div>

@@ -123,6 +123,12 @@
   
   html {
     scroll-behavior: smooth;
+    /* Match native widgets (scrollbars, inputs) to the active theme. */
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
   
   body {
@@ -133,6 +139,37 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Playfair Display', Georgia, serif;
     @apply font-semibold tracking-tight;
+    /* Avoid typographic widows/orphans in multi-line headings. */
+    text-wrap: balance;
+  }
+
+  /* Numbers in tables align vertically for comparison (amounts, counts). */
+  td, th {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Remove 300ms double-tap zoom delay and the grey tap flash on mobile;
+     focus-visible rings below remain the intentional indicator. */
+  a, button, [role="button"], input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Honor the OS reduced-motion preference: disable decorative motion while
+   keeping state changes instant (opacity only). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -171,7 +208,7 @@
   }
   
   .neu-button {
-    @apply neu transition-all duration-200;
+    @apply neu transition duration-200;
   }
   
   .neu-button:hover {
@@ -253,7 +290,7 @@
   
   /* Premium hover effects */
   .hover-lift {
-    @apply transition-all duration-300 ease-out;
+    @apply transition duration-300 ease-out;
   }
   
   .hover-lift:hover {
@@ -262,7 +299,7 @@
   }
   
   .hover-glow {
-    @apply transition-all duration-300;
+    @apply transition duration-300;
   }
   
   .hover-glow:hover {

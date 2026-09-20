@@ -59,14 +59,14 @@ export function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        className={`fixed inset-x-0 top-0 z-50 transition duration-300 ${
           isScrolled ? "glass-subtle shadow-soft py-2.5" : "bg-background/80 backdrop-blur-sm py-3.5 sm:bg-transparent sm:backdrop-blur-0 sm:py-5"
         }`}
       >
         <div className="container flex min-h-11 items-center justify-between gap-3">
           <Link to="/" className="flex min-w-0 items-center gap-2.5" aria-label={`${PLATFORM_NAME} home`}>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="flex items-center gap-2.5">
-              <img src="/logo.jpg" alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm" />
+              <img src="/logo.jpg" alt="Mirvyn" width={36} height={36} className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm" />
               <span className="truncate font-serif text-lg font-bold text-gradient-primary sm:text-xl">{PLATFORM_NAME}</span>
             </motion.div>
           </Link>

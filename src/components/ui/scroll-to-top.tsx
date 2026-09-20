@@ -55,7 +55,7 @@ export function ScrollToTop() {
             size="icon"
             aria-label={isAtBottom ? "Scroll to top" : "Scroll to bottom"}
             className={cn(
-              "h-12 w-12 rounded-full shadow-lg transition-all",
+              "h-12 w-12 rounded-full shadow-lg transition",
               "bg-primary hover:bg-primary/90",
               "hover:shadow-xl hover:scale-105"
             )}

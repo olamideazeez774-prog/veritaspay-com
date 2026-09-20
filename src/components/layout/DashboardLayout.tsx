@@ -304,7 +304,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className={cn(
-        "flex-1 min-w-0 overflow-x-hidden transition-all duration-300 lg:pt-0 pt-14 pb-20 lg:pb-0",
+        "flex-1 min-w-0 overflow-x-hidden transition duration-300 lg:pt-0 pt-14 pb-20 lg:pb-0",
         sidebarOpen ? "lg:ml-[260px]" : "lg:ml-[72px]"
       )}>
         <div className="container-wide py-6 lg:py-8 min-w-0 max-w-full overflow-x-hidden">{children}</div>

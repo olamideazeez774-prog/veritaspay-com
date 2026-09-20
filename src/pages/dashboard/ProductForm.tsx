@@ -379,7 +379,7 @@ export default function ProductForm() {
                       key={opt.id}
                       type="button"
                       onClick={() => setFormData({ ...formData, listing_model: opt.id })}
-                      className={`w-full rounded-lg border-2 p-4 text-left transition-all ${formData.listing_model === opt.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                      className={`w-full rounded-lg border-2 p-4 text-left transition ${formData.listing_model === opt.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
                     >
                       <div className="flex items-center justify-between">
                         <p className="font-semibold">{opt.title}</p>

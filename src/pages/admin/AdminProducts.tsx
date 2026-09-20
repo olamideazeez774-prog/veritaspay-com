@@ -209,8 +209,8 @@ export default function AdminProducts() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button variant="ghost" size="icon" asChild>
-                            <a href={`/product/${product.id}`} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4" />
+                            <a href={`/product/${product.id}`} target="_blank" rel="noopener noreferrer" aria-label={`View ${product.title} in store`} >
+                              <ExternalLink className="h-4 w-4" aria-hidden="true" />
                             </a>
                           </Button>
                           {!product.is_approved ? (

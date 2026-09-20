@@ -89,7 +89,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   const StepIcon = step.icon;
 
   return (
-    <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description" className="fixed inset-0 z-[100] flex items-end justify-center bg-background/85 p-2 backdrop-blur-md sm:items-center sm:p-4" onClick={(event) => { if (event.target === modalRef.current) onSkip(); }}>
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description" className="fixed inset-0 z-[100] flex items-end justify-center overscroll-contain bg-background/85 p-2 backdrop-blur-md sm:items-center sm:p-4" onClick={(event) => { if (event.target === modalRef.current) onSkip(); }}>
       <div className="w-full max-w-xl overflow-y-auto rounded-3xl border border-border bg-card p-4 shadow-2xl sm:max-h-[90vh] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -116,7 +116,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         <div className="mt-5 flex items-center justify-between gap-3">
           <Button variant="outline" onClick={handlePrev} disabled={currentStep === 0} className="min-h-11" aria-label="Previous quick-start step"><ChevronLeft className="mr-1 h-4 w-4" aria-hidden="true" />Back</Button>
           <div className="flex items-center gap-1.5" role="tablist" aria-label="Quick-start steps">
-            {steps.map((item, index) => <button key={item.title} type="button" onClick={() => { setDirection(index > currentStep ? 1 : -1); setCurrentStep(index); }} className={cn("h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", index === currentStep ? "w-7 bg-primary" : "w-2 bg-muted-foreground/30")} aria-label={`Go to step ${index + 1}`} aria-current={index === currentStep ? "step" : undefined} />)}
+            {steps.map((item, index) => <button key={item.title} type="button" onClick={() => { setDirection(index > currentStep ? 1 : -1); setCurrentStep(index); }} className={cn("h-2 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", index === currentStep ? "w-7 bg-primary" : "w-2 bg-muted-foreground/30")} aria-label={`Go to step ${index + 1}`} aria-current={index === currentStep ? "step" : undefined} />)}
           </div>
           <Button onClick={handleNext} className="min-h-11" aria-label={currentStep === totalSteps - 1 ? "Finish quick start" : "Next quick-start step"}>{currentStep === totalSteps - 1 ? <><Check className="mr-1 h-4 w-4" aria-hidden="true" />Done</> : <>Next<ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" /></>}</Button>
         </div>

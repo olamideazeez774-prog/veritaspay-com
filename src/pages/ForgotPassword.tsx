@@ -87,7 +87,11 @@ export default function ForgotPassword() {
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  spellCheck={false}
                   placeholder="mirvynsupport@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

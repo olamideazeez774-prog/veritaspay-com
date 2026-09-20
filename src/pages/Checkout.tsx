@@ -275,7 +275,7 @@ export default function Checkout() {
                       <Label htmlFor="name">Full Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="name" type="text" placeholder="John Doe" value={formData.name}
+                        <Input id="name" name="name" type="text" autoComplete="name" placeholder="John Doe" value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="pl-10" required />
                       </div>
                     </div>
@@ -283,7 +283,7 @@ export default function Checkout() {
                       <Label htmlFor="email">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="email" type="email" placeholder="mirvynsupport@gmail.com" value={formData.email}
+                        <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" spellCheck={false} placeholder="mirvynsupport@gmail.com" value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="pl-10" required />
                       </div>
                       <p className="text-xs text-muted-foreground">Your purchase details will be sent to this email.</p>
@@ -304,8 +304,8 @@ export default function Checkout() {
                           </p>
                           <p className="text-xs text-muted-foreground">You save {formatCurrency(discount)}</p>
                         </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={removeCoupon} className="shrink-0 h-8 w-8">
-                          <X className="h-4 w-4" />
+                        <Button type="button" variant="ghost" size="icon" aria-label="Remove coupon" onClick={removeCoupon} className="shrink-0 h-8 w-8">
+                          <X className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
                     ) : (
@@ -372,7 +372,7 @@ export default function Checkout() {
                 <div className="flex gap-4 pb-4 border-b">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {product.cover_image_url ? (
-                      <img src={product.cover_image_url} alt={product.title} className="h-full w-full object-cover" />
+                      <img src={product.cover_image_url} alt={product.title} width={64} height={64} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
                         <CreditCard className="h-6 w-6 text-muted-foreground/40" />

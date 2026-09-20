@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -105,6 +106,9 @@ const App = () => (
   <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {/* Respect the OS reduced-motion preference for every framer-motion
+            animation in one place (renders transitions instantly). */}
+        <MotionConfig reducedMotion="user">
         <AuthProvider>
           <Toaster />
           <Sonner />
@@ -112,8 +116,16 @@ const App = () => (
           <VercelSpeedInsights />
           <BrowserRouter>
             <ScrollToTop />
+            {/* Skip navigation for keyboard and screen-reader users. */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+            >
+              Skip to content
+            </a>
             <ErrorBoundary>
               <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><AnimatedLoading size="lg" /></div>}>
+                <main id="main-content">
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/" element={<Index />} />
@@ -471,10 +483,12 @@ const App = () => (
                   {/* Catch-all */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </main>
               </Suspense>
             </ErrorBoundary>
           </BrowserRouter>
         </AuthProvider>
+        </MotionConfig>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
