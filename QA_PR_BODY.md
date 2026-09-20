@@ -56,12 +56,19 @@
 ## Validation
 
 - `npx tsc --noEmit -p tsconfig.app.json` — 0 errors.
-- `npm test` — 20/20 across 3 files, including the 12-test money-rule drift
-  guard (client/server fee parity, canonical amounts, edge-function auth
-  coverage, migration grant integrity).
+- `npm test` — 20/20 across 3 files, including the 12-test money-rule driftguard (client/server fee parity, canonical amounts, edge-function auth
+coverage, migration grant integrity).
 - `npm run build` — PWA build passes.
 - CI: `.github/workflows/ci.yml` runs typecheck + tests + build on every push
   and PR to `main`; latest run green.
+- **Live SQL attack battery** (`scripts/run-arena.sh`, Docker Postgres + the
+  real migrations): impersonation, privilege escalation, IDOR, payout
+  trigger integrity, and sale idempotency — all attacks blocked, all
+  invariants held. Found and fixed during this pass: a revenue-leaking
+  self-grant role policy, `ON CONFLICT` inference against a partial index,
+  invalid `ADD TABLE IF NOT EXISTS` publication syntax, an illegal
+  column-dropping `CREATE OR REPLACE VIEW`, and indexes on nonexistent
+columns.
 
 ## Deployment requirements (block launch, not code defects)
 

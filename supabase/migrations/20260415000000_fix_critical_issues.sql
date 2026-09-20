@@ -95,14 +95,17 @@ CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_a
 CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON wallets(user_id);
 
 -- Products table indexes
+-- (idx_products_is_listed removed: products never had an is_listed column in
+-- the migration-era schema; listing state lives in status/approval columns.)
 CREATE INDEX IF NOT EXISTS idx_products_vendor_id ON products(vendor_id);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-CREATE INDEX IF NOT EXISTS idx_products_is_listed ON products(is_listed);
 
 -- Affiliate links indexes
-CREATE INDEX IF NOT EXISTS idx_affiliate_links_user_id ON affiliate_links(user_id);
+-- (idx_affiliate_links_user_id/code removed: the table's real columns are
+-- affiliate_id and unique_code — user_id/code never existed.)
+CREATE INDEX IF NOT EXISTS idx_affiliate_links_affiliate_id ON affiliate_links(affiliate_id);
 CREATE INDEX IF NOT EXISTS idx_affiliate_links_product_id ON affiliate_links(product_id);
-CREATE INDEX IF NOT EXISTS idx_affiliate_links_code ON affiliate_links(code);
+CREATE INDEX IF NOT EXISTS idx_affiliate_links_unique_code ON affiliate_links(unique_code);
 
 -- Payout requests indexes
 CREATE INDEX IF NOT EXISTS idx_payout_requests_user_id ON payout_requests(user_id);

@@ -70,8 +70,11 @@ DROP TRIGGER IF EXISTS on_transaction_log ON public.transactions;
 -- ============================================================
 DROP POLICY IF EXISTS "Authenticated users can view basic profile info" ON public.profiles;
 
--- Public-safe view exposing only non-sensitive columns for cross-user lookups
-CREATE OR REPLACE VIEW public.public_profiles AS
+-- Public-safe view exposing only non-sensitive columns for cross-user lookups.
+-- NOTE: CREATE OR REPLACE VIEW cannot drop columns from an existing view; the
+-- earlier definition includes email, so recreate the view outright.
+DROP VIEW IF EXISTS public.public_profiles;
+CREATE VIEW public.public_profiles AS
 SELECT 
   id,
   full_name,

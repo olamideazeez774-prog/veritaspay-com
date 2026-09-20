@@ -148,17 +148,21 @@ BEGIN
     PERFORM cron.schedule(
       'clear-earnings-daily',
       '0 0 * * *',
-      $$select public.clear_eligible_earnings(1000)$$
+      $cron$select public.clear_eligible_earnings(1000)$cron$ -- tagged dollar-quote; an untagged body would end this DO block early
     );
   END IF;
 END
 $$;
 
 -- ---------------------------------------------------------------------------
--- 5. Block client-side role self-granting. Free vendor onboarding now goes
---    through public.self_activate_vendor(); every other role grant must be
---    an admin action (service_role bypasses RLS, so no service policy needed).
+-- 5. Block client-side role self-granting. 20260120013722 allowed users to
+--    self-assign vendor AND affiliate roles via INSERT — which lets anyone
+--    become an affiliate without paying the ₦350 membership. Free vendor
+--    onboarding goes through public.self_activate_vendor(); affiliate is
+--    granted exclusively by the payment-verified activation path (service
+--    role bypasses RLS); every other grant is an admin action.
 -- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Users can assign own non-admin roles" ON public.user_roles;
 DROP POLICY IF EXISTS "Only admins can insert roles" ON public.user_roles;
 CREATE POLICY "Only admins can insert roles"
   ON public.user_roles FOR INSERT

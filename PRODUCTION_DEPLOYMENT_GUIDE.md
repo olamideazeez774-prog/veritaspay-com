@@ -25,7 +25,8 @@ What it does:
 | `self_activate_vendor()` | Free, idempotent vendor onboarding RPC (SECURITY DEFINER, hard-codes the `vendor` role). Replaces the old client-side `user_roles` INSERT that RLS blocked. |
 | Payout immutability | `enforce_payout_request_integrity` now freezes `amount`/`fee_amount`/`net_amount`/`wallet_id`/`user_id` after creation, and the UPDATE trigger is re-bound without `OF status` so money-column-only edits can't bypass the guard. |
 | Clear-earnings cron | Schedules `clear-earnings-daily` (`0 0 * * *`) calling the SECURITY DEFINER RPC directly — same proven pattern as `cleanup-stale-payments-15m`. No external cron service needed. |
-| Role policy tightening | `user_roles` INSERT is admin-only for `authenticated` (service role bypasses RLS, so onboarding via the RPC still works). |
+| Role policy tightening | `user_roles` INSERT is admin-only for `authenticated` (service role bypasses RLS, so onboarding via the RPC still works). The legacy "Users can assign own non-admin roles" self-grant policy is explicitly dropped, closing a real revenue leak (free affiliate self-activation). |
+| Fresh-deploy repairs | Older migrations contained three universal deploy-blockers, now fixed in place: invalid `ADD TABLE IF NOT EXISTS` syntax (realtime), an illegal column-dropping `CREATE OR REPLACE VIEW` (`public_profiles`), and three indexes on columns that never existed. Repair migrations make colliding policy/function re-definitions idempotent. |
 
 ## 2. Deploy the changed edge functions
 

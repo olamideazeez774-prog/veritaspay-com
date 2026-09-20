@@ -35,7 +35,7 @@ BEGIN
     PERFORM cron.schedule(
       'prune-rate-limit-events-daily',
       '15 0 * * *',
-      $$select public.prune_rate_limit_events()$$
+      $cron$select public.prune_rate_limit_events()$cron$ -- tagged dollar-quote; an untagged body would end this DO block early
     );
   END IF;
 END
