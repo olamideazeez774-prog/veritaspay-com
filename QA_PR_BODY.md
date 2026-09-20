@@ -122,6 +122,23 @@ columns.
     coupon and affiliate metadata swapping (checkout server metadata is
     authoritative), refunded-sale delivery access (revoked), delivery
     token strength, and every edge function's authentication gate.
+- **Concurrency red team (round 4)** — TRUE parallel-session races against
+  the money paths, executed with simultaneous psql sessions in the arena:
+  - **Webhook × callback double-processing**: 4 parallel
+    `create_verified_sale` calls with the same payment reference →
+    exactly 1 sale row, exactly 1 vendor credit (DB-level idempotency
+    wins the race; side effects gate on `created=true`).
+  - **Payout double-approval**: 3 parallel `pending → paid` transitions →
+    `total_withdrawn` advanced exactly once (the FOR UPDATE row lock
+    serializes the state machine).
+  - **Coupon cap**: `increment_coupon_usage` is a single atomic
+    `SET x = x + 1`; the theoretical soft-reserve race (two buyers
+    passing the last coupon check before either increments) can exceed
+    `max_uses` by one — accepted residual, vendor-side discount edge
+    only, no money-path impact.
+  - **Expire-vs-late-payment**: the expiry cron only marks
+    `pending_payments` rows; value never flows from that status, so a
+    late-arriving real Paystack verification is unaffected.
 
 ## Deployment requirements (block launch, not code defects)
 
