@@ -6,10 +6,20 @@
  * limits stop abuse and runaway loops, not exact quotas.
  */
 
-/** Hash the caller IP the same way everywhere (salted with the UTC day). */
+/**
+ * Hash the caller IP the same way everywhere (salted with the UTC day).
+ *
+ * SECURITY SEAL (red-team round 3): take the LAST entry of
+ * `x-forwarded-for`. The first entry is the CLIENT-controlled value and is
+ * trivially spoofable ("X-Forwarded-For: <random>" each request), which
+ * let an attacker rotate identities and defeat every sliding-window limit.
+ * The last entry is the value appended by the platform's trusted edge
+ * proxy and cannot be chosen by the client.
+ */
 export async function clientIpHash(req: Request): Promise<string> {
+  const xff = (req.headers.get("x-forwarded-for") || "").split(",");
   const clientIp =
-    (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+    (xff.length > 1 ? xff[xff.length - 1] : xff[0] || "").trim() ||
     req.headers.get("cf-connecting-ip") ||
     "unknown";
   const encoder = new TextEncoder();

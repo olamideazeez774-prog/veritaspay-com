@@ -241,9 +241,23 @@ export async function verifyAndActivate(
     } else if (purpose === "premium_upgrade") {
       await supabase.from("profiles").update({ vendor_tier: "premium" }).eq("id", userId);
     } else if (purpose === "subscription") {
-      // Future: extend a subscription record by metadata.duration_days
-      const days = Number(metadata.duration_days || 30);
-      const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      // SECURITY SEAL (red-team round 3): duration is SERVER-OWNED. The
+      // client previously controlled metadata.duration_days, so paying the
+      // fixed price once with duration_days=999999 granted lifetime
+      // membership for the price of one month. Every paid subscription is
+      // exactly one platform-defined period, extended from the later of
+      // (now, current expiry) so repeat purchases stack legitimately.
+      const SUBSCRIPTION_DAYS = 30;
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("affiliate_membership_expires_at")
+        .eq("id", userId)
+        .single();
+      const currentExpiry = currentProfile?.affiliate_membership_expires_at
+        ? new Date(currentProfile.affiliate_membership_expires_at).getTime()
+        : 0;
+      const baseTime = Math.max(Date.now(), currentExpiry);
+      const expiresAt = new Date(baseTime + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
       await supabase
         .from("profiles")
         .update({ affiliate_membership_expires_at: expiresAt })

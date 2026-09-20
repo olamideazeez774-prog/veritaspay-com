@@ -33,7 +33,14 @@ Deno.serve(async (req) => {
     }
 
     // Create IP hash for duplicate detection and rate limiting
-    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+    // SECURITY SEAL: use the LAST XFF entry (appended by the trusted edge
+    // proxy). The first entry is client-controlled and spoofable, which
+    // let click-fraud rotate IPs and defeat the per-IP limiter.
+    const xffParts = (req.headers.get("x-forwarded-for") || "").split(",");
+    const clientIp =
+      (xffParts.length > 1 ? xffParts[xffParts.length - 1] : xffParts[0] || "").trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
     const encoder = new TextEncoder();
     const data = encoder.encode(clientIp + new Date().toDateString());
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);

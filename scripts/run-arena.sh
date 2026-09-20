@@ -24,3 +24,6 @@ docker exec -i $CONTAINER psql -U postgres -d arena -v ON_ERROR_STOP=0 < scripts
 
 echo "== attack battery v2 (seal verification) =="
 docker exec -i $CONTAINER psql -U postgres -d arena -v ON_ERROR_STOP=0 < scripts/attack-battery-v2.sql 2>&1 | grep -E "VULNERABLE|BLOCKED|OK\]|BROKEN|SUCCEEDED" | head -60
+
+echo "== attack battery v3 (round-3 seal verification) =="
+docker exec -i $CONTAINER psql -U postgres -d arena -v ON_ERROR_STOP=0 < scripts/attack-battery-v3.sql 2>&1 | grep -E "VULNERABLE|BLOCKED|OK\]|BROKEN|SUCCEEDED" | head -30

@@ -95,6 +95,33 @@ columns.
     `file_url`/`external_url` were storable and opened by buyers. Sealed
     with schema CHECK constraints (any writer) plus a frontend scheme
     allowlist helper.
+- **Red-team round 3** (`scripts/attack-battery-v3.sql`, same runner),
+  sealed in `20260920150000_seal_redteam_round3_findings.sql` and verified:
+  - **Verification-request self-approval** — a user could INSERT their own
+    `verification_requests` row with `status='approved'`, forging an
+    approved record in the admin queue. INSERT is now force-corrected to
+    `pending` at the trigger level regardless of client.
+  - **Lifetime membership for one month's price** — the `subscription`
+    purpose charged a fixed ₦3,500 but trusted client
+    `metadata.duration_days` (pay once with `duration_days=999999` =
+    ~2,700 years of affiliate membership). Duration is now server-owned
+    (30 days per purchase, stacking from the current expiry).
+  - **Listing-payment self-verification** — vendors could INSERT their own
+    `product_listing_payments` row with `status='verified'`, forging proof
+    of the ₦2,000 listing fee. Client inserts are forced `pending`.
+  - **Global-alert hijack** — any user could dismiss/hide platform-wide AI
+    alerts for everyone else via the row-level UPDATE policy. Client
+    UPDATE is revoked; only the per-user scoped RPCs can write, and global
+    dismissals are now recorded per-user.
+  - **Rate-limit identity spoofing** — the limiter trusted the FIRST
+    `X-Forwarded-For` entry, which the client controls; rotating it
+    per-request defeated every sliding-window limit. All limiters now use
+    the LAST entry (the trusted proxy-appended value).
+  - Re-verified clean: notification forgery, impersonated verification
+    requests, product self-approval, vendor/affiliate/admin self-grant,
+    coupon and affiliate metadata swapping (checkout server metadata is
+    authoritative), refunded-sale delivery access (revoked), delivery
+    token strength, and every edge function's authentication gate.
 
 ## Deployment requirements (block launch, not code defects)
 

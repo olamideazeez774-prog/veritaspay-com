@@ -5,10 +5,12 @@
 
 ## 1. Apply the pending database migrations
 
-Three migrations contain the 2026-09 hardening (grants, vendor self-activation RPC,
+Four migrations contain the 2026-09 hardening (grants, vendor self-activation RPC,
 payout immutability trigger, clear-earnings cron, role-policy tightening), the
-rate-limit backing table, and the attack-battery-v2 seals (payout state machine,
-certificate/log/profile write protection, vendor-URL scheme constraints):
+rate-limit backing table, the attack-battery-v2 seals (payout state machine,
+certificate/log/profile write protection, vendor-URL scheme constraints), and
+the red-team round-3 seals (verification/listing-payment self-approval, alert
+forgery, notification hardening):
 
 ```bash
 supabase db push
@@ -18,6 +20,7 @@ Or run in the Supabase SQL Editor, in order:
 1. `supabase/migrations/20260920120000_audit_remediation_hardening.sql`
 2. `supabase/migrations/20260920130000_rate_limit_events.sql`
 3. `supabase/migrations/20260920140000_seal_attack_battery_v2_findings.sql`
+4. `supabase/migrations/20260920150000_seal_redteam_round3_findings.sql`
 
 What it does:
 
@@ -145,7 +148,7 @@ migration grants from ever reaching `main`.
 
 Full QA state and accepted residuals are consolidated in `QA_PR_BODY.md`.
 
-- [ ] `supabase db push` applied (migrations `20260920120000` + `20260920130000` + `20260920140000`)
+- [ ] `supabase db push` applied (migrations `20260920120000` + `20260920130000` + `20260920140000` + `20260920150000`)
 - [ ] Changed + new edge functions deployed (section 2)
 - [ ] `PAYSTACK_SECRET_KEY`, `RESEND_API_KEY`, `SITE_URL` set
 - [ ] Optional: `INTERNAL_FUNCTION_SECRET` set

@@ -58,8 +58,11 @@ Deno.serve(async (req) => {
     }
 
     // ---- Per-IP throttling + audit trail (post-resolution; sale_id is NOT NULL) ----
+    // SECURITY SEAL: LAST XFF entry (trusted proxy value), not the first
+    // (client-spoofable), so throttle rotation via header forgery fails.
+    const xffParts = (req.headers.get("x-forwarded-for") || "").split(",");
     const clientIp =
-      (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      (xffParts.length > 1 ? xffParts[xffParts.length - 1] : xffParts[0] || "").trim() ||
       req.headers.get("cf-connecting-ip") ||
       "unknown";
     const ipHash = await hashIp(clientIp);
